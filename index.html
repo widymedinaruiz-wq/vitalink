@@ -1,0 +1,1663 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VitaLink</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
+<style>
+  :root{
+    --bg:#0E2723; --surface:#153934; --raised:#1B453F; --line:#2A5049;
+    --accent:#F2A65A; --accent2:#E8C468; --accent3:#7FC8B0;
+    --text:#EFF6F2; --muted:#8FB2A8; --danger:#E07A5F;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+  .display{font-family:'Space Grotesk',sans-serif;}
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px;}
+  a{color:inherit;}
+  button{font-family:inherit;}
+  input,select,textarea{font-family:inherit;background:var(--raised);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:9px 10px;font-size:14px;outline:none;}
+  input:focus,select:focus,textarea:focus{border-color:var(--accent);}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;}
+  .label{font-family:'Space Grotesk',sans-serif;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+  .info-btn{background:none;border:1px solid var(--line);color:var(--muted);border-radius:99px;width:18px;height:18px;min-width:18px;font-size:11px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;text-transform:none;letter-spacing:normal;}
+  .info-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .btn{display:inline-flex;align-items:center;gap:6px;justify-content:center;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;}
+  .btn-primary{background:var(--accent);color:var(--bg);}
+  .btn-ghost{background:var(--raised);color:var(--text);border:1px solid var(--line);}
+  .btn-danger{background:var(--danger);color:var(--bg);}
+  .btn:disabled{opacity:.5;cursor:default;}
+  .row-item{display:flex;align-items:center;justify-content:space-between;padding:9px 10px;background:var(--raised);border-radius:12px;}
+  .pill{border-radius:12px;border:1px solid var(--line);background:var(--raised);padding:9px 4px;text-align:center;cursor:pointer;font-size:11px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:4px;}
+  .pill.active{border-color:var(--accent);background:rgba(242,166,90,.12);color:var(--accent);font-weight:700;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+  .stack{display:flex;flex-direction:column;gap:16px;}
+
+  #app{display:flex;min-height:100vh;max-width:1180px;margin:0 auto;}
+  nav.side{width:210px;flex-shrink:0;padding:24px 12px;border-right:1px solid var(--line);position:sticky;top:0;height:100vh;display:flex;flex-direction:column;}
+  nav.side .brand{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;padding:0 12px 22px;}
+  nav.side .brand .owner{font-family:'Inter',sans-serif;font-size:12px;font-weight:500;color:var(--muted);margin-top:2px;}
+  nav.side .navbtn{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:12px;color:var(--muted);cursor:pointer;font-size:14px;margin-bottom:2px;}
+  nav.side .navbtn.active{background:var(--raised);color:var(--accent);font-weight:700;}
+  nav.side .navbtn .ic{font-size:16px;width:20px;text-align:center;}
+  nav.side .foot{margin-top:auto;display:flex;flex-direction:column;gap:6px;}
+  main{flex:1;padding:28px 32px 60px;min-width:0;}
+  main header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:22px;flex-wrap:wrap;gap:8px;}
+  main header h1{font-family:'Space Grotesk',sans-serif;font-size:22px;margin:0;}
+  main header .sub{color:var(--muted);font-size:13px;text-transform:capitalize;}
+
+  .toast{margin:0 0 16px;padding:12px 14px;background:rgba(224,122,95,.15);border:1px solid var(--danger);border-radius:10px;color:var(--danger);font-size:13px;}
+  .toast.ok{background:rgba(127,200,176,.15);border-color:var(--accent3);color:var(--accent3);}
+
+  .dial-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;padding:14px 0;}
+  .legend{display:flex;gap:16px;}
+  .legend span{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);}
+  .dot{width:8px;height:8px;border-radius:99px;display:inline-block;}
+
+  .meal-type-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:12px;border:1px solid var(--line);background:var(--raised);cursor:pointer;font-size:10px;color:var(--muted);}
+  .meal-type-btn.active{border-color:var(--accent);background:rgba(242,166,90,.12);color:var(--accent);font-weight:700;}
+
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+  .cal-day{aspect-ratio:1;border-radius:10px;border:1px solid var(--line);background:var(--raised);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:var(--text);position:relative;}
+  .cal-day.empty{visibility:hidden;}
+  .cal-day.has-data::after{content:'';width:5px;height:5px;border-radius:99px;background:var(--accent);position:absolute;bottom:6px;}
+  .cal-day.selected{border-color:var(--accent);background:rgba(242,166,90,.15);}
+  .cal-day.today{color:var(--accent2);font-weight:700;}
+  .cal-dow{text-align:center;font-size:10px;color:var(--muted);}
+
+  .chart-box{width:100%;overflow-x:auto;}
+  .med-row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--raised);border-radius:12px;}
+  .med-due{border:1px solid var(--accent);background:rgba(242,166,90,.1);}
+  .switch{width:38px;height:22px;border-radius:99px;background:var(--line);position:relative;cursor:pointer;flex-shrink:0;}
+  .switch.on{background:var(--accent);}
+  .switch .knob{width:16px;height:16px;border-radius:99px;background:var(--text);position:absolute;top:3px;left:3px;transition:left .15s;}
+  .switch.on .knob{left:19px;background:var(--bg);}
+
+  .scanner-video-wrap{position:relative;width:100%;aspect-ratio:4/3;background:#000;border-radius:14px;overflow:hidden;}
+  .scanner-video-wrap video{width:100%;height:100%;object-fit:cover;}
+  .scanner-frame{position:absolute;inset:18% 12%;border:3px solid var(--accent);border-radius:12px;box-shadow:0 0 0 999px rgba(0,0,0,.35);pointer-events:none;}
+
+  @media (max-width: 820px){
+    #app{flex-direction:column;}
+    nav.side{width:100%;height:auto;position:sticky;top:0;flex-direction:row;overflow-x:auto;padding:12px;border-right:none;border-bottom:1px solid var(--line);z-index:20;background:var(--bg);}
+    nav.side .brand{display:none;}
+    nav.side .navbtn{flex-direction:column;font-size:10px;gap:4px;white-space:nowrap;}
+    nav.side .foot{margin-top:0;margin-left:auto;flex-direction:row;}
+    main{padding:18px 16px 60px;}
+    .grid2{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* ================= utils ================= */
+const LS = {
+  get(k){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; }catch{ return null; } },
+  set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ console.error('storage error', e); return false; } }
+};
+function uid(){ return Math.random().toString(36).slice(2,9); }
+function pad(n){ return String(n).padStart(2,'0'); }
+function todayISO(){ const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function isoDaysAgo(n){ const d=new Date(); d.setDate(d.getDate()-n); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function isoOf(y,m,day){ return `${y}-${pad(m+1)}-${pad(day)}`; }
+const DOW = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+function dayLetter(iso){ const [y,m,dd]=iso.split('-').map(Number); const idx=(new Date(y,m-1,dd).getDay()+6)%7; return ['L','M','X','J','V','S','D'][idx]; }
+const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+function formatDateEs(iso){
+  const [y,m,d] = iso.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  return dt.toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long' });
+}
+function nowHM(){ const d=new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ================= data model ================= */
+const DEFAULT_GOALS = { calorieGoal:2000, waterGoal:4, exerciseGoal:30 };
+const MEAL_TYPES = [
+  { id:'desayuno', label:'Desayuno', ic:'☕' },
+  { id:'merienda', label:'Merienda', ic:'🍎' },
+  { id:'almuerzo', label:'Almuerzo', ic:'☀️' },
+  { id:'cena', label:'Cena', ic:'🌙' },
+];
+const BODYCOMP_FIELDS = [
+  { key:'bmi', label:'IMC', unit:'', info:'El IMC es tu peso dividido entre tu estatura al cuadrado (kg/m²). Es un indicador rápido de si tu peso está en un rango saludable para tu altura, pero no distingue entre grasa y músculo — una persona muy musculosa puede tener un IMC alto sin exceso de grasa real.<br><br>Se relaciona directamente con tu <b>Grasa corporal %</b>: cuando el IMC está alto por exceso de grasa (no de músculo), ambos suben juntos.<br><br><b>Rangos de referencia:</b><br>Bajo peso: menos de 18.5<br>Normal: 18.5 – 24.9<br>Sobrepeso: 25 – 29.9<br>Obesidad: 30 o más' },
+  { key:'bodyFatPct', label:'Grasa corporal', unit:'%', info:'Es el porcentaje de tu peso total que corresponde a grasa corporal (visceral + subcutánea). Es más preciso que el IMC porque sí distingue grasa de músculo.<br><br>Se relaciona con <b>Grasa visceral</b> y <b>Grasa subcutánea</b> (la suma aproximada de ambas), y de forma inversa con tu <b>Agua corporal %</b> y <b>Músculo esquelético %</b> — el tejido graso retiene mucha menos agua que el muscular, así que a mayor grasa, menor % de agua y músculo.<br><br><b>Rangos de referencia aproximados</b> (varían por edad y sexo):<br>Hombres: 10–20% saludable<br>Mujeres: 18–28% saludable' },
+  { key:'bodyWaterPct', label:'Agua corporal', unit:'%', info:'Es el porcentaje de tu peso que es agua — presente en sangre, músculos, órganos y piel. El músculo contiene mucha más agua que la grasa, así que este número tiende a subir cuando ganas músculo o pierdes grasa.<br><br>Se relaciona de forma inversa con tu <b>Grasa corporal %</b>: cuando uno sube, el otro suele bajar, aunque ambos cambien por la misma causa (más o menos grasa).<br><br><b>Rangos de referencia aproximados:</b><br>Hombres: 50–65%<br>Mujeres: 45–60%' },
+  { key:'skeletalMusclePct', label:'Músculo esquelético', unit:'%', info:'Es el porcentaje de tu peso que corresponde a músculo esquelético (el que mueves voluntariamente, sin contar músculo liso ni cardíaco).<br><br>Se relaciona directamente con tu <b>Masa muscular (kg)</b> y <b>Masa esquelética (kg)</b> (son la versión en kilos de este mismo dato), y con tu <b>Metabolismo basal</b>: más músculo significa que tu cuerpo quema más calorías en reposo.<br><br><b>Rangos de referencia aproximados:</b><br>Hombres: 33–39%<br>Mujeres: 24–30%<br><br>Mantenerlo o aumentarlo con el tiempo es especialmente importante después de los 40 años, cuando el cuerpo pierde músculo de forma natural (sarcopenia).' },
+  { key:'bmr', label:'Metabolismo basal (MMR)', unit:'kcal', info:'Es la energía (en kcal) que tu cuerpo necesita solo para mantenerse vivo en reposo absoluto — respirar, mantener la temperatura, el corazón latiendo — sin contar ninguna actividad.<br><br>Depende directamente de tu <b>Músculo esquelético %</b> y <b>Masa muscular</b>: más músculo eleva tu metabolismo basal, porque el tejido muscular consume más energía en reposo que la grasa. VitaLink usa este valor junto con tu ejercicio y comidas en la pestaña <b>Pronóstico</b> para estimar tu balance calórico.<br><br>No hay un "número meta" único — depende de tu edad, sexo, peso y composición — pero aumentarlo indirectamente (ganando músculo) ayuda a quemar más calorías incluso en descanso.' },
+  { key:'fatLossKg', label:'Pérdida de grasa', unit:'kg', info:'Es el cambio estimado en tu grasa corporal (en kg) que calcula la báscula, comparando con una medición de referencia anterior.<br><br>Se relaciona con tu <b>Grasa corporal %</b> y <b>Grasa visceral</b> — si estos bajan con el tiempo, este valor debería reflejar una pérdida de grasa acumulada.<br><br>Un ritmo saludable de pérdida de grasa es de aproximadamente <b>0.5% a 1% de tu peso corporal por semana</b> — perder más rápido suele significar pérdida de músculo y agua, no solo grasa.' },
+  { key:'subcutaneousFatPct', label:'Grasa subcutánea', unit:'%', info:'Es la grasa que está justo debajo de la piel — la que puedes pellizcar — y representa la mayor parte de tu grasa corporal total. Es distinta de la grasa visceral, que rodea tus órganos internos.<br><br>Junto con tu <b>Grasa visceral</b>, forma aproximadamente tu <b>Grasa corporal %</b> total. Es menos riesgosa para la salud metabólica que la grasa visceral, pero en exceso también refleja sobrepeso general.<br><br>No tiene un rango universal estandarizado como otros parámetros — lo más útil es ver su tendencia junto con tu Grasa corporal % general: si uno baja, el otro normalmente también.' },
+  { key:'heartRate', label:'Frecuencia cardíaca', unit:'bpm', info:'Es tu frecuencia cardíaca (latidos por minuto) en el momento exacto de la medición — no necesariamente en reposo total.<br><br>Se relaciona con tu <b>Índice cardíaco</b>: juntos indican cuánta sangre está bombeando tu corazón. Una frecuencia en reposo baja suele ser señal de buena condición cardiovascular (común en personas entrenadas).<br><br><b>Rango normal en reposo para adultos:</b> 60–100 bpm (atletas entrenados pueden estar por debajo, 40–60 bpm).<br><br>Si ves lecturas consistentemente fuera de este rango, especialmente por encima de 100 en reposo, vale la pena comentarlo con un médico.' },
+  { key:'cardiacIndex', label:'Índice cardíaco', unit:'L/min/m²', info:'Mide cuánta sangre bombea tu corazón por minuto, ajustado a tu tamaño corporal (superficie corporal). Es un parámetro más clínico que los demás.<br><br>Se relaciona directamente con tu <b>Frecuencia cardíaca</b> — ambos reflejan el desempeño de tu sistema cardiovascular en el momento de la medición.<br><br><b>Rango normal de referencia:</b> aproximadamente 2.5 – 4.0 L/min/m² en reposo.<br><br>Valores fuera de este rango no son necesariamente alarmantes por sí solos, pero si se repiten de forma consistente, es un buen dato para compartir con un médico — este parámetro suele usarse en contextos clínicos, no solo de fitness.' },
+  { key:'visceralFat', label:'Grasa visceral', unit:'', info:'Mide la grasa acumulada alrededor de tus órganos internos (abdomen) en una escala de nivel (no porcentaje). Es el tipo de grasa más relacionado con riesgo metabólico — más que la grasa subcutánea.<br><br>Se relaciona con tu <b>Grasa corporal %</b> e <b>IMC</b>, pero es un indicador más específico: puedes tener un IMC normal y aun así tener grasa visceral alta ("delgado por fuera, graso por dentro").<br><br><b>Niveles de referencia (escala típica 1–59):</b><br>1–9: normal<br>10–14: alto<br>15 o más: muy alto (mayor riesgo de diabetes tipo 2 y enfermedad cardiovascular)<br><br><b>Meta recomendada:</b> mantenerlo por debajo de 10.' },
+  { key:'muscleMassKg', label:'Masa muscular', unit:'kg', info:'Es el peso total (en kg) de todo tu tejido muscular — esquelético, liso y cardíaco combinados, según el algoritmo de tu báscula.<br><br>Se relaciona directamente con tu <b>Músculo esquelético %</b> (ese es el porcentaje de esto mismo) y con tu <b>Metabolismo basal</b> — más masa muscular significa más calorías quemadas en reposo.<br><br>No hay un número meta universal — depende de tu estatura, sexo y objetivo — pero mantenerlo estable o creciente con el tiempo (especialmente con entrenamiento de fuerza) es una señal positiva, sobre todo si estás en un proceso de pérdida de peso, donde quieres perder grasa sin perder músculo.' },
+  { key:'skeletalMassKg', label:'Masa esquelética', unit:'kg', info:'Es el peso (en kg) específicamente de tu músculo esquelético — el que mueves de forma voluntaria — sin contar músculo liso ni cardíaco. Suele representar entre el 40% y 50% de tu masa muscular total.<br><br>Se relaciona directamente con tu <b>Músculo esquelético %</b> y tu <b>Masa muscular (kg)</b> — es la pieza más específica de fuerza funcional dentro de esos dos datos.<br><br>Al igual que la masa muscular total, no hay una meta universal, pero mantenerlo o aumentarlo con el tiempo apoya tu fuerza, tu postura y tu metabolismo basal.' },
+  { key:'proteinPct', label:'Proteína', unit:'%', info:'Es el porcentaje de tu peso corporal que corresponde a proteína — presente en músculos, órganos, piel y otros tejidos, no solo en el músculo.<br><br>Se relaciona directamente con tu <b>Masa muscular</b>: a mayor masa muscular, mayor será normalmente tu % de proteína, ya que el tejido muscular es rico en proteína.<br><br><b>Rango de referencia aproximado:</b> 16% – 20%.<br><br>Un valor muy bajo puede ser señal de desnutrición o pérdida muscular, mientras que valores normales-altos suelen acompañar una buena masa muscular.' },
+  { key:'bodyAge', label:'Edad corporal', unit:'años', info:'Es una estimación algorítmica de tu "edad metabólica" comparada con el promedio poblacional, calculada combinando varias de las métricas anteriores (metabolismo basal, músculo, grasa, etc.), según el fabricante de tu báscula.<br><br>Está relacionada con <b>todas las demás métricas de esta sección</b> — es básicamente un resumen compuesto de qué tan bien o mal se comparan tus números con los de tu edad real.<br><br>Si tu edad corporal es <b>menor</b> a tu edad real, es una señal positiva de buena condición física relativa. Si es <b>mayor</b>, indica áreas de mejora (normalmente relacionadas con más músculo y menos grasa).<br><br>Es solo una estimación orientativa del fabricante, no un diagnóstico médico.' },
+];
+function emptyDay(){ return { meals:[], exercises:[], weight:null, sleepHours:null, water:0, bp:[], medsTaken:[], bodyComp:[] }; }
+function getDay(iso){ return { ...emptyDay(), ...(LS.get('vl:day:'+iso) || {}) }; }
+function setDayData(iso, data){ return LS.set('vl:day:'+iso, data); }
+function getGoals(){ return { ...DEFAULT_GOALS, ...(LS.get('vl:goals') || {}) }; }
+function setGoals(g){ return LS.set('vl:goals', g); }
+function getMeds(){ return LS.get('vl:meds') || []; }
+function setMeds(m){ return LS.set('vl:meds', m); }
+function getApiKey(){ return LS.get('vl:apikey') || ''; }
+function setApiKey(k){ return LS.set('vl:apikey', k); }
+function getForecastConfig(){ return LS.get('vl:forecast-config') || { heightCm:null, targetWeightKg:null }; }
+function setForecastConfig(c){ return LS.set('vl:forecast-config', c); }
+function getNutritionCache(){ return LS.get('vl:nutrition-cache') || {}; }
+function setNutritionCache(c){ return LS.set('vl:nutrition-cache', c); }
+function normalizeFoodKey(s){ return String(s||'').trim().toLowerCase().replace(/\s+/g,' '); }
+function rememberNutrition(name, entry){
+  const cache = getNutritionCache();
+  const key = normalizeFoodKey(name);
+  if(!key) return;
+  cache[key] = { label: name.trim(), calories: entry.calories, protein: entry.protein||0, carbs: entry.carbs||0, fat: entry.fat||0,
+    fiber: entry.fiber||0, sugar: entry.sugar||0, sodium: entry.sodium||0, iron: entry.iron||0, calcium: entry.calcium||0, potassium: entry.potassium||0, vitaminC: entry.vitaminC||0,
+    note: entry.note||'', ts: Date.now() };
+  setNutritionCache(cache);
+}
+function dayHasData(iso){
+  const raw = LS.get('vl:day:'+iso);
+  if(!raw) return false;
+  return (raw.meals?.length||0) + (raw.exercises?.length||0) + (raw.bp?.length||0) + (raw.medsTaken?.length||0) > 0 || raw.weight != null || raw.sleepHours != null || (raw.water||0) > 0;
+}
+
+/* ================= app state ================= */
+const state = {
+  tab: 'hoy',
+  day: getDay(todayISO()),
+  goals: getGoals(),
+  meds: getMeds(),
+  calMonth: (()=>{ const d=new Date(); return { y:d.getFullYear(), m:d.getMonth() }; })(),
+  selectedDate: todayISO(),
+  toast: null,
+  alertsOn: false,
+  progressRange: 7,
+};
+
+function saveDay(){
+  const ok = setDayData(todayISO(), state.day);
+  if(!ok) toast('No se pudo guardar en este navegador (¿modo privado / almacenamiento lleno?)', true);
+}
+
+function toast(msg, isError){
+  state.toast = { msg, isError };
+  render();
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=>{ state.toast=null; render(); }, 3500);
+}
+
+/* ================= nutrition AI estimate ================= */
+async function estimateNutrition(desc){
+  const key = getApiKey();
+  if(!key) throw new Error('Agrega tu API key de Anthropic en Ajustes para usar esta función');
+  const prompt = `Eres un nutricionista. Estima el contenido nutricional para el siguiente alimento, considerando la cantidad/porción indicada, usando valores nutricionales típicos (USDA u equivalente). Si la porción no se especifica, asume una porción individual estándar. Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional, sin markdown, sin backticks:
+{"calories": <entero kcal>, "protein": <entero g>, "carbs": <entero g>, "fat": <entero g>, "fiber": <entero g>, "sugar": <entero g>, "sodium": <entero mg>, "iron": <entero mg>, "calcium": <entero mg>, "potassium": <entero mg>, "vitaminC": <entero mg>, "note": "<nota breve en español, max 10 palabras>"}
+
+Alimento: "${desc}"`;
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key': key,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true'
+    },
+    body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:300, messages:[{role:'user', content:prompt}] })
+  });
+  if(!res.ok){ const t = await res.text(); throw new Error('API error: '+t.slice(0,200)); }
+  const data = await res.json();
+  const text = (data.content||[]).map(b=>b.text||'').join('');
+  const clean = text.replace(/```json|```/g,'').trim();
+  const parsed = JSON.parse(clean);
+  if(typeof parsed.calories !== 'number') throw new Error('respuesta inválida');
+  return parsed;
+}
+
+/* ================= barcode scanner + Open Food Facts lookup ================= */
+function getBarcodeCache(){ return LS.get('vl:barcode-cache') || {}; }
+function setBarcodeCache(c){ return LS.set('vl:barcode-cache', c); }
+
+function openScanner(){
+  if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){
+    toast('Tu navegador no soporta acceso a la cámara', true); return;
+  }
+  if(typeof ZXing === 'undefined'){
+    toast('No se pudo cargar el lector de códigos (revisa tu conexión a internet)', true); return;
+  }
+  window._scanBusy = false;
+  window._modal = 'scanner';
+  render();
+  startScanner();
+}
+function startScanner(){
+  const codeReader = new ZXing.BrowserMultiFormatReader();
+  window._scannerReader = codeReader;
+  codeReader.decodeFromConstraints(
+    { video: { facingMode: { ideal: 'environment' } } },
+    'scanner-video',
+    (result) => { if(result) handleScanResult(result.getText()); }
+  ).catch(err=>{
+    const statusEl = document.getElementById('scanner-status');
+    if(statusEl) statusEl.textContent = 'No se pudo acceder a la cámara: ' + (err.message||err);
+  });
+}
+function stopScanner(){
+  if(window._scannerReader){
+    try{ window._scannerReader.reset(); }catch(e){}
+    window._scannerReader = null;
+  }
+}
+function closeScanner(e){
+  if(e && e.target!==e.currentTarget) return;
+  stopScanner();
+  window._modal = null;
+  render();
+}
+function handleScanResult(text){
+  if(window._scanBusy) return;
+  window._scanBusy = true;
+  stopScanner();
+  window._modal = null;
+  render();
+  lookupBarcode(text);
+}
+
+async function fetchOFF(code){
+  try{
+    const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=product_name,brands,nutriments,code`);
+    if(!res.ok) return null;
+    const data = await res.json();
+    if(data.status!==1 || !data.product) return null;
+    return parseOFFProduct(data.product);
+  }catch(e){ return null; }
+}
+function pickGramField(n, key){ const v = n[key+'_100g']; return typeof v==='number' ? Math.round(v) : 0; }
+function pickMgField(n, key){ const v = n[key+'_100g']; return typeof v==='number' ? Math.round(v*1000) : 0; }
+function parseOFFProduct(p){
+  const n = p.nutriments || {};
+  const name = [p.product_name, p.brands ? '('+p.brands.split(',')[0].trim()+')' : ''].filter(Boolean).join(' ').trim();
+  const kcal = n['energy-kcal_100g'] != null ? n['energy-kcal_100g'] : (n['energy_100g']!=null ? n['energy_100g']/4.184 : 0);
+  return {
+    label: name || ('Producto '+(p.code||'')),
+    calories: Math.round(kcal||0),
+    protein: pickGramField(n,'proteins'),
+    carbs: pickGramField(n,'carbohydrates'),
+    fat: pickGramField(n,'fat'),
+    fiber: pickGramField(n,'fiber'),
+    sugar: pickGramField(n,'sugars'),
+    sodium: pickMgField(n,'sodium'),
+    iron: pickMgField(n,'iron'),
+    calcium: pickMgField(n,'calcium'),
+    potassium: pickMgField(n,'potassium'),
+    vitaminC: pickMgField(n,'vitamin-c'),
+    note: 'Open Food Facts · valores por 100 g',
+    ts: Date.now(),
+  };
+}
+async function lookupBarcode(barcode){
+  const cache = getBarcodeCache();
+  let product = cache[barcode];
+  if(!product){
+    product = await fetchOFF(barcode);
+    if(!product && barcode.length < 13) product = await fetchOFF(barcode.padStart(13,'0'));
+    if(!product){
+      toast('Producto no encontrado en Open Food Facts (código '+barcode+') — ingrésalo manualmente', true);
+      return;
+    }
+    cache[barcode] = product;
+    setBarcodeCache(cache);
+  }
+  fillMealFromBarcode(product);
+}
+function fillMealFromBarcode(product){
+  const nameEl = document.getElementById('meal-name');
+  if(!nameEl) return;
+  nameEl.value = product.label;
+  document.getElementById('meal-cal').value = product.calories;
+  document.getElementById('meal-p').value = product.protein;
+  document.getElementById('meal-c').value = product.carbs;
+  document.getElementById('meal-f').value = product.fat;
+  window._pendingMicros = { key: normalizeFoodKey(product.label), data: product };
+  document.getElementById('meal-note').textContent = '✓ ' + product.note + ' — ajusta la cantidad a tu porción real';
+  rememberNutrition(product.label, product);
+}
+
+/* ================= tiny SVG chart helpers ================= */
+function svgPathThroughValid(xy){
+  let started = false;
+  return xy.map(pt=>{
+    if(!pt) return '';
+    const cmd = started ? 'L' : 'M';
+    started = true;
+    return `${cmd}${pt[0]},${pt[1]}`;
+  }).join(' ');
+}
+function refGridSVG(min, range, w, h, pad, steps, unit){
+  const lines = [];
+  for(let i=0;i<steps;i++){
+    const frac = i/(steps-1);
+    const val = min + frac*range;
+    const y = h-pad-frac*(h-pad*2);
+    lines.push(`<line x1="${pad}" y1="${y}" x2="${w-pad}" y2="${y}" stroke="var(--line)" stroke-dasharray="3,3"/>
+      <text x="2" y="${y+3}" font-size="9" fill="var(--muted)">${Math.round(val)}${unit?' '+unit:''}</text>`);
+  }
+  return lines.join('');
+}
+function lineChartSVG(points, opts){
+  const w = opts.w||520, h = opts.h||150, pad=28;
+  const vals = points.map(p=>p.v).filter(v=>v!=null);
+  if(vals.length < 2) return `<div style="color:var(--muted);font-size:12px;padding:20px;text-align:center;">${opts.emptyMsg||'No hay suficientes datos aún'}</div>`;
+  let min = Math.min(...vals), max = Math.max(...vals);
+  if(opts.targetValue!=null){ min = Math.min(min, opts.targetValue); max = Math.max(max, opts.targetValue); }
+  const range = (max-min)||1;
+  const stepX = (w-pad*2)/(points.length-1);
+  const xy = points.map((p,i)=> p.v==null ? null : [pad+i*stepX, h-pad-((p.v-min)/range)*(h-pad*2)]);
+  const validPts = svgPathThroughValid(xy);
+  const dots = xy.map((p,i)=> p ? `<circle cx="${p[0]}" cy="${p[1]}" r="3.2" fill="${opts.color}"/>` : '').join('');
+  const labels = points.map((p,i)=>`<text x="${pad+i*stepX}" y="${h-6}" font-size="10" fill="var(--muted)" text-anchor="middle">${p.label}</text>`).join('');
+  const grid = opts.gridLines ? refGridSVG(min, range, w, h, pad, opts.gridSteps||4, opts.unit) : '';
+  const targetColor = opts.targetColor||'var(--accent2)';
+  const targetY = opts.targetValue!=null ? h-pad-((opts.targetValue-min)/range)*(h-pad*2) : null;
+  const targetLine = targetY!=null ? `<line x1="${pad}" y1="${targetY}" x2="${w-pad}" y2="${targetY}" stroke="${targetColor}" stroke-width="2" stroke-dasharray="6,3"/>
+    <text x="${w-pad-2}" y="${targetY-4}" font-size="9" fill="${targetColor}" text-anchor="end">Meta ${opts.targetValue}${opts.unit?' '+opts.unit:''}</text>` : '';
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:${h}px;">
+    ${grid}
+    <line x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="var(--line)"/>
+    ${targetLine}
+    <path d="${validPts}" fill="none" stroke="${opts.color}" stroke-width="2.5" stroke-linejoin="round"/>
+    ${dots}${labels}
+  </svg>`;
+}
+function multiLineChartSVG(points, series, opts){
+  const w = opts.w||520, h = opts.h||150, pad=28;
+  const allVals = points.flatMap(p=>series.map(s=>p[s.key])).filter(v=>v!=null);
+  if(allVals.length < 2) return `<div style="color:var(--muted);font-size:12px;padding:20px;text-align:center;">${opts.emptyMsg||'No hay suficientes datos aún'}</div>`;
+  const min = Math.min(...allVals), max = Math.max(...allVals);
+  const range = (max-min)||1;
+  const stepX = (w-pad*2)/(points.length-1);
+  const paths = series.map(s=>{
+    const xy = points.map((p,i)=> p[s.key]==null ? null : [pad+i*stepX, h-pad-((p[s.key]-min)/range)*(h-pad*2)]);
+    const d = svgPathThroughValid(xy);
+    const dots = xy.map(pt=> pt?`<circle cx="${pt[0]}" cy="${pt[1]}" r="3" fill="${s.color}"/>`:'').join('');
+    return `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.5"/>${dots}`;
+  }).join('');
+  const labels = points.map((p,i)=>`<text x="${pad+i*stepX}" y="${h-6}" font-size="10" fill="var(--muted)" text-anchor="middle">${p.label}</text>`).join('');
+  const grid = opts.gridLines ? refGridSVG(min, range, w, h, pad, opts.gridSteps||4, opts.unit) : '';
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:${h}px;">
+    ${grid}
+    <line x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="var(--line)"/>
+    ${paths}${labels}
+  </svg>`;
+}
+function barChartSVG(points, opts){
+  const w = opts.w||520, h = opts.h||150, pad=28;
+  const vals = points.map(p=>p.v||0);
+  const max = Math.max(...vals, opts.goal||0, 1);
+  const stepX = (w-pad*2)/points.length;
+  const barW = stepX*0.55;
+  const bars = points.map((p,i)=>{
+    const bh = ((p.v||0)/max)*(h-pad*2);
+    const x = pad+i*stepX + (stepX-barW)/2;
+    const y = h-pad-bh;
+    return `<rect x="${x}" y="${y}" width="${barW}" height="${bh}" rx="4" fill="${opts.color}"/>`;
+  }).join('');
+  const goalY = opts.goal ? h-pad-(opts.goal/max)*(h-pad*2) : null;
+  const goalLine = goalY!=null ? `<line x1="${pad}" y1="${goalY}" x2="${w-pad}" y2="${goalY}" stroke="var(--muted)" stroke-dasharray="4,4"/>` : '';
+  const labels = points.map((p,i)=>`<text x="${pad+i*stepX+stepX/2}" y="${h-6}" font-size="10" fill="var(--muted)" text-anchor="middle">${p.label}</text>`).join('');
+  const grid = opts.gridLines ? refGridSVG(0, max, w, h, pad, opts.gridSteps||4, opts.unit) : '';
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:${h}px;">
+    ${grid}
+    <line x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="var(--line)"/>
+    ${goalLine}${bars}${labels}
+  </svg>`;
+}
+function dialSVG(calPct, waterPct, exPct){
+  const rings = [
+    { r:76, pct:calPct, color:'var(--accent)' },
+    { r:60, pct:waterPct, color:'var(--accent3)' },
+    { r:44, pct:exPct, color:'var(--accent2)' },
+  ];
+  const cx=84;
+  const circles = rings.map(ring=>{
+    const c = 2*Math.PI*ring.r; const clamped = Math.max(0, Math.min(1, ring.pct||0));
+    return `<circle cx="${cx}" cy="${cx}" r="${ring.r}" fill="none" stroke="var(--line)" stroke-width="9"/>
+    <circle cx="${cx}" cy="${cx}" r="${ring.r}" fill="none" stroke="${ring.color}" stroke-width="9" stroke-linecap="round"
+      stroke-dasharray="${c*clamped} ${c}" transform="rotate(-90 ${cx} ${cx})"/>`;
+  }).join('');
+  return `<svg width="168" height="168" viewBox="0 0 168 168">${circles}</svg>`;
+}
+
+/* ================= renderers ================= */
+function renderApp(){
+  const tabs = [
+    { id:'hoy', label:'Hoy', ic:'📊' },
+    { id:'comidas', label:'Comidas', ic:'🍽️' },
+    { id:'ejercicio', label:'Ejercicio', ic:'🏋️' },
+    { id:'salud', label:'Salud', ic:'❤️' },
+    { id:'composicion', label:'Composición', ic:'⚖️' },
+    { id:'calendario', label:'Calendario', ic:'📅' },
+    { id:'progreso', label:'Progreso', ic:'📈' },
+    { id:'pronostico', label:'Pronóstico', ic:'🔮' },
+    { id:'nutricion', label:'Análisis Nutrición', ic:'🧬' },
+  ];
+  const navBtns = tabs.map(t=>`
+    <div class="navbtn ${state.tab===t.id?'active':''}" onclick="setTab('${t.id}')">
+      <span class="ic">${t.ic}</span><span>${t.label}</span>
+    </div>`).join('');
+
+  const titles = { hoy:'Hoy', comidas:'Comidas', ejercicio:'Ejercicio', salud:'Salud', composicion:'Composición', calendario:'Calendario', progreso:'Progreso', nutricion:'Análisis Nutrición', pronostico:'Pronóstico' };
+
+  return `
+  <nav class="side">
+    <div class="brand">VitaLink<div class="owner">Widy Medina</div></div>
+    ${navBtns}
+    <div class="foot">
+      <div class="navbtn" onclick="openSettings()"><span class="ic">⚙️</span><span>Ajustes</span></div>
+      <div class="navbtn" onclick="exportBackup()"><span class="ic">💾</span><span>Exportar</span></div>
+    </div>
+  </nav>
+  <main>
+    <header>
+      <div>
+        <h1>${titles[state.tab]}</h1>
+        <div class="sub">${formatDateEs(todayISO())}</div>
+      </div>
+    </header>
+    ${state.toast ? `<div class="toast ${state.toast.isError?'':'ok'}">${esc(state.toast.msg)}</div>` : ''}
+    ${renderTab()}
+  </main>
+  ${modalHTML()}
+  `;
+}
+function renderTab(){
+  switch(state.tab){
+    case 'hoy': return renderHoy();
+    case 'comidas': return renderComidas();
+    case 'ejercicio': return renderEjercicio();
+    case 'salud': return renderSalud();
+    case 'composicion': return renderComposicion();
+    case 'calendario': return renderCalendario();
+    case 'progreso': return renderProgreso();
+    case 'pronostico': return renderPronostico();
+    case 'nutricion': return renderNutricion();
+    default: return '';
+  }
+}
+
+function renderHoy(){
+  const d = state.day, g = state.goals;
+  const calEaten = d.meals.reduce((s,m)=>s+(Number(m.calories)||0),0);
+  const exMin = d.exercises.reduce((s,e)=>s+(Number(e.minutes)||0),0);
+  const exCal = d.exercises.reduce((s,e)=>s+(Number(e.calories)||0),0);
+  const lastBP = d.bp[d.bp.length-1];
+  return `
+  <div class="stack">
+    <div class="card dial-wrap">
+      <div style="position:relative;width:168px;height:168px;display:flex;align-items:center;justify-content:center;">
+        ${dialSVG(calEaten/g.calorieGoal, d.water/g.waterGoal, exMin/g.exerciseGoal)}
+        <div style="position:absolute;text-align:center;">
+          <div class="display" style="font-size:30px;font-weight:700;">${calEaten}</div>
+          <div style="font-size:11px;color:var(--muted);">de ${g.calorieGoal} kcal</div>
+        </div>
+      </div>
+      <div class="legend">
+        <span><span class="dot" style="background:var(--accent);"></span>Comida</span>
+        <span><span class="dot" style="background:var(--accent3);"></span>Agua</span>
+        <span><span class="dot" style="background:var(--accent2);"></span>Ejercicio</span>
+      </div>
+    </div>
+    <div class="grid2" style="grid-template-columns:repeat(4,1fr);">
+      ${statTile('🔥','Quemadas', exCal+' kcal')}
+      ${statTile('🏋️','Ejercicio', exMin+' min')}
+      ${statTile('⚖️','Peso', d.weight? d.weight+' kg':'—')}
+      ${statTile('❤️','Presión', lastBP? lastBP.systolic+'/'+lastBP.diastolic+(lastBP.pulse?' · '+lastBP.pulse+'bpm':''):'—')}
+    </div>
+    ${macroCard(d.meals)}
+    ${microCard(d.meals)}
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">
+        <div class="label" style="margin:0;">Agua (L)</div>
+        <span class="display" style="font-size:13px;color:var(--accent3);font-weight:700;">${d.water} L</span>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;">
+        ${Array.from({length:Math.max(g.waterGoal, d.water)}).map((_,i)=>`
+          <button class="btn ${i<d.water?'btn-primary':'btn-ghost'}" style="width:36px;height:36px;padding:0;border-radius:9px;"
+            onclick="setWater(${i+1===d.water?i:i+1})">💧</button>`).join('')}
+      </div>
+      <div class="grid2">
+        <div>
+          <div class="label">Peso (kg)</div>
+          <input type="number" step="0.1" id="in-weight" value="${d.weight??''}" placeholder="—" style="width:100%;" onchange="setWeight(this.value)">
+        </div>
+        <div>
+          <div class="label">Sueño (h)</div>
+          <input type="number" step="0.1" id="in-sleep" value="${d.sleepHours??''}" placeholder="—" style="width:100%;" onchange="setSleep(this.value)">
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-ghost" style="border-style:dashed;" onclick="openSettings()">⚙️ Ajustar metas diarias</button>
+  </div>`;
+}
+function statTile(ic,label,value){
+  return `<div class="card" style="padding:14px;">
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:11px;color:var(--muted);">${ic} ${label}</div>
+    <div class="display" style="font-size:17px;font-weight:700;">${value}</div>
+  </div>`;
+}
+function macroSums(meals){
+  return {
+    protein: meals.reduce((s,m)=>s+(Number(m.protein)||0),0),
+    carbs: meals.reduce((s,m)=>s+(Number(m.carbs)||0),0),
+    fat: meals.reduce((s,m)=>s+(Number(m.fat)||0),0),
+  };
+}
+function macroLegendRow(color, label, grams){
+  return `<div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);">
+    <span class="dot" style="background:${color};"></span>
+    <span style="flex:1;">${label}</span>
+    <span class="display" style="color:var(--text);font-weight:700;">${grams}g</span>
+  </div>`;
+}
+function microSums(meals){
+  return {
+    fiber: meals.reduce((s,m)=>s+(Number(m.fiber)||0),0),
+    sugar: meals.reduce((s,m)=>s+(Number(m.sugar)||0),0),
+    sodium: meals.reduce((s,m)=>s+(Number(m.sodium)||0),0),
+    iron: meals.reduce((s,m)=>s+(Number(m.iron)||0),0),
+    calcium: meals.reduce((s,m)=>s+(Number(m.calcium)||0),0),
+    potassium: meals.reduce((s,m)=>s+(Number(m.potassium)||0),0),
+    vitaminC: meals.reduce((s,m)=>s+(Number(m.vitaminC)||0),0),
+  };
+}
+function microRow(label, value, unit){
+  return `<div class="row-item" style="padding:8px 10px;">
+    <span style="font-size:12px;color:var(--muted);">${label}</span>
+    <span class="display" style="font-size:13px;font-weight:700;">${value}${unit}</span>
+  </div>`;
+}
+function microCard(meals){
+  const s = microSums(meals);
+  return `<div class="card">
+    <div class="label">Micronutrientes</div>
+    <div class="grid2" style="gap:8px;">
+      ${microRow('Fibra', s.fiber, 'g')}
+      ${microRow('Azúcar', s.sugar, 'g')}
+      ${microRow('Sodio', s.sodium, 'mg')}
+      ${microRow('Hierro', s.iron, 'mg')}
+      ${microRow('Calcio', s.calcium, 'mg')}
+      ${microRow('Potasio', s.potassium, 'mg')}
+      ${microRow('Vitamina C', s.vitaminC, 'mg')}
+    </div>
+  </div>`;
+}
+function macroCard(meals){
+  const { protein, carbs, fat } = macroSums(meals);
+  return `<div class="card">
+    <div class="label">Macronutrientes</div>
+    <div style="display:flex;height:10px;border-radius:6px;overflow:hidden;background:var(--line);margin-bottom:14px;">
+      <div style="flex:${protein};background:var(--accent);"></div>
+      <div style="flex:${carbs};background:var(--accent2);"></div>
+      <div style="flex:${fat};background:var(--accent3);"></div>
+    </div>
+    <div class="stack" style="gap:8px;">
+      ${macroLegendRow('var(--accent)','Proteína',protein)}
+      ${macroLegendRow('var(--accent2)','Carbohidratos',carbs)}
+      ${macroLegendRow('var(--accent3)','Grasas',fat)}
+    </div>
+  </div>`;
+}
+
+function renderComidas(){
+  const d = state.day;
+  const total = d.meals.reduce((s,m)=>s+(Number(m.calories)||0),0);
+  const groups = MEAL_TYPES.map(mt=>({ ...mt, items: d.meals.filter(m=>m.type===mt.id) }));
+  const maxSub = Math.max(0, ...groups.map(g=>g.items.reduce((s,m)=>s+(Number(m.calories)||0),0)));
+  const activeType = window._mealType || 'desayuno';
+  return `
+  <div class="stack">
+    <div class="card">
+      <div class="label">Tipo de comida</div>
+      <div class="grid4" style="margin-bottom:14px;">
+        ${MEAL_TYPES.map(mt=>`<div class="meal-type-btn ${activeType===mt.id?'active':''}" onclick="setMealType('${mt.id}')">
+          <span>${mt.ic}</span><span>${mt.label}</span></div>`).join('')}
+      </div>
+      <div class="label">Agregar a ${MEAL_TYPES.find(m=>m.id===activeType).label.toLowerCase()}</div>
+      <input id="meal-name" list="meal-history" placeholder='Ej. "lata atún 6oz", "plátano mediano"' style="width:100%;margin-bottom:8px;" oninput="checkCacheHint()">
+      <datalist id="meal-history">
+        ${Object.values(getNutritionCache()).sort((a,b)=>b.ts-a.ts).slice(0,40).map(e=>`<option value="${esc(e.label)}"></option>`).join('')}
+      </datalist>
+      <div style="display:flex;gap:8px;margin-bottom:6px;">
+        <input id="meal-cal" type="number" placeholder="kcal" style="flex:1;">
+        <button class="btn btn-primary" id="est-btn" onclick="handleEstimate()">✨ Estimar</button>
+      </div>
+      <button class="btn btn-ghost" style="width:100%;margin-bottom:8px;" onclick="openScanner()">📷 Escanear código de barras</button>
+      <div id="meal-note" style="font-size:11px;color:var(--accent3);margin-bottom:8px;"></div>
+      <div class="grid4" style="margin-bottom:10px;">
+        <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Prot(g)</div><input id="meal-p" type="number" placeholder="0" style="width:100%;"></div>
+        <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Carb(g)</div><input id="meal-c" type="number" placeholder="0" style="width:100%;"></div>
+        <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Grasa(g)</div><input id="meal-f" type="number" placeholder="0" style="width:100%;"></div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;" onclick="addMeal()">+ Agregar</button>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+        <div class="label">Hoy</div>
+        <span class="display" style="color:var(--accent);font-weight:700;font-size:13px;">${total} kcal</span>
+      </div>
+      ${d.meals.length ? `<div style="display:flex;gap:12px;margin-bottom:4px;font-size:11px;color:var(--muted);">
+        <span>Prot ${macroSums(d.meals).protein}g</span>
+        <span>Carb ${macroSums(d.meals).carbs}g</span>
+        <span>Grasa ${macroSums(d.meals).fat}g</span>
+      </div>
+      <div style="display:flex;gap:12px;margin-bottom:12px;font-size:11px;color:var(--muted);">
+        <span>Fibra ${microSums(d.meals).fiber}g</span>
+        <span>Azúcar ${microSums(d.meals).sugar}g</span>
+        <span>Sodio ${microSums(d.meals).sodium}mg</span>
+      </div>` : ''}
+      ${d.meals.length===0 ? emptyState('🍽️','Sin comidas registradas — agrega la primera arriba') :
+        groups.filter(g=>g.items.length).map(g=>{
+          const sub = g.items.reduce((s,m)=>s+(Number(m.calories)||0),0);
+          const isTop = sub===maxSub && maxSub>0;
+          return `<div style="margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+              <span style="font-size:12px;font-weight:700;color:${isTop?'var(--accent)':'var(--text)'};">${g.ic} ${g.label} ${isTop?'🔥':''}</span>
+              <span style="font-size:12px;color:${isTop?'var(--accent)':'var(--muted)'};">${sub} kcal</span>
+            </div>
+            <div class="stack" style="gap:8px;">
+              ${g.items.map(m=>rowItem(m.name, (m.protein||m.carbs||m.fat)?`${m.time} · P${m.protein}g C${m.carbs}g G${m.fat}g`:m.time, m.calories+' kcal', `removeMeal('${m.id}')`)).join('')}
+            </div>
+          </div>`;
+        }).join('')}
+    </div>
+  </div>`;
+}
+
+function renderEjercicio(){
+  const d = state.day;
+  const totalMin = d.exercises.reduce((s,e)=>s+(Number(e.minutes)||0),0);
+  return `
+  <div class="stack">
+    <div class="card">
+      <div class="label">Agregar ejercicio</div>
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <input id="ex-name" placeholder="Actividad" style="flex:2;">
+        <input id="ex-min" type="number" placeholder="min" style="flex:1;">
+      </div>
+      <input id="ex-cal" type="number" placeholder="kcal quemadas (opcional)" style="width:100%;margin-bottom:8px;">
+      <button class="btn btn-primary" style="width:100%;" onclick="addExercise()">+ Agregar</button>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
+        <div class="label">Hoy</div>
+        <span class="display" style="color:var(--accent2);font-weight:700;font-size:13px;">${totalMin} min</span>
+      </div>
+      ${d.exercises.length===0 ? emptyState('🏋️','Sin ejercicio registrado — agrega el primero arriba') :
+        `<div class="stack" style="gap:8px;">${d.exercises.map(e=>rowItem(e.name, `${e.time} · ${e.minutes} min`, e.calories?e.calories+' kcal':'', `removeExercise('${e.id}')`)).join('')}</div>`}
+    </div>
+  </div>`;
+}
+
+function renderSalud(){
+  const d = state.day;
+  const meds = state.meds;
+  const takenIds = new Set(d.medsTaken.map(t=>t.key));
+  return `
+  <div class="stack">
+    <div class="card">
+      <div class="label">Presión arterial</div>
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <input id="bp-sys" type="number" placeholder="Sistólica" style="flex:1;">
+        <input id="bp-dia" type="number" placeholder="Diastólica" style="flex:1;">
+        <input id="bp-pulse" type="number" placeholder="Pulso (bpm)" style="flex:1;">
+        <button class="btn btn-primary" onclick="addBP()">+</button>
+      </div>
+      ${d.bp.length===0 ? emptyState('❤️','Sin lecturas hoy') :
+        `<div class="stack" style="gap:8px;">${d.bp.map(b=>rowItem(b.systolic+'/'+b.diastolic+' mmHg', b.time, b.pulse?b.pulse+' bpm':'', `removeBP('${b.id}')`)).join('')}</div>`}
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <div class="label" style="margin:0;">Medicamentos de hoy</div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);">
+          Alertas
+          <div class="switch ${state.alertsOn?'on':''}" onclick="toggleAlerts()"><div class="knob"></div></div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Las alertas solo suenan mientras esta pestaña esté abierta.</div>
+      ${meds.length===0 ? emptyState('💊','Agrega un medicamento abajo para ver su horario aquí') :
+        `<div class="stack" style="gap:8px;">${meds.flatMap(med => med.times.map(t=>{
+          const key = med.id+':'+t;
+          const taken = takenIds.has(key);
+          const due = t <= nowHM() && !taken;
+          return `<div class="med-row ${due?'med-due':''}">
+            <div>
+              <div style="font-size:14px;">${esc(med.name)} ${med.dose?`<span style="color:var(--muted);font-size:12px;">· ${esc(med.dose)}</span>`:''}</div>
+              <div style="font-size:11px;color:var(--muted);">${t} ${due?'· pendiente':''}</div>
+            </div>
+            <button class="btn ${taken?'btn-ghost':'btn-primary'}" onclick="toggleMedTaken('${key}')">${taken?'✓ Tomado':'Marcar tomado'}</button>
+          </div>`;
+        })).join('')}</div>`}
+    </div>
+
+    <div class="card">
+      <div class="label">Administrar medicamentos</div>
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <input id="med-name" placeholder="Nombre" style="flex:2;">
+        <input id="med-dose" placeholder="Dosis (opcional)" style="flex:1;">
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <input id="med-times" placeholder="Horarios, ej: 08:00, 20:00" style="flex:1;">
+        <button class="btn btn-primary" onclick="addMed()">+ Agregar</button>
+      </div>
+      ${meds.length ? `<div class="stack" style="gap:8px;">${meds.map(m=>rowItem(m.name, m.times.join(', '), '', `removeMed('${m.id}')`)).join('')}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function lastBodyComp(day){ return (day.bodyComp && day.bodyComp.length) ? day.bodyComp[day.bodyComp.length-1] : null; }
+
+/* ================= forecast (Pronóstico) ================= */
+const KCAL_PER_KG = 7700; // approx. energy density of body fat, used to translate a calorie balance into a weight-change rate
+function dayAt(iso){ return iso===todayISO() ? state.day : getDay(iso); }
+function getWeightHistory(days){
+  const isos = Array.from({length:days}).map((_,i)=>isoDaysAgo(days-1-i));
+  return isos.map(iso=>({ iso, weight: dayAt(iso).weight })).filter(p=>p.weight!=null);
+}
+function linearTrendKgPerDay(points){
+  if(points.length < 2) return null;
+  const [fy,fm,fd] = points[0].iso.split('-').map(Number);
+  const firstDate = new Date(fy,fm-1,fd);
+  const xs = points.map(p=>{ const [y,m,d]=p.iso.split('-').map(Number); return (new Date(y,m-1,d)-firstDate)/86400000; });
+  const ys = points.map(p=>p.weight);
+  const n = xs.length;
+  const sumX = xs.reduce((a,b)=>a+b,0), sumY = ys.reduce((a,b)=>a+b,0);
+  const sumXY = xs.reduce((s,x,i)=>s+x*ys[i],0), sumXX = xs.reduce((s,x)=>s+x*x,0);
+  const denom = n*sumXX - sumX*sumX;
+  if(denom===0) return null;
+  return (n*sumXY - sumX*sumY)/denom;
+}
+function getAvgDailyCaloriesConsumed(days){
+  const isos = Array.from({length:days}).map((_,i)=>isoDaysAgo(days-1-i));
+  const totals = isos.map(iso=>dayAt(iso).meals.reduce((s,m)=>s+(Number(m.calories)||0),0)).filter(v=>v>0);
+  return totals.length ? totals.reduce((a,b)=>a+b,0)/totals.length : null;
+}
+function getAvgDailyExerciseBurn(days){
+  const isos = Array.from({length:days}).map((_,i)=>isoDaysAgo(days-1-i));
+  const totals = isos.map(iso=>dayAt(iso).exercises.reduce((s,e)=>s+(Number(e.calories)||0),0));
+  return totals.reduce((a,b)=>a+b,0)/totals.length;
+}
+function getLatestBMR(){
+  for(let n=0;n<=60;n++){
+    const bc = lastBodyComp(dayAt(isoDaysAgo(n)));
+    if(bc && bc.bmr!=null) return bc.bmr;
+  }
+  return null;
+}
+function getLatestWeight(){
+  for(let n=0;n<=60;n++){
+    const iso = isoDaysAgo(n);
+    const w = dayAt(iso).weight;
+    if(w!=null) return { iso, weight:w };
+  }
+  return null;
+}
+function computeForecast(){
+  const cfg = getForecastConfig();
+  if(!cfg.heightCm || !cfg.targetWeightKg) return { status:'missing-config' };
+  const latest = getLatestWeight();
+  if(!latest) return { status:'no-weight', cfg };
+  const remainingKg = latest.weight - cfg.targetWeightKg;
+  const heightM = cfg.heightCm/100;
+  const currentBMI = latest.weight/(heightM*heightM);
+  const targetBMI = cfg.targetWeightKg/(heightM*heightM);
+  if(Math.abs(remainingKg) < 0.1) return { status:'at-goal', cfg, latest, currentBMI, targetBMI };
+
+  const history = getWeightHistory(30);
+  let ratePerDay = null, method = null;
+  if(history.length >= 4){
+    ratePerDay = linearTrendKgPerDay(history);
+    method = 'trend';
+  }
+  if(ratePerDay==null || Math.abs(ratePerDay) < 0.001){
+    const bmr = getLatestBMR();
+    const avgBurn = getAvgDailyExerciseBurn(14);
+    const avgIntake = getAvgDailyCaloriesConsumed(14);
+    if(bmr!=null && avgIntake!=null){
+      ratePerDay = (avgIntake - (bmr+avgBurn)) / KCAL_PER_KG;
+      method = 'calorie-balance';
+    }
+  }
+  if(ratePerDay==null || Math.abs(ratePerDay) < 0.001){
+    return { status:'insufficient-data', cfg, latest, currentBMI, targetBMI, remainingKg };
+  }
+
+  const needLoss = remainingKg > 0;
+  const rateIsLoss = ratePerDay < 0;
+  if(needLoss !== rateIsLoss){
+    return { status:'wrong-direction', cfg, latest, currentBMI, targetBMI, remainingKg, ratePerDay, method };
+  }
+  const daysNeeded = Math.abs(remainingKg/ratePerDay);
+  const etaDate = new Date(); etaDate.setDate(etaDate.getDate()+Math.round(daysNeeded));
+  return { status:'ok', cfg, latest, currentBMI, targetBMI, remainingKg, ratePerDay, method, daysNeeded, etaDate };
+}
+function bodyCompEntryHTML(bc, onDelete){
+  const chips = BODYCOMP_FIELDS.filter(f=>bc[f.key]!=null).map(f=>
+    `<span style="font-size:11px;background:var(--raised);border:1px solid var(--line);border-radius:8px;padding:4px 8px;color:var(--text);">${f.label}: <b>${bc[f.key]}${f.unit?' '+f.unit:''}</b></span>`
+  ).join('');
+  return `<div style="padding:10px 0;border-bottom:1px solid var(--line);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <span style="font-size:12px;color:var(--muted);">${bc.time}</span>
+      ${onDelete?`<button onclick="${onDelete}" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;">✕</button>`:''}
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;">${chips || '<span style="font-size:11px;color:var(--muted);">Sin valores</span>'}</div>
+  </div>`;
+}
+function renderComposicion(){
+  const d = state.day;
+  const latest = lastBodyComp(d);
+  const headline = ['bmi','bodyFatPct','skeletalMusclePct','visceralFat'];
+  return `
+  <div class="stack">
+    <div class="grid2" style="grid-template-columns:repeat(4,1fr);">
+      ${headline.map(k=>{
+        const f = BODYCOMP_FIELDS.find(x=>x.key===k);
+        const v = latest && latest[k]!=null ? latest[k]+(f.unit?' '+f.unit:'') : '—';
+        return statTile('⚖️', f.label, v);
+      }).join('')}
+    </div>
+    <div class="card">
+      <div class="label">Registrar medición de báscula</div>
+      <div class="grid2" style="gap:10px;margin-bottom:12px;">
+        ${BODYCOMP_FIELDS.map(f=>`<div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${f.label}${f.unit?' ('+f.unit+')':''}</div><input id="bc-${f.key}" type="number" step="0.1" placeholder="0" style="width:100%;"></div>`).join('')}
+      </div>
+      <button class="btn btn-primary" style="width:100%;" onclick="addBodyComp()">+ Agregar medición</button>
+    </div>
+    <div class="card">
+      <div class="label">Mediciones de hoy</div>
+      ${d.bodyComp.length===0 ? emptyState('⚖️','Sin mediciones hoy') :
+        d.bodyComp.map(bc=>bodyCompEntryHTML(bc, `removeBodyComp('${bc.id}')`)).join('')}
+    </div>
+    ${renderComposicionCharts()}
+  </div>`;
+}
+function renderComposicionCharts(){
+  const n = 30;
+  const isos = Array.from({length:n}).map((_,i)=>isoDaysAgo(n-1-i));
+  const days = isos.map(iso => iso===todayISO() ? { iso, ...state.day } : { iso, ...getDay(iso) });
+  const colors = ['var(--accent)','var(--accent2)','var(--accent3)','var(--danger)'];
+  const charts = BODYCOMP_FIELDS.map((f,i)=>{
+    const pts = days.map(day=>{
+      const bc = lastBodyComp(day);
+      return { label:dayLetter(day.iso), v: bc ? bc[f.key] : null };
+    });
+    return `<div class="card"><div class="label" style="display:flex;align-items:center;gap:6px;justify-content:space-between;">
+        <span>${f.label}${f.unit?' ('+f.unit+')':''}</span>
+        <button class="info-btn" onclick="openBodyCompInfo('${f.key}')" title="Qué significa este dato">ⓘ</button>
+      </div><div class="chart-box">${lineChartSVG(pts,{color:colors[i%colors.length], gridLines:true, gridSteps:4, unit:f.unit})}</div></div>`;
+  }).join('');
+  return `<div style="font-size:12px;color:var(--muted);">Tendencia — últimos 30 días</div><div class="grid2">${charts}</div>`;
+}
+
+function renderCalendario(){
+  const { y, m } = state.calMonth;
+  const first = new Date(y, m, 1);
+  const startDow = (first.getDay()+6)%7; // Monday=0
+  const daysInMonth = new Date(y, m+1, 0).getDate();
+  const cells = [];
+  for(let i=0;i<startDow;i++) cells.push(null);
+  for(let day=1; day<=daysInMonth; day++) cells.push(day);
+
+  const dowRow = DOW.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  const dayCells = cells.map(day=>{
+    if(day===null) return `<div class="cal-day empty"></div>`;
+    const iso = isoOf(y,m,day);
+    const cls = ['cal-day'];
+    if(dayHasData(iso)) cls.push('has-data');
+    if(iso===state.selectedDate) cls.push('selected');
+    if(iso===todayISO()) cls.push('today');
+    return `<div class="${cls.join(' ')}" onclick="selectCalDate('${iso}')">${day}</div>`;
+  }).join('');
+
+  return `
+  <div class="stack">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <button class="btn btn-ghost" onclick="shiftMonth(-1)">←</button>
+        <div class="display" style="font-weight:700;text-transform:capitalize;">${MONTHS[m]} ${y}</div>
+        <button class="btn btn-ghost" onclick="shiftMonth(1)">→</button>
+      </div>
+      <div class="cal-grid" style="margin-bottom:6px;">${dowRow}</div>
+      <div class="cal-grid">${dayCells}</div>
+    </div>
+    ${renderDayDetail(state.selectedDate)}
+  </div>`;
+}
+function renderDayDetail(iso){
+  const d = getDay(iso);
+  const totalCal = d.meals.reduce((s,m)=>s+(Number(m.calories)||0),0);
+  const totalMin = d.exercises.reduce((s,e)=>s+(Number(e.minutes)||0),0);
+  return `
+  <div class="card">
+    <div class="label" style="text-transform:capitalize;">${formatDateEs(iso)}</div>
+    <div class="grid2" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
+      ${statTile('🔥','Calorías', totalCal+' kcal')}
+      ${statTile('🏋️','Ejercicio', totalMin+' min')}
+      ${statTile('⚖️','Peso', d.weight?d.weight+' kg':'—')}
+      ${statTile('😴','Sueño', d.sleepHours?d.sleepHours+' h':'—')}
+    </div>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="grid2">
+        <div>
+          <div class="label">Editar peso (kg)</div>
+          <div style="display:flex;gap:8px;">
+            <input type="number" step="0.1" id="cal-weight" value="${d.weight??''}" placeholder="—" style="flex:1;min-width:0;">
+            <button class="btn btn-primary" onclick="setWeightForDay('${iso}')">Guardar</button>
+          </div>
+        </div>
+        <div>
+          <div class="label">Editar sueño (h)</div>
+          <div style="display:flex;gap:8px;">
+            <input type="number" step="0.1" id="cal-sleep" value="${d.sleepHours??''}" placeholder="—" style="flex:1;min-width:0;">
+            <button class="btn btn-primary" onclick="setSleepForDay('${iso}')">Guardar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    ${macroCard(d.meals)}
+    ${microCard(d.meals)}
+    <div class="grid2">
+      <div style="min-width:0;">
+        <div class="label">Comidas</div>
+        ${d.meals.length? `<div class="stack" style="gap:6px;margin-bottom:10px;">${d.meals.map(m=>rowItem(m.name, m.time, m.calories+' kcal', `removeMealForDay('${iso}','${m.id}')`)).join('')}</div>` : `<div style="color:var(--muted);font-size:12px;margin-bottom:10px;">Sin registros</div>`}
+        <select id="cal-meal-type" style="width:100%;margin-bottom:6px;">
+          ${MEAL_TYPES.map(mt=>`<option value="${mt.id}">${mt.ic} ${mt.label}</option>`).join('')}
+        </select>
+        <div style="display:flex;gap:6px;margin-bottom:6px;">
+          <input id="cal-meal-name" placeholder="Nombre" style="flex:2;min-width:0;">
+          <input id="cal-meal-time" type="time" value="${nowHM()}" style="flex:1;min-width:0;">
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:6px;">
+          <input id="cal-meal-cal" type="number" placeholder="kcal" style="flex:1;min-width:0;">
+          <button class="btn btn-primary" id="cal-est-btn" onclick="handleEstimateForDay()">✨ Estimar</button>
+        </div>
+        <div id="cal-meal-note" style="font-size:11px;color:var(--accent3);margin-bottom:6px;"></div>
+        <div style="display:flex;gap:6px;margin-bottom:6px;">
+          <input id="cal-meal-p" type="number" placeholder="P(g)" style="flex:1;min-width:0;">
+          <input id="cal-meal-c" type="number" placeholder="C(g)" style="flex:1;min-width:0;">
+          <input id="cal-meal-f" type="number" placeholder="G(g)" style="flex:1;min-width:0;">
+        </div>
+        <button class="btn btn-ghost" style="width:100%;" onclick="addMealForDay('${iso}')">+ Agregar comida</button>
+      </div>
+      <div style="min-width:0;">
+        <div class="label">Ejercicio</div>
+        ${d.exercises.length? `<div class="stack" style="gap:6px;margin-bottom:10px;">${d.exercises.map(e=>rowItem(e.name, e.time, e.minutes+' min', `removeExerciseForDay('${iso}','${e.id}')`)).join('')}</div>` : `<div style="color:var(--muted);font-size:12px;margin-bottom:10px;">Sin registros</div>`}
+        <div style="display:flex;gap:6px;margin-bottom:6px;">
+          <input id="cal-ex-name" placeholder="Actividad" style="flex:2;min-width:0;">
+          <input id="cal-ex-min" type="number" placeholder="min" style="flex:1;min-width:0;">
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:6px;">
+          <input id="cal-ex-time" type="time" value="${nowHM()}" style="flex:1;min-width:0;">
+          <input id="cal-ex-cal" type="number" placeholder="kcal (opc.)" style="flex:1;min-width:0;">
+        </div>
+        <button class="btn btn-ghost" style="width:100%;" onclick="addExerciseForDay('${iso}')">+ Agregar ejercicio</button>
+      </div>
+    </div>
+    <div class="grid2" style="margin-top:16px;">
+      <div>
+        <div class="label">Presión arterial</div>
+        ${d.bp.length? `<div class="stack" style="gap:6px;">${d.bp.map(b=>rowItemStatic(b.systolic+'/'+b.diastolic+' mmHg', b.time, b.pulse?b.pulse+' bpm':'')).join('')}</div>` : `<div style="color:var(--muted);font-size:12px;">Sin registros</div>`}
+      </div>
+      <div>
+        <div class="label">Medicamentos tomados</div>
+        ${d.medsTaken.length? `<div class="stack" style="gap:6px;">${d.medsTaken.map(t=>rowItemStatic(t.key.split(':')[0]==='' ? t.key : (state.meds.find(m=>m.id===t.key.split(':')[0])?.name || 'Medicamento'), t.time, '')).join('')}</div>` : `<div style="color:var(--muted);font-size:12px;">Sin registros</div>`}
+      </div>
+    </div>
+    ${d.bodyComp && d.bodyComp.length ? `<div style="margin-top:16px;">
+      <div class="label">Composición corporal</div>
+      ${d.bodyComp.map(bc=>bodyCompEntryHTML(bc, null)).join('')}
+    </div>` : ''}
+  </div>`;
+}
+
+function weightSummaryHTML(pts){
+  const valid = pts.filter(p=>p.v!=null);
+  if(valid.length < 2) return '';
+  const first = valid[0].v, last = valid[valid.length-1].v;
+  const change = last - first;
+  const sign = change>0?'+':'';
+  const targetKg = getForecastConfig().targetWeightKg;
+  let color = 'var(--text)';
+  let goalLine = '';
+  if(targetKg){
+    const dist = last - targetKg;
+    const needLoss = dist > 0.05, needGain = dist < -0.05;
+    const movingLoss = change < -0.05, movingGain = change > 0.05;
+    const onTrack = (needLoss && movingLoss) || (needGain && movingGain);
+    const offTrack = (needLoss && movingGain) || (needGain && movingLoss);
+    color = onTrack ? 'var(--accent3)' : offTrack ? 'var(--danger)' : 'var(--text)';
+    goalLine = Math.abs(dist)<0.05
+      ? `<div style="font-size:10px;color:var(--accent3);">🎯 En tu meta</div>`
+      : `<div style="font-size:10px;color:var(--muted);">${dist>0?'Faltan':'Sobran'} ${Math.abs(dist).toFixed(1)} kg para tu meta</div>`;
+  }
+  return `<div style="text-align:right;">
+    <div style="font-size:13px;font-weight:700;color:${color};">${sign}${change.toFixed(1)} kg</div>
+    ${goalLine}
+  </div>`;
+}
+function bpSummaryHTML(){
+  const readings = Array.from({length:7}).map((_,i)=>{
+    const d = dayAt(isoDaysAgo(i));
+    return d.bp[d.bp.length-1];
+  }).filter(Boolean);
+  if(!readings.length) return '';
+  const avgSys = readings.reduce((s,r)=>s+r.systolic,0)/readings.length;
+  const avgDia = readings.reduce((s,r)=>s+r.diastolic,0)/readings.length;
+  return `<div style="text-align:right;">
+    <div style="font-size:13px;font-weight:700;color:var(--text);">${Math.round(avgSys)}/${Math.round(avgDia)} mmHg</div>
+    <div style="font-size:10px;color:var(--muted);">Promedio 7 días</div>
+  </div>`;
+}
+function avgSummaryHTML(value, unit, decimals){
+  if(value==null) return '';
+  return `<div style="text-align:right;">
+    <div style="font-size:13px;font-weight:700;color:var(--text);">${value.toFixed(decimals??0)}${unit?' '+unit:''}</div>
+    <div style="font-size:10px;color:var(--muted);">Promedio 7 días</div>
+  </div>`;
+}
+function pulseSummaryHTML(){
+  const readings = Array.from({length:7}).map((_,i)=>{
+    const d = dayAt(isoDaysAgo(i));
+    const last = d.bp[d.bp.length-1];
+    return last?last.pulse:null;
+  }).filter(v=>v!=null);
+  if(!readings.length) return '';
+  return avgSummaryHTML(readings.reduce((a,b)=>a+b,0)/readings.length, 'bpm', 0);
+}
+function exerciseAvgSummaryHTML(){
+  const totals = Array.from({length:7}).map((_,i)=>dayAt(isoDaysAgo(i)).exercises.reduce((s,e)=>s+(Number(e.minutes)||0),0));
+  return avgSummaryHTML(totals.reduce((a,b)=>a+b,0)/7, 'min', 0);
+}
+function sleepAvgSummaryHTML(){
+  const vals = Array.from({length:7}).map((_,i)=>dayAt(isoDaysAgo(i)).sleepHours).filter(v=>v!=null);
+  if(!vals.length) return '';
+  return avgSummaryHTML(vals.reduce((a,b)=>a+b,0)/vals.length, 'h', 1);
+}
+function renderProgreso(){
+  const n = state.progressRange;
+  const isos = Array.from({length:n}).map((_,i)=>isoDaysAgo(n-1-i));
+  const days = isos.map(iso => iso===todayISO() ? { iso, ...state.day } : { iso, ...getDay(iso) });
+  const short = iso => { const [y,m,dd]=iso.split('-').map(Number); return new Date(y,m-1,dd).toLocaleDateString('es-ES',{weekday:'short'}).replace('.',''); };
+
+  const weightPts = days.map(d=>({ label:short(d.iso), v:d.weight }));
+  const calPts = days.map(d=>({ label:short(d.iso), v:d.meals.reduce((s,m)=>s+(Number(m.calories)||0),0) }));
+  const exPts = days.map(d=>({ label:short(d.iso), v:d.exercises.reduce((s,e)=>s+(Number(e.minutes)||0),0) }));
+  const waterPts = days.map(d=>({ label:short(d.iso), v:d.water }));
+  const sleepPts = days.map(d=>({ label:short(d.iso), v:d.sleepHours }));
+  const bpPts = days.map(d=>{
+    const last = d.bp[d.bp.length-1];
+    return { label:short(d.iso), sys: last?last.systolic:null, dia: last?last.diastolic:null };
+  });
+  const pulsePts = days.map(d=>{
+    const last = d.bp[d.bp.length-1];
+    return { label:short(d.iso), v: last?last.pulse:null };
+  });
+
+  return `
+  <div class="stack">
+    <div style="display:flex;gap:8px;">
+      ${[7,14,30].map(r=>`<button class="btn ${state.progressRange===r?'btn-primary':'btn-ghost'}" onclick="setRange(${r})">${r} días</button>`).join('')}
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+          <div class="label" style="margin:0;">Peso (kg)</div>
+          ${weightSummaryHTML(weightPts)}
+        </div>
+        <div class="chart-box">${lineChartSVG(weightPts,{color:'var(--accent3)', gridLines:true, gridSteps:4, unit:'kg'})}</div>
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+          <div class="label" style="margin:0;">Presión arterial</div>
+          ${bpSummaryHTML()}
+        </div>
+        <div class="chart-box">${multiLineChartSVG(bpPts,[{key:'sys',color:'var(--accent)'},{key:'dia',color:'var(--accent3)'}],{gridLines:true, gridSteps:4, unit:'mmHg'})}</div>
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+          <div class="label" style="margin:0;">Pulso (bpm)</div>
+          ${pulseSummaryHTML()}
+        </div>
+        <div class="chart-box">${lineChartSVG(pulsePts,{color:'var(--danger)', gridLines:true, gridSteps:4, unit:'bpm'})}</div>
+      </div>
+      <div class="card"><div class="label">Calorías (meta ${state.goals.calorieGoal})</div><div class="chart-box">${barChartSVG(calPts,{color:'var(--accent)',goal:state.goals.calorieGoal, gridLines:true, gridSteps:4, unit:'kcal'})}</div></div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+          <div class="label" style="margin:0;">Ejercicio min (meta ${state.goals.exerciseGoal})</div>
+          ${exerciseAvgSummaryHTML()}
+        </div>
+        <div class="chart-box">${barChartSVG(exPts,{color:'var(--accent2)',goal:state.goals.exerciseGoal, gridLines:true, gridSteps:4, unit:'min'})}</div>
+      </div>
+      <div class="card"><div class="label">Agua (L)</div><div class="chart-box">${barChartSVG(waterPts,{color:'var(--accent3)',goal:state.goals.waterGoal, gridLines:true, gridSteps:4, unit:'L'})}</div></div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+          <div class="label" style="margin:0;">Sueño (h)</div>
+          ${sleepAvgSummaryHTML()}
+        </div>
+        <div class="chart-box">${barChartSVG(sleepPts,{color:'var(--accent2)', gridLines:true, gridSteps:4, unit:'h'})}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderNutricion(){
+  const n = 30;
+  const isos = Array.from({length:n}).map((_,i)=>isoDaysAgo(n-1-i));
+  const days = isos.map(iso => iso===todayISO() ? { iso, ...state.day } : { iso, ...getDay(iso) });
+  const macroPts = days.map(d=>{
+    const s = macroSums(d.meals);
+    return { label:dayLetter(d.iso), protein:s.protein, carbs:s.carbs, fat:s.fat };
+  });
+  const microDefs = [
+    { key:'fiber', label:'Fibra (g)', color:'var(--accent3)', unit:'g' },
+    { key:'sugar', label:'Azúcar (g)', color:'var(--accent2)', unit:'g' },
+    { key:'sodium', label:'Sodio (mg)', color:'var(--danger)', unit:'mg' },
+    { key:'iron', label:'Hierro (mg)', color:'var(--accent)', unit:'mg' },
+    { key:'calcium', label:'Calcio (mg)', color:'var(--accent3)', unit:'mg' },
+    { key:'potassium', label:'Potasio (mg)', color:'var(--accent2)', unit:'mg' },
+    { key:'vitaminC', label:'Vitamina C (mg)', color:'var(--accent)', unit:'mg' },
+  ];
+  const microCharts = microDefs.map(mk=>{
+    const pts = days.map(d=>({ label:dayLetter(d.iso), v: microSums(d.meals)[mk.key] }));
+    return `<div class="card"><div class="label">${mk.label}</div><div class="chart-box">${lineChartSVG(pts,{color:mk.color, gridLines:true, gridSteps:4, unit:mk.unit})}</div></div>`;
+  }).join('');
+
+  return `
+  <div class="stack">
+    <div style="font-size:12px;color:var(--muted);">Últimos 30 días</div>
+    <div class="grid2">
+      <div class="card">
+        <div class="label">Macronutrientes (g)</div>
+        <div class="chart-box">${multiLineChartSVG(macroPts,[{key:'protein',color:'var(--accent)'},{key:'carbs',color:'var(--accent2)'},{key:'fat',color:'var(--accent3)'}],{gridLines:true, gridSteps:4, unit:'g'})}</div>
+        <div class="legend" style="margin-top:10px;">
+          <span><span class="dot" style="background:var(--accent);"></span>Proteína</span>
+          <span><span class="dot" style="background:var(--accent2);"></span>Carbohidratos</span>
+          <span><span class="dot" style="background:var(--accent3);"></span>Grasas</span>
+        </div>
+      </div>
+      ${microCharts}
+    </div>
+  </div>`;
+}
+
+function renderPronostico(){
+  const cfg = getForecastConfig();
+  const forecast = computeForecast();
+  const weeklyRate = forecast.ratePerDay!=null ? forecast.ratePerDay*7 : null;
+  const methodLabel = forecast.method==='trend' ? 'tu tendencia de peso real (últimos 30 días)' : forecast.method==='calorie-balance' ? 'tu balance calórico estimado (metabolismo basal + ejercicio vs. comidas)' : '';
+
+  const configCard = `
+  <div class="card">
+    <div class="label">Tus datos</div>
+    <div class="grid2" style="margin-bottom:14px;">
+      <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Altura (cm)</div><input id="fc-height" type="number" value="${cfg.heightCm??''}" placeholder="Ej. 170" style="width:100%;"></div>
+      <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Peso meta (kg)</div><input id="fc-target" type="number" step="0.1" value="${cfg.targetWeightKg??''}" placeholder="Ej. 68" style="width:100%;"></div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;" onclick="saveForecastConfig()">Guardar</button>
+  </div>`;
+
+  let resultCard = '';
+  switch(forecast.status){
+    case 'missing-config':
+      resultCard = `<div class="card">${emptyState('🔮','Ingresa tu altura y peso meta arriba para generar tu pronóstico')}</div>`;
+      break;
+    case 'no-weight':
+      resultCard = `<div class="card">${emptyState('⚖️','Aún no tienes ningún peso registrado — agrega uno en Hoy o en el Calendario')}</div>`;
+      break;
+    case 'at-goal':
+      resultCard = `<div class="card">${emptyState('🎉','¡Ya estás en tu peso meta! Peso actual: '+forecast.latest.weight+' kg')}</div>`;
+      break;
+    case 'insufficient-data':
+      resultCard = `<div class="card">
+        <div class="label">Pronóstico</div>
+        <div style="color:var(--muted);font-size:13px;line-height:1.6;">
+          Todavía no hay suficientes datos para estimar un ritmo de cambio.<br><br>
+          Para desbloquear el pronóstico, registra <b>al menos 4 días de peso</b> en las últimas semanas (Progreso), o registra tu <b>metabolismo basal</b> en Composición junto con tus <b>comidas</b> del día — con eso podemos estimar tu balance calórico.
+        </div>
+      </div>`;
+      break;
+    case 'wrong-direction':
+      resultCard = `<div class="card">
+        <div class="label">Pronóstico</div>
+        <div style="color:var(--danger);font-size:13px;margin-bottom:10px;">
+          Según ${methodLabel}, tu peso se está moviendo en dirección contraria a tu meta (${forecast.remainingKg>0?'necesitas bajar':'necesitas subir'} ${Math.abs(forecast.remainingKg).toFixed(1)} kg, pero tu ritmo actual es de ${weeklyRate>0?'+':''}${weeklyRate.toFixed(2)} kg/semana).
+        </div>
+        <div class="grid2" style="grid-template-columns:repeat(3,1fr);">
+          ${statTile('⚖️','Peso actual', forecast.latest.weight+' kg')}
+          ${statTile('🎯','Meta', forecast.cfg.targetWeightKg+' kg')}
+          ${statTile('📐','IMC actual', forecast.currentBMI.toFixed(1))}
+        </div>
+      </div>`;
+      break;
+    case 'ok': {
+      const weeks = forecast.daysNeeded/7;
+      resultCard = `<div class="card">
+        <div class="label">Pronóstico</div>
+        <div class="grid2" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
+          ${statTile('⚖️','Peso actual', forecast.latest.weight+' kg')}
+          ${statTile('🎯','Meta', forecast.cfg.targetWeightKg+' kg')}
+          ${statTile('📐','IMC actual', forecast.currentBMI.toFixed(1))}
+          ${statTile('📐','IMC meta', forecast.targetBMI.toFixed(1))}
+        </div>
+        <div style="text-align:center;padding:14px 0;">
+          <div class="display" style="font-size:15px;color:var(--muted);margin-bottom:4px;">Tiempo estimado para llegar a tu meta</div>
+          <div class="display" style="font-size:32px;font-weight:700;color:var(--accent);">${weeks<1?Math.round(forecast.daysNeeded)+' días':weeks.toFixed(1)+' semanas'}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:6px;">Fecha estimada: ${forecast.etaDate.toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'})}</div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);text-align:center;">Ritmo estimado: ${weeklyRate>0?'+':''}${weeklyRate.toFixed(2)} kg/semana, basado en ${methodLabel}.</div>
+      </div>`;
+      break;
+    }
+  }
+
+  const weightHist = getWeightHistory(30);
+  const chartCard = weightHist.length ? `<div class="card">
+    <div class="label">Peso vs. meta — últimos 30 días</div>
+    <div class="chart-box">${lineChartSVG(
+      Array.from({length:30}).map((_,i)=>{ const iso=isoDaysAgo(29-i); return { label:dayLetter(iso), v: dayAt(iso).weight }; }),
+      {color:'var(--accent3)', gridLines:true, gridSteps:4, unit:'kg', targetValue: cfg.targetWeightKg||null}
+    )}</div>
+  </div>` : '';
+
+  return `<div class="stack">${configCard}${resultCard}${chartCard}</div>`;
+}
+function saveForecastConfig(){
+  const height = Number(document.getElementById('fc-height').value)||null;
+  const target = Number(document.getElementById('fc-target').value)||null;
+  setForecastConfig({ heightCm: height, targetWeightKg: target });
+  toast('Datos guardados');
+}
+
+function rowItem(left, sub, right, onDelete){
+  return `<div class="row-item">
+    <div style="min-width:0;">
+      <div style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(left)}</div>
+      ${sub?`<div style="font-size:11px;color:var(--muted);">${esc(sub)}</div>`:''}
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+      ${right?`<span class="display" style="font-size:12px;color:var(--muted);">${esc(right)}</span>`:''}
+      <button onclick="${onDelete}" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;">✕</button>
+    </div>
+  </div>`;
+}
+function rowItemStatic(left, sub, right){
+  return `<div class="row-item">
+    <div style="min-width:0;">
+      <div style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(left)}</div>
+      ${sub?`<div style="font-size:11px;color:var(--muted);">${esc(sub)}</div>`:''}
+    </div>
+    ${right?`<span class="display" style="font-size:12px;color:var(--muted);">${esc(right)}</span>`:''}
+  </div>`;
+}
+function emptyState(ic,text){
+  return `<div style="text-align:center;padding:24px 10px;color:var(--muted);font-size:13px;">${ic}<br><br>${text}</div>`;
+}
+
+/* ================= modal (settings) ================= */
+window._modal = null;
+function modalHTML(){
+  if(!window._modal) return '';
+  if(window._modal==='settings'){
+    const g = state.goals;
+    return `<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;" onclick="closeModal(event)">
+      <div class="card" style="width:360px;max-width:90vw;" onclick="event.stopPropagation()">
+        <div class="display" style="font-weight:700;font-size:16px;margin-bottom:16px;">Ajustes</div>
+        <div class="label">Metas diarias</div>
+        <div class="grid2" style="margin-bottom:14px;">
+          <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Calorías</div><input id="g-cal" type="number" value="${g.calorieGoal}" style="width:100%;"></div>
+          <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Agua (L)</div><input id="g-water" type="number" value="${g.waterGoal}" style="width:100%;"></div>
+        </div>
+        <div style="margin-bottom:16px;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Ejercicio (min)</div><input id="g-ex" type="number" value="${g.exerciseGoal}" style="width:100%;"></div>
+        <div class="label">API key de Anthropic (opcional, para estimar calorías con IA)</div>
+        <input id="g-apikey" type="password" value="${getApiKey()}" placeholder="sk-ant-..." style="width:100%;margin-bottom:6px;">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:16px;">Se guarda solo en este navegador. Nunca la compartas si publicas este archivo.</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost" style="flex:1;" onclick="closeModal()">Cancelar</button>
+          <button class="btn btn-primary" style="flex:1;" onclick="saveSettings()">Guardar</button>
+        </div>
+      </div>
+    </div>`;
+  }
+  if(window._modal==='scanner'){
+    return `<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;" onclick="closeScanner(event)">
+      <div class="card" style="width:380px;max-width:92vw;" onclick="event.stopPropagation()">
+        <div class="display" style="font-weight:700;font-size:16px;margin-bottom:12px;">📷 Escanear código</div>
+        <div class="scanner-video-wrap">
+          <video id="scanner-video" autoplay playsinline muted></video>
+          <div class="scanner-frame"></div>
+        </div>
+        <div id="scanner-status" style="font-size:12px;color:var(--muted);margin:12px 0;text-align:center;">Apunta la cámara al código de barras del producto…</div>
+        <button class="btn btn-ghost" style="width:100%;" onclick="closeScanner()">Cancelar</button>
+      </div>
+    </div>`;
+  }
+  if(window._modal==='bodycomp-info'){
+    const f = BODYCOMP_FIELDS.find(x=>x.key===window._infoKey);
+    if(!f) return '';
+    return `<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;" onclick="closeModal(event)">
+      <div class="card" style="width:440px;max-width:100%;max-height:80vh;overflow-y:auto;" onclick="event.stopPropagation()">
+        <div class="display" style="font-weight:700;font-size:16px;margin-bottom:12px;">${f.label}${f.unit?' ('+f.unit+')':''}</div>
+        <div style="font-size:13px;color:var(--text);line-height:1.6;">${f.info||'Sin información disponible.'}</div>
+        <button class="btn btn-ghost" style="width:100%;margin-top:16px;" onclick="closeModal()">Cerrar</button>
+      </div>
+    </div>`;
+  }
+  return '';
+}
+function openSettings(){ window._modal='settings'; render(); }
+function openBodyCompInfo(key){ window._modal='bodycomp-info'; window._infoKey=key; render(); }
+function closeModal(e){ if(e && e.target!==e.currentTarget) return; window._modal=null; render(); }
+function saveSettings(){
+  state.goals = {
+    calorieGoal: Number(document.getElementById('g-cal').value)||DEFAULT_GOALS.calorieGoal,
+    waterGoal: Number(document.getElementById('g-water').value)||DEFAULT_GOALS.waterGoal,
+    exerciseGoal: Number(document.getElementById('g-ex').value)||DEFAULT_GOALS.exerciseGoal,
+  };
+  setGoals(state.goals);
+  setApiKey(document.getElementById('g-apikey').value.trim());
+  window._modal=null;
+  toast('Ajustes guardados');
+}
+
+/* ================= actions ================= */
+function render(){ document.getElementById('app').innerHTML = renderApp(); }
+function setTab(t){ state.tab=t; render(); }
+function setMealType(t){ window._mealType=t; render(); }
+function setRange(r){ state.progressRange=r; render(); }
+
+function setWater(v){ state.day.water = v; saveDay(); render(); }
+function setWeight(v){ state.day.weight = v===''?null:Number(v); saveDay(); }
+function setSleep(v){ state.day.sleepHours = v===''?null:Number(v); saveDay(); }
+
+function checkCacheHint(){
+  const nameEl = document.getElementById('meal-name');
+  if(!nameEl) return;
+  const name = nameEl.value.trim();
+  const noteEl = document.getElementById('meal-note');
+  const cache = getNutritionCache();
+  const hit = cache[normalizeFoodKey(name)];
+  if(hit){
+    document.getElementById('meal-cal').value = hit.calories;
+    document.getElementById('meal-p').value = hit.protein;
+    document.getElementById('meal-c').value = hit.carbs;
+    document.getElementById('meal-f').value = hit.fat;
+    window._pendingMicros = { key: normalizeFoodKey(name), data: hit };
+    noteEl.textContent = '✓ Reconocido de tu historial — sin usar API';
+  } else {
+    noteEl.textContent = '';
+  }
+}
+async function handleEstimate(){
+  const name = document.getElementById('meal-name').value.trim();
+  if(!name) return;
+  const cache = getNutritionCache();
+  const hit = cache[normalizeFoodKey(name)];
+  if(hit){
+    document.getElementById('meal-cal').value = hit.calories;
+    document.getElementById('meal-p').value = hit.protein;
+    document.getElementById('meal-c').value = hit.carbs;
+    document.getElementById('meal-f').value = hit.fat;
+    window._pendingMicros = { key: normalizeFoodKey(name), data: hit };
+    document.getElementById('meal-note').textContent = '✓ Desde tu historial (sin usar API)' + (hit.note?' — '+hit.note:'');
+    return;
+  }
+  const btn = document.getElementById('est-btn');
+  btn.disabled = true; btn.textContent = 'Calculando…';
+  try{
+    const r = await estimateNutrition(name);
+    document.getElementById('meal-cal').value = r.calories;
+    document.getElementById('meal-p').value = r.protein ?? 0;
+    document.getElementById('meal-c').value = r.carbs ?? 0;
+    document.getElementById('meal-f').value = r.fat ?? 0;
+    window._pendingMicros = { key: normalizeFoodKey(name), data: r };
+    document.getElementById('meal-note').textContent = '✓ ' + (r.note||'') + ' — ajusta si no coincide';
+    rememberNutrition(name, r);
+  }catch(e){
+    toast(e.message || 'No se pudo estimar', true);
+  }finally{
+    btn.disabled=false; btn.innerHTML='✨ Estimar';
+  }
+}
+function addMeal(){
+  const name = document.getElementById('meal-name').value.trim();
+  if(!name) return;
+  const pending = window._pendingMicros && window._pendingMicros.key===normalizeFoodKey(name) ? window._pendingMicros.data : null;
+  const meal = {
+    id: uid(), type: window._mealType||'desayuno', name,
+    calories: Number(document.getElementById('meal-cal').value)||0,
+    protein: Number(document.getElementById('meal-p').value)||0,
+    carbs: Number(document.getElementById('meal-c').value)||0,
+    fat: Number(document.getElementById('meal-f').value)||0,
+    fiber: pending?.fiber||0, sugar: pending?.sugar||0, sodium: pending?.sodium||0,
+    iron: pending?.iron||0, calcium: pending?.calcium||0, potassium: pending?.potassium||0, vitaminC: pending?.vitaminC||0,
+    time: nowHM(),
+  };
+  state.day.meals.push(meal);
+  if(meal.calories>0) rememberNutrition(name, meal);
+  window._pendingMicros = null;
+  saveDay(); render();
+}
+function removeMeal(id){ state.day.meals = state.day.meals.filter(m=>m.id!==id); saveDay(); render(); }
+
+function addExercise(){
+  const name = document.getElementById('ex-name').value.trim();
+  if(!name) return;
+  state.day.exercises.push({
+    id: uid(), name,
+    minutes: Number(document.getElementById('ex-min').value)||0,
+    calories: Number(document.getElementById('ex-cal').value)||0,
+    time: nowHM(),
+  });
+  saveDay(); render();
+}
+function removeExercise(id){ state.day.exercises = state.day.exercises.filter(e=>e.id!==id); saveDay(); render(); }
+
+function addBP(){
+  const sys = Number(document.getElementById('bp-sys').value);
+  const dia = Number(document.getElementById('bp-dia').value);
+  const pulse = Number(document.getElementById('bp-pulse').value) || null;
+  if(!sys || !dia) return;
+  state.day.bp.push({ id:uid(), systolic:sys, diastolic:dia, pulse, time: nowHM() });
+  saveDay(); render();
+}
+function removeBP(id){ state.day.bp = state.day.bp.filter(b=>b.id!==id); saveDay(); render(); }
+
+function addBodyComp(){
+  const vals = {};
+  BODYCOMP_FIELDS.forEach(f=>{ const v = document.getElementById('bc-'+f.key).value; vals[f.key] = v===''?null:Number(v); });
+  const hasAny = Object.values(vals).some(v=>v!=null);
+  if(!hasAny) return;
+  state.day.bodyComp.push({ id:uid(), time: nowHM(), ...vals });
+  saveDay(); render();
+}
+function removeBodyComp(id){ state.day.bodyComp = state.day.bodyComp.filter(b=>b.id!==id); saveDay(); render(); }
+
+function addMed(){
+  const name = document.getElementById('med-name').value.trim();
+  const dose = document.getElementById('med-dose').value.trim();
+  const times = document.getElementById('med-times').value.split(',').map(s=>s.trim()).filter(Boolean);
+  if(!name || times.length===0) return;
+  state.meds.push({ id:uid(), name, dose, times });
+  setMeds(state.meds); render();
+}
+function removeMed(id){ state.meds = state.meds.filter(m=>m.id!==id); setMeds(state.meds); render(); }
+function toggleMedTaken(key){
+  const exists = state.day.medsTaken.find(t=>t.key===key);
+  if(exists) state.day.medsTaken = state.day.medsTaken.filter(t=>t.key!==key);
+  else state.day.medsTaken.push({ key, time: nowHM() });
+  saveDay(); render();
+}
+
+function toggleAlerts(){
+  state.alertsOn = !state.alertsOn;
+  if(state.alertsOn && 'Notification' in window && Notification.permission!=='granted'){
+    Notification.requestPermission();
+  }
+  render();
+}
+setInterval(()=>{
+  if(!state.alertsOn) return;
+  const hm = nowHM();
+  const takenIds = new Set(state.day.medsTaken.map(t=>t.key));
+  state.meds.forEach(med=>{
+    med.times.forEach(t=>{
+      const key = med.id+':'+t;
+      if(t===hm && !takenIds.has(key)){
+        if('Notification' in window && Notification.permission==='granted'){
+          new Notification('VitaLink — Medicamento', { body: `Es hora de tomar ${med.name}${med.dose?' ('+med.dose+')':''}` });
+        }
+        try{ new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoAAAAAAAAAAAA=').play().catch(()=>{}); }catch(e){}
+      }
+    });
+  });
+}, 20000);
+
+/* ================= calendar nav ================= */
+function shiftMonth(dir){
+  let { y, m } = state.calMonth;
+  m += dir;
+  if(m<0){ m=11; y--; } if(m>11){ m=0; y++; }
+  state.calMonth = { y, m };
+  render();
+}
+function selectCalDate(iso){ state.selectedDate = iso; render(); }
+
+function mutateDay(iso, fn){
+  if(iso===todayISO()){
+    fn(state.day);
+    saveDay();
+  } else {
+    const day = getDay(iso);
+    fn(day);
+    setDayData(iso, day);
+  }
+  render();
+}
+async function handleEstimateForDay(){
+  const name = document.getElementById('cal-meal-name').value.trim();
+  if(!name) return;
+  const cache = getNutritionCache();
+  const hit = cache[normalizeFoodKey(name)];
+  if(hit){
+    document.getElementById('cal-meal-cal').value = hit.calories;
+    document.getElementById('cal-meal-p').value = hit.protein;
+    document.getElementById('cal-meal-c').value = hit.carbs;
+    document.getElementById('cal-meal-f').value = hit.fat;
+    window._pendingMicros = { key: normalizeFoodKey(name), data: hit };
+    document.getElementById('cal-meal-note').textContent = '✓ Desde tu historial (sin usar API)' + (hit.note?' — '+hit.note:'');
+    return;
+  }
+  const btn = document.getElementById('cal-est-btn');
+  btn.disabled = true; btn.textContent = 'Calculando…';
+  try{
+    const r = await estimateNutrition(name);
+    document.getElementById('cal-meal-cal').value = r.calories;
+    document.getElementById('cal-meal-p').value = r.protein ?? 0;
+    document.getElementById('cal-meal-c').value = r.carbs ?? 0;
+    document.getElementById('cal-meal-f').value = r.fat ?? 0;
+    window._pendingMicros = { key: normalizeFoodKey(name), data: r };
+    document.getElementById('cal-meal-note').textContent = '✓ ' + (r.note||'') + ' — ajusta si no coincide';
+    rememberNutrition(name, r);
+  }catch(e){
+    toast(e.message || 'No se pudo estimar', true);
+  }finally{
+    btn.disabled=false; btn.innerHTML='✨ Estimar';
+  }
+}
+function addMealForDay(iso){
+  const name = document.getElementById('cal-meal-name').value.trim();
+  if(!name) return;
+  const pending = window._pendingMicros && window._pendingMicros.key===normalizeFoodKey(name) ? window._pendingMicros.data : null;
+  const meal = {
+    id: uid(),
+    type: document.getElementById('cal-meal-type').value,
+    name,
+    time: document.getElementById('cal-meal-time').value || nowHM(),
+    calories: Number(document.getElementById('cal-meal-cal').value)||0,
+    protein: Number(document.getElementById('cal-meal-p').value)||0,
+    carbs: Number(document.getElementById('cal-meal-c').value)||0,
+    fat: Number(document.getElementById('cal-meal-f').value)||0,
+    fiber: pending?.fiber||0, sugar: pending?.sugar||0, sodium: pending?.sodium||0,
+    iron: pending?.iron||0, calcium: pending?.calcium||0, potassium: pending?.potassium||0, vitaminC: pending?.vitaminC||0,
+  };
+  if(meal.calories>0) rememberNutrition(name, meal);
+  window._pendingMicros = null;
+  mutateDay(iso, day=>day.meals.push(meal));
+}
+function removeMealForDay(iso, id){ mutateDay(iso, day=>{ day.meals = day.meals.filter(m=>m.id!==id); }); }
+function addExerciseForDay(iso){
+  const name = document.getElementById('cal-ex-name').value.trim();
+  if(!name) return;
+  const ex = {
+    id: uid(),
+    name,
+    time: document.getElementById('cal-ex-time').value || nowHM(),
+    minutes: Number(document.getElementById('cal-ex-min').value)||0,
+    calories: Number(document.getElementById('cal-ex-cal').value)||0,
+  };
+  mutateDay(iso, day=>day.exercises.push(ex));
+}
+function removeExerciseForDay(iso, id){ mutateDay(iso, day=>{ day.exercises = day.exercises.filter(e=>e.id!==id); }); }
+function setSleepForDay(iso){
+  const v = document.getElementById('cal-sleep').value;
+  mutateDay(iso, day=>{ day.sleepHours = v===''?null:Number(v); });
+}
+function setWeightForDay(iso){
+  const v = document.getElementById('cal-weight').value;
+  mutateDay(iso, day=>{ day.weight = v===''?null:Number(v); });
+}
+
+/* ================= backup export/import ================= */
+function exportBackup(){
+  const all = {};
+  for(let i=0;i<localStorage.length;i++){
+    const k = localStorage.key(i);
+    if(k.startsWith('vl:')) all[k] = localStorage.getItem(k);
+  }
+  const blob = new Blob([JSON.stringify(all,null,2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `vitalink-backup-${todayISO()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Respaldo descargado');
+}
+
+/* ================= cross-tab sync ================= */
+// Each tab keeps its own in-memory copy of today's data. Without this, opening
+// the dashboard in more than one tab (e.g. clicking the desktop icon twice)
+// lets whichever tab saves last silently overwrite entries made in the other.
+function resyncFromStorage(){
+  state.day = getDay(todayISO());
+  state.goals = getGoals();
+  state.meds = getMeds();
+  render();
+}
+window.addEventListener('storage', (e)=>{ if(!e.key || e.key.startsWith('vl:')) resyncFromStorage(); });
+window.addEventListener('focus', resyncFromStorage);
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') resyncFromStorage(); });
+
+/* ================= init ================= */
+render();
+</script>
+</body>
+</html>
