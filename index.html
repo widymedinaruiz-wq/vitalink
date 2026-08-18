@@ -100,8 +100,18 @@
 /* ================= utils ================= */
 const LS = {
   get(k){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; }catch{ return null; } },
-  set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ console.error('storage error', e); return false; } }
+  set(k,v){
+    try{
+      localStorage.setItem(k, JSON.stringify(v));
+      if(k!=='vl:_lastChangeAt'){
+        localStorage.setItem('vl:_lastChangeAt', String(Date.now()));
+        if(k!=='vl:apikey' && typeof window._scheduleCloudPush==='function') window._scheduleCloudPush();
+      }
+      return true;
+    }catch(e){ console.error('storage error', e); return false; }
+  }
 };
+window._syncState = { ready:false, user:null, syncing:false, lastSyncAt:null, error:null };
 function uid(){ return Math.random().toString(36).slice(2,9); }
 function pad(n){ return String(n).padStart(2,'0'); }
 function todayISO(){ const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
@@ -1314,6 +1324,27 @@ function emptyState(ic,text){
   return `<div style="text-align:center;padding:24px 10px;color:var(--muted);font-size:13px;">${ic}<br><br>${text}</div>`;
 }
 
+function syncSectionHTML(){
+  const s = window._syncState;
+  if(!s.ready){
+    return `<div style="font-size:12px;color:var(--muted);">Cargando sincronización…</div>`;
+  }
+  if(!s.user){
+    return `<div>
+      <button class="btn btn-ghost" style="width:100%;margin-bottom:6px;" onclick="firebaseSignIn()">🔗 Iniciar sesión con Google</button>
+      <div style="font-size:11px;color:var(--muted);">Conecta tu cuenta para que tus datos se sincronicen automáticamente entre tu computadora y tu celular.</div>
+      ${s.error?`<div style="font-size:11px;color:var(--danger);margin-top:6px;">Error: ${esc(s.error)}</div>`:''}
+    </div>`;
+  }
+  const lastSync = s.lastSyncAt ? new Date(s.lastSyncAt).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}) : 'nunca';
+  return `<div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <span style="font-size:12px;color:var(--text);">✅ ${esc(s.user.email)}</span>
+      <button class="btn btn-ghost" style="padding:6px 10px;font-size:11px;" onclick="firebaseSignOut()">Cerrar sesión</button>
+    </div>
+    <div style="font-size:11px;color:var(--muted);">${s.syncing?'Sincronizando…':'Última sincronización: '+lastSync}${s.error?' — Error: '+esc(s.error):''}</div>
+  </div>`;
+}
 /* ================= modal (settings) ================= */
 window._modal = null;
 function modalHTML(){
@@ -1332,6 +1363,8 @@ function modalHTML(){
         <div class="label">API key de Anthropic (opcional, para estimar calorías con IA)</div>
         <input id="g-apikey" type="password" value="${getApiKey()}" placeholder="sk-ant-..." style="width:100%;margin-bottom:6px;">
         <div style="font-size:11px;color:var(--muted);margin-bottom:16px;">Se guarda solo en este navegador. Nunca la compartas si publicas este archivo.</div>
+        <div class="label">Sincronización entre dispositivos</div>
+        <div style="margin-bottom:16px;">${syncSectionHTML()}</div>
         <div style="display:flex;gap:8px;">
           <button class="btn btn-ghost" style="flex:1;" onclick="closeModal()">Cancelar</button>
           <button class="btn btn-primary" style="flex:1;" onclick="saveSettings()">Guardar</button>
@@ -1681,6 +1714,102 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
 
 /* ================= init ================= */
 render();
+</script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCa-OtYw9PP02-f7maZ3WSKkYEkpRnHPIc",
+    authDomain: "vitalink-widy.firebaseapp.com",
+    projectId: "vitalink-widy",
+    storageBucket: "vitalink-widy.firebasestorage.app",
+    messagingSenderId: "830173192907",
+    appId: "1:830173192907:web:dacc740b8909601b99f14e",
+    measurementId: "G-8LZ4277YRB"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const provider = new GoogleAuthProvider();
+
+  let currentUser = null;
+  let unsubscribeSnapshot = null;
+  let pushTimer = null;
+  let lastPushedAt = 0;
+
+  function safeRender(){ if(typeof window.render==='function') window.render(); }
+
+  function collectLocalData(){
+    const all = {};
+    for(let i=0;i<localStorage.length;i++){
+      const k = localStorage.key(i);
+      if(k.startsWith('vl:') && k!=='vl:apikey' && k!=='vl:_lastChangeAt') all[k]=localStorage.getItem(k);
+    }
+    return all;
+  }
+
+  async function pushToCloud(){
+    if(!currentUser) return;
+    window._syncState.syncing = true; window._syncState.error = null; safeRender();
+    const ts = Date.now();
+    try{
+      await setDoc(doc(db,'users',currentUser.uid), { data: collectLocalData(), updatedAt: ts });
+      lastPushedAt = ts;
+      window._syncState.lastSyncAt = ts;
+    }catch(e){
+      window._syncState.error = e.message;
+    }
+    window._syncState.syncing = false; safeRender();
+  }
+  window._scheduleCloudPush = function(){
+    if(!currentUser) return;
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(pushToCloud, 2000);
+  };
+
+  function applyRemoteSnapshot(snap){
+    if(!snap.exists()){ pushToCloud(); return; }
+    const remote = snap.data();
+    if(remote.updatedAt === lastPushedAt) return; // echo of our own push
+    const remoteData = remote.data || {};
+    const remoteUpdatedAt = remote.updatedAt || 0;
+    const localUpdatedAt = Number(localStorage.getItem('vl:_lastChangeAt')||0);
+    if(remoteUpdatedAt > localUpdatedAt){
+      Object.keys(remoteData).forEach(k=>localStorage.setItem(k, remoteData[k]));
+      localStorage.setItem('vl:_lastChangeAt', String(remoteUpdatedAt));
+      window._syncState.lastSyncAt = Date.now();
+      if(typeof window.resyncFromStorage === 'function') window.resyncFromStorage();
+      else safeRender();
+    } else if(localUpdatedAt > remoteUpdatedAt){
+      pushToCloud();
+    }
+  }
+
+  window.firebaseSignIn = async function(){
+    try{ await signInWithPopup(auth, provider); }
+    catch(e){ window._syncState.error = e.message; safeRender(); }
+  };
+  window.firebaseSignOut = async function(){
+    if(unsubscribeSnapshot){ unsubscribeSnapshot(); unsubscribeSnapshot=null; }
+    await signOut(auth);
+  };
+
+  onAuthStateChanged(auth, (user) => {
+    currentUser = user;
+    window._syncState.user = user ? { email: user.email, uid: user.uid } : null;
+    window._syncState.ready = true;
+    if(unsubscribeSnapshot){ unsubscribeSnapshot(); unsubscribeSnapshot=null; }
+    if(user){
+      unsubscribeSnapshot = onSnapshot(doc(db,'users',user.uid), applyRemoteSnapshot, (err)=>{
+        window._syncState.error = err.message; safeRender();
+      });
+    }
+    safeRender();
+  });
 </script>
 </body>
 </html>
