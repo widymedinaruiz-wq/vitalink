@@ -649,7 +649,7 @@ function renderComidas(){
         ${Object.values(getNutritionCache()).sort((a,b)=>b.ts-a.ts).slice(0,40).map(e=>`<option value="${esc(e.label)}"></option>`).join('')}
       </datalist>
       <div style="display:flex;gap:8px;margin-bottom:6px;">
-        <input id="meal-cal" type="number" placeholder="kcal" style="flex:1;">
+        <input id="meal-cal" type="number" placeholder="kcal" style="flex:1;min-width:0;">
         <button class="btn btn-primary" id="est-btn" onclick="handleEstimate()">✨ Estimar</button>
       </div>
       <button class="btn btn-ghost" style="width:100%;margin-bottom:8px;" onclick="openScanner()">📷 Escanear código de barras</button>
@@ -702,8 +702,8 @@ function renderEjercicio(){
     <div class="card">
       <div class="label">Agregar ejercicio</div>
       <div style="display:flex;gap:8px;margin-bottom:8px;">
-        <input id="ex-name" placeholder="Actividad" style="flex:2;">
-        <input id="ex-min" type="number" placeholder="min" style="flex:1;">
+        <input id="ex-name" placeholder="Actividad" style="flex:2;min-width:0;">
+        <input id="ex-min" type="number" placeholder="min" style="flex:1;min-width:0;">
       </div>
       <input id="ex-cal" type="number" placeholder="kcal quemadas (opcional)" style="width:100%;margin-bottom:8px;">
       <button class="btn btn-primary" style="width:100%;" onclick="addExercise()">+ Agregar</button>
@@ -728,9 +728,9 @@ function renderSalud(){
     <div class="card">
       <div class="label">Presión arterial</div>
       <div style="display:flex;gap:8px;margin-bottom:8px;">
-        <input id="bp-sys" type="number" placeholder="Sistólica" style="flex:1;">
-        <input id="bp-dia" type="number" placeholder="Diastólica" style="flex:1;">
-        <input id="bp-pulse" type="number" placeholder="Pulso (bpm)" style="flex:1;">
+        <input id="bp-sys" type="number" placeholder="Sistólica" style="flex:1;min-width:0;">
+        <input id="bp-dia" type="number" placeholder="Diastólica" style="flex:1;min-width:0;">
+        <input id="bp-pulse" type="number" placeholder="Pulso (bpm)" style="flex:1;min-width:0;">
         <button class="btn btn-primary" onclick="addBP()">+</button>
       </div>
       ${d.bp.length===0 ? emptyState('❤️','Sin lecturas hoy') :
@@ -764,11 +764,11 @@ function renderSalud(){
     <div class="card">
       <div class="label">Administrar medicamentos</div>
       <div style="display:flex;gap:8px;margin-bottom:8px;">
-        <input id="med-name" placeholder="Nombre" style="flex:2;">
-        <input id="med-dose" placeholder="Dosis (opcional)" style="flex:1;">
+        <input id="med-name" placeholder="Nombre" style="flex:2;min-width:0;">
+        <input id="med-dose" placeholder="Dosis (opcional)" style="flex:1;min-width:0;">
       </div>
       <div style="display:flex;gap:8px;margin-bottom:8px;">
-        <input id="med-times" placeholder="Horarios, ej: 08:00, 20:00" style="flex:1;">
+        <input id="med-times" placeholder="Horarios, ej: 08:00, 20:00" style="flex:1;min-width:0;">
         <button class="btn btn-primary" onclick="addMed()">+ Agregar</button>
       </div>
       ${meds.length ? `<div class="stack" style="gap:8px;">${meds.map(m=>rowItem(m.name, m.times.join(', '), '', `removeMed('${m.id}')`)).join('')}</div>` : ''}
