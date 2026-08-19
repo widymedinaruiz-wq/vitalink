@@ -32,6 +32,9 @@
   .btn-danger{background:var(--danger);color:var(--bg);}
   .btn:disabled{opacity:.5;cursor:default;}
   .row-item{display:flex;align-items:center;justify-content:space-between;padding:9px 10px;background:var(--raised);border-radius:12px;}
+  .suggest-list{position:absolute;top:100%;left:0;right:0;z-index:30;background:var(--raised);border:1px solid var(--line);border-radius:10px;margin-top:4px;max-height:180px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.35);}
+  .suggest-item{padding:8px 10px;font-size:14px;cursor:pointer;}
+  .suggest-item:hover{background:var(--surface);}
   .pill{border-radius:12px;border:1px solid var(--line);background:var(--raised);padding:9px 4px;text-align:center;cursor:pointer;font-size:11px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:4px;}
   .pill.active{border-color:var(--accent);background:rgba(242,166,90,.12);color:var(--accent);font-weight:700;}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
@@ -1252,12 +1255,12 @@ function renderDayDetail(iso){
         <div class="label">Ejercicio</div>
         ${d.exercises.length? `<div class="stack" style="gap:6px;margin-bottom:10px;">${d.exercises.map(e=>rowItem(e.name, e.time, e.minutes+' min', `removeExerciseForDay('${iso}','${e.id}')`)).join('')}</div>` : `<div style="color:var(--muted);font-size:12px;margin-bottom:10px;">Sin registros</div>`}
         <div style="display:flex;gap:6px;margin-bottom:6px;">
-          <input id="cal-ex-name" list="cal-ex-history" placeholder="Actividad" style="flex:2;min-width:0;" oninput="checkExerciseHintForDay()">
+          <div style="flex:2;min-width:0;position:relative;">
+            <input id="cal-ex-name" placeholder="Actividad" style="width:100%;" autocomplete="off" oninput="onExerciseNameInputForDay()" onfocus="onExerciseNameInputForDay()" onblur="hideExerciseSuggestForDay()">
+            <div id="cal-ex-suggest" class="suggest-list" style="display:none;"></div>
+          </div>
           <input id="cal-ex-min" type="number" placeholder="min" style="flex:1;min-width:0;">
         </div>
-        <datalist id="cal-ex-history">
-          ${Object.values(getExerciseHistory()).sort((a,b)=>b.ts-a.ts).slice(0,40).map(e=>`<option value="${esc(e.label)}"></option>`).join('')}
-        </datalist>
         <div style="display:flex;gap:6px;margin-bottom:6px;">
           <input id="cal-ex-time" type="time" value="${nowHM()}" style="flex:1;min-width:0;">
           <input id="cal-ex-cal" type="number" placeholder="kcal (opc.)" style="flex:1;min-width:0;">
@@ -1956,6 +1959,32 @@ function checkExerciseHintForDay(){
     document.getElementById('cal-ex-min').value = hit.minutes;
     document.getElementById('cal-ex-cal').value = hit.calories;
   }
+}
+function exerciseSuggestions(query){
+  const hist = Object.values(getExerciseHistory()).sort((a,b)=>b.ts-a.ts);
+  const q = normalizeFoodKey(query);
+  if(!q) return hist.slice(0,8);
+  return hist.filter(e=>normalizeFoodKey(e.label).includes(q)).slice(0,8);
+}
+function onExerciseNameInputForDay(){
+  checkExerciseHintForDay();
+  const box = document.getElementById('cal-ex-suggest');
+  const nameEl = document.getElementById('cal-ex-name');
+  if(!box || !nameEl) return;
+  const items = exerciseSuggestions(nameEl.value);
+  if(!items.length){ box.style.display='none'; box.innerHTML=''; return; }
+  box.innerHTML = items.map(e=>`<div class="suggest-item" onmousedown="pickExerciseSuggestForDay(this)">${esc(e.label)}</div>`).join('');
+  box.style.display = 'block';
+}
+function pickExerciseSuggestForDay(el){
+  const nameEl = document.getElementById('cal-ex-name');
+  nameEl.value = el.textContent;
+  checkExerciseHintForDay();
+  hideExerciseSuggestForDay();
+}
+function hideExerciseSuggestForDay(){
+  const box = document.getElementById('cal-ex-suggest');
+  if(box) box.style.display = 'none';
 }
 function addExerciseForDay(iso){
   const name = document.getElementById('cal-ex-name').value.trim();
