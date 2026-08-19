@@ -1108,20 +1108,18 @@ function renderProgreso(){
   const n = state.progressRange;
   const isos = Array.from({length:n}).map((_,i)=>isoDaysAgo(n-1-i));
   const days = isos.map(iso => iso===todayISO() ? { iso, ...state.day } : { iso, ...getDay(iso) });
-  const short = iso => { const [y,m,dd]=iso.split('-').map(Number); return new Date(y,m-1,dd).toLocaleDateString('es-ES',{weekday:'short'}).replace('.',''); };
-
-  const weightPts = days.map(d=>({ label:short(d.iso), v:d.weight }));
-  const calPts = days.map(d=>({ label:short(d.iso), v:d.meals.reduce((s,m)=>s+(Number(m.calories)||0),0) }));
-  const exPts = days.map(d=>({ label:short(d.iso), v:d.exercises.reduce((s,e)=>s+(Number(e.minutes)||0),0) }));
-  const waterPts = days.map(d=>({ label:short(d.iso), v:d.water }));
-  const sleepPts = days.map(d=>({ label:short(d.iso), v:d.sleepHours }));
+  const weightPts = days.map(d=>({ label:dayLetter(d.iso), v:d.weight }));
+  const calPts = days.map(d=>({ label:dayLetter(d.iso), v:d.meals.reduce((s,m)=>s+(Number(m.calories)||0),0) }));
+  const exPts = days.map(d=>({ label:dayLetter(d.iso), v:d.exercises.reduce((s,e)=>s+(Number(e.minutes)||0),0) }));
+  const waterPts = days.map(d=>({ label:dayLetter(d.iso), v:d.water }));
+  const sleepPts = days.map(d=>({ label:dayLetter(d.iso), v:d.sleepHours }));
   const bpPts = days.map(d=>{
     const last = d.bp[d.bp.length-1];
-    return { label:short(d.iso), sys: last?last.systolic:null, dia: last?last.diastolic:null };
+    return { label:dayLetter(d.iso), sys: last?last.systolic:null, dia: last?last.diastolic:null };
   });
   const pulsePts = days.map(d=>{
     const last = d.bp[d.bp.length-1];
-    return { label:short(d.iso), v: last?last.pulse:null };
+    return { label:dayLetter(d.iso), v: last?last.pulse:null };
   });
 
   return `
