@@ -259,6 +259,22 @@ Alimento: "${desc}"`;
   if(typeof parsed.calories !== 'number') throw new Error('respuesta inválida');
   return parsed;
 }
+async function lookupSharedFoodSafe(key){
+  if(typeof window.lookupSharedFood !== 'function') return null;
+  return await window.lookupSharedFood(key);
+}
+function contributeSharedFoodSafe(key, name, r){
+  if(typeof window.contributeSharedFood !== 'function') return;
+  window.contributeSharedFood(key, { label:name.trim(), calories:r.calories, protein:r.protein||0, carbs:r.carbs||0, fat:r.fat||0, fiber:r.fiber||0, sugar:r.sugar||0, sodium:r.sodium||0, iron:r.iron||0, calcium:r.calcium||0, potassium:r.potassium||0, vitaminC:r.vitaminC||0, note:r.note||'', ts:Date.now() });
+}
+async function lookupSharedBarcodeSafe(code){
+  if(typeof window.lookupSharedBarcode !== 'function') return null;
+  return await window.lookupSharedBarcode(code);
+}
+function contributeSharedBarcodeSafe(code, product){
+  if(typeof window.contributeSharedBarcode !== 'function') return;
+  window.contributeSharedBarcode(code, product);
+}
 
 /* ================= daily AI insight ================= */
 function getDailyInsightCache(){ return LS.get('vl:insight-cache') || {}; }
@@ -413,6 +429,10 @@ async function lookupBarcode(barcode){
   const cache = getBarcodeCache();
   let product = cache[barcode];
   if(!product){
+    product = await lookupSharedBarcodeSafe(barcode);
+    if(product){ cache[barcode] = product; setBarcodeCache(cache); }
+  }
+  if(!product){
     product = await fetchOFF(barcode);
     if(!product && barcode.length < 13) product = await fetchOFF(barcode.padStart(13,'0'));
     if(!product){
@@ -421,6 +441,7 @@ async function lookupBarcode(barcode){
     }
     cache[barcode] = product;
     setBarcodeCache(cache);
+    contributeSharedBarcodeSafe(barcode, product);
   }
   fillMealFromBarcode(product);
 }
@@ -1662,6 +1683,17 @@ async function handleEstimate(){
   const btn = document.getElementById('est-btn');
   btn.disabled = true; btn.textContent = 'Calculando…';
   try{
+    const shared = await lookupSharedFoodSafe(normalizeFoodKey(name));
+    if(shared){
+      document.getElementById('meal-cal').value = shared.calories;
+      document.getElementById('meal-p').value = shared.protein ?? 0;
+      document.getElementById('meal-c').value = shared.carbs ?? 0;
+      document.getElementById('meal-f').value = shared.fat ?? 0;
+      window._pendingMicros = { key: normalizeFoodKey(name), data: shared };
+      document.getElementById('meal-note').textContent = '✓ ' + (shared.note||'') + ' — desde el banco compartido';
+      rememberNutrition(name, shared);
+      return;
+    }
     const r = await estimateNutrition(name);
     document.getElementById('meal-cal').value = r.calories;
     document.getElementById('meal-p').value = r.protein ?? 0;
@@ -1670,6 +1702,7 @@ async function handleEstimate(){
     window._pendingMicros = { key: normalizeFoodKey(name), data: r };
     document.getElementById('meal-note').textContent = '✓ ' + (r.note||'') + ' — ajusta si no coincide';
     rememberNutrition(name, r);
+    contributeSharedFoodSafe(normalizeFoodKey(name), name, r);
   }catch(e){
     toast(e.message || 'No se pudo estimar', true);
   }finally{
@@ -1819,6 +1852,17 @@ async function handleEstimateForDay(){
   const btn = document.getElementById('cal-est-btn');
   btn.disabled = true; btn.textContent = 'Calculando…';
   try{
+    const shared = await lookupSharedFoodSafe(normalizeFoodKey(name));
+    if(shared){
+      document.getElementById('cal-meal-cal').value = shared.calories;
+      document.getElementById('cal-meal-p').value = shared.protein ?? 0;
+      document.getElementById('cal-meal-c').value = shared.carbs ?? 0;
+      document.getElementById('cal-meal-f').value = shared.fat ?? 0;
+      window._pendingMicros = { key: normalizeFoodKey(name), data: shared };
+      document.getElementById('cal-meal-note').textContent = '✓ ' + (shared.note||'') + ' — desde el banco compartido';
+      rememberNutrition(name, shared);
+      return;
+    }
     const r = await estimateNutrition(name);
     document.getElementById('cal-meal-cal').value = r.calories;
     document.getElementById('cal-meal-p').value = r.protein ?? 0;
@@ -1827,6 +1871,7 @@ async function handleEstimateForDay(){
     window._pendingMicros = { key: normalizeFoodKey(name), data: r };
     document.getElementById('cal-meal-note').textContent = '✓ ' + (r.note||'') + ' — ajusta si no coincide';
     rememberNutrition(name, r);
+    contributeSharedFoodSafe(normalizeFoodKey(name), name, r);
   }catch(e){
     toast(e.message || 'No se pudo estimar', true);
   }finally{
@@ -1934,7 +1979,7 @@ render();
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-  import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCa-OtYw9PP02-f7maZ3WSKkYEkpRnHPIc",
@@ -1984,6 +2029,25 @@ render();
     if(!currentUser) return;
     clearTimeout(pushTimer);
     pushTimer = setTimeout(pushToCloud, 2000);
+  };
+
+  // Shared, cross-user reference banks (foods/{normalizedName}, barcodeFoods/{barcode}).
+  // Read is public; write only happens from a vetted source (AI estimate or Open Food
+  // Facts), never from raw user text, and is create-only — Firestore rules reject
+  // overwriting an existing doc, so the bank is append-only/immutable by construction.
+  window.lookupSharedFood = async function(key){
+    try{ const snap = await getDoc(doc(db,'foods',key)); return snap.exists() ? snap.data() : null; }
+    catch(e){ return null; }
+  };
+  window.contributeSharedFood = async function(key, data){
+    try{ await setDoc(doc(db,'foods',key), data); }catch(e){ /* likely already contributed by another user, or not signed in — both fine to ignore */ }
+  };
+  window.lookupSharedBarcode = async function(code){
+    try{ const snap = await getDoc(doc(db,'barcodeFoods',code)); return snap.exists() ? snap.data() : null; }
+    catch(e){ return null; }
+  };
+  window.contributeSharedBarcode = async function(code, data){
+    try{ await setDoc(doc(db,'barcodeFoods',code), data); }catch(e){}
   };
 
   function applyRemoteSnapshot(snap){
