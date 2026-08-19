@@ -770,6 +770,14 @@ function renderSalud(){
         </div>
       </div>
       <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Las alertas solo suenan mientras esta pestaña esté abierta.</div>
+      ${meds.length>0 ? (()=>{
+        const a7 = medAdherence(7);
+        const color = a7>=90?'var(--accent3)':a7>=70?'var(--accent2)':'var(--danger)';
+        return `<div style="display:flex;align-items:center;justify-content:space-between;background:var(--raised);border-radius:10px;padding:9px 12px;margin-bottom:12px;">
+          <span style="font-size:12px;color:var(--muted);">Adherencia últimos 7 días</span>
+          <span class="display" style="font-size:15px;font-weight:700;color:${color};">${a7}%</span>
+        </div>`;
+      })() : ''}
       ${meds.length===0 ? emptyState('💊','Agrega un medicamento abajo para ver su horario aquí') :
         `<div class="stack" style="gap:8px;">${meds.flatMap(med => med.times.map(t=>{
           const key = med.id+':'+t;
@@ -810,6 +818,13 @@ function latestBodyCompValue(day, key){
 /* ================= forecast (Pronóstico) ================= */
 const KCAL_PER_KG = 7700; // approx. energy density of body fat, used to translate a calorie balance into a weight-change rate
 function dayAt(iso){ return iso===todayISO() ? state.day : getDay(iso); }
+function medAdherence(days){
+  const dosesPerDay = state.meds.reduce((s,m)=>s+m.times.length,0);
+  if(dosesPerDay===0) return null;
+  let taken=0;
+  for(let n=0;n<days;n++) taken += dayAt(isoDaysAgo(n)).medsTaken.length;
+  return Math.round((taken/(dosesPerDay*days))*100);
+}
 function getWeightHistory(days){
   const isos = Array.from({length:days}).map((_,i)=>isoDaysAgo(days-1-i));
   return isos.map(iso=>({ iso, weight: dayAt(iso).weight })).filter(p=>p.weight!=null);
