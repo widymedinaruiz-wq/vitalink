@@ -1682,6 +1682,7 @@ async function handleEstimate(){
   }
   const btn = document.getElementById('est-btn');
   btn.disabled = true; btn.textContent = 'Calculando…';
+  window._estimateBusy = true;
   try{
     const shared = await lookupSharedFoodSafe(normalizeFoodKey(name));
     if(shared){
@@ -1707,9 +1708,11 @@ async function handleEstimate(){
     toast(e.message || 'No se pudo estimar', true);
   }finally{
     btn.disabled=false; btn.innerHTML=navIcon('sparkle',14)+'Estimar';
+    window._estimateBusy = false;
   }
 }
 function addMeal(){
+  if(window._estimateBusy){ toast('Espera a que termine de estimar antes de agregar', true); return; }
   const name = document.getElementById('meal-name').value.trim();
   if(!name) return;
   const pending = window._pendingMicros && window._pendingMicros.key===normalizeFoodKey(name) ? window._pendingMicros.data : null;
@@ -1851,6 +1854,7 @@ async function handleEstimateForDay(){
   }
   const btn = document.getElementById('cal-est-btn');
   btn.disabled = true; btn.textContent = 'Calculando…';
+  window._estimateBusy = true;
   try{
     const shared = await lookupSharedFoodSafe(normalizeFoodKey(name));
     if(shared){
@@ -1876,9 +1880,11 @@ async function handleEstimateForDay(){
     toast(e.message || 'No se pudo estimar', true);
   }finally{
     btn.disabled=false; btn.innerHTML=navIcon('sparkle',14)+'Estimar';
+    window._estimateBusy = false;
   }
 }
 function addMealForDay(iso){
+  if(window._estimateBusy){ toast('Espera a que termine de estimar antes de agregar', true); return; }
   const name = document.getElementById('cal-meal-name').value.trim();
   if(!name) return;
   const pending = window._pendingMicros && window._pendingMicros.key===normalizeFoodKey(name) ? window._pendingMicros.data : null;
