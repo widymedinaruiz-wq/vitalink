@@ -45,6 +45,9 @@
   nav.side .navbtn{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:12px;color:var(--muted);cursor:pointer;font-size:14px;margin-bottom:2px;}
   nav.side .navbtn.active{background:var(--raised);color:var(--accent);font-weight:700;}
   nav.side .navbtn .ic{font-size:16px;width:20px;text-align:center;}
+  .ic-svg{width:19px;height:19px;flex-shrink:0;display:block;}
+  .ic-svg path,.ic-svg circle,.ic-svg rect{fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;}
+  .ic-svg .fill{fill:currentColor;stroke:none;}
   nav.side .foot{margin-top:auto;display:flex;flex-direction:column;gap:6px;}
   main{flex:1;padding:28px 32px 60px;min-width:0;}
   main header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:22px;flex-wrap:wrap;gap:8px;}
@@ -540,21 +543,36 @@ function dialSVG(calPct, waterPct, exPct){
 }
 
 /* ================= renderers ================= */
+const NAV_ICONS = {
+  hoy: '<path d="M12 4A8 8 0 1 1 6.34 6.34" fill="none"/><circle class="fill" cx="12" cy="12" r="1.6"/>',
+  comidas: '<path d="M6 3v5M8 3v5M10 3v5M6 8q0 3.5 2 3.5T10 8M8 11.5V21"/><path d="M17 3c-2.2 0-3.4 2-3.4 4.5S14.8 12 17 12M17 3v18"/>',
+  ejercicio: '<circle cx="4.5" cy="12" r="2.2"/><circle cx="19.5" cy="12" r="2.2"/><path d="M6.7 12h10.6" stroke-width="2.75"/><path d="M4 9.3v5.4M20 9.3v5.4"/>',
+  salud: '<path d="M12 21c-4.8-3.2-9-7.3-9-11.5A5 5 0 0 1 12 6a5 5 0 0 1 9 3.5c0 4.2-4.2 8.3-9 11.5z"/><path d="M5 12h3l1.7-3.4 2.3 6.8 1.7-3.4H19" opacity=".8"/>',
+  composicion: '<circle cx="12" cy="12" r="9" opacity=".35"/><circle cx="12" cy="12" r="6" opacity=".65"/><circle cx="12" cy="12" r="3"/>',
+  calendario: '<rect x="4" y="5.5" width="16" height="14.5" rx="2.5"/><path d="M4 9.7h16M8 3v3.7M16 3v3.7"/><circle class="fill" cx="9.2" cy="14" r="1.05"/>',
+  progreso: '<path d="M4 16l4-4 3.5 3 5-6.5L20 12"/><circle class="fill" cx="20" cy="12" r="1.6"/>',
+  nutricion: '<path d="M12 7l-5 8M12 7l5 8M8 17h8" opacity=".55"/><circle class="fill" cx="12" cy="5" r="2"/><circle class="fill" cx="6" cy="17" r="2"/><circle class="fill" cx="18" cy="17" r="2"/>',
+  pronostico: '<path d="M4 18C6.5 9.5 11 5.5 15.3 5.5" stroke-dasharray="1.6 3.4"/><circle cx="18" cy="5" r="2.7"/><circle class="fill" cx="18" cy="5" r="0.9"/>',
+  ajustes: '<circle cx="12" cy="12" r="3"/><path d="M12 3v2.6M12 18.4V21M4.2 7.5l2.25 1.3M17.55 15.2l2.25 1.3M3 12h2.6M18.4 12H21M4.2 16.5l2.25-1.3M17.55 8.8l2.25-1.3M7.5 4.2l1.3 2.25M15.2 17.55l1.3 2.25M7.5 19.8l1.3-2.25M15.2 6.4l1.3-2.25"/>',
+  exportar: '<path d="M12 4v10M8 10l4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>',
+  importar: '<path d="M12 14V4M8 8l4-4 4 4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>',
+};
+function navIcon(key){ return `<svg class="ic-svg" viewBox="0 0 24 24">${NAV_ICONS[key]||''}</svg>`; }
 function renderApp(){
   const tabs = [
-    { id:'hoy', label:'Hoy', ic:'📊' },
-    { id:'comidas', label:'Comidas', ic:'🍽️' },
-    { id:'ejercicio', label:'Ejercicio', ic:'🏋️' },
-    { id:'salud', label:'Salud', ic:'❤️' },
-    { id:'composicion', label:'Composición', ic:'⚖️' },
-    { id:'calendario', label:'Calendario', ic:'📅' },
-    { id:'progreso', label:'Progreso', ic:'📈' },
-    { id:'pronostico', label:'Pronóstico', ic:'🔮' },
-    { id:'nutricion', label:'Análisis Nutrición', ic:'🧬' },
+    { id:'hoy', label:'Hoy' },
+    { id:'comidas', label:'Comidas' },
+    { id:'ejercicio', label:'Ejercicio' },
+    { id:'salud', label:'Salud' },
+    { id:'composicion', label:'Composición' },
+    { id:'calendario', label:'Calendario' },
+    { id:'progreso', label:'Progreso' },
+    { id:'pronostico', label:'Pronóstico' },
+    { id:'nutricion', label:'Análisis Nutrición' },
   ];
   const navBtns = tabs.map(t=>`
     <div class="navbtn ${state.tab===t.id?'active':''}" onclick="setTab('${t.id}')">
-      <span class="ic">${t.ic}</span><span>${t.label}</span>
+      ${navIcon(t.id)}<span>${t.label}</span>
     </div>`).join('');
 
   const titles = { hoy:'Hoy', comidas:'Comidas', ejercicio:'Ejercicio', salud:'Salud', composicion:'Composición', calendario:'Calendario', progreso:'Progreso', nutricion:'Análisis Nutrición', pronostico:'Pronóstico' };
@@ -564,9 +582,9 @@ function renderApp(){
     <div class="brand">VitaLink<div class="owner">Widy Medina</div></div>
     ${navBtns}
     <div class="foot">
-      <div class="navbtn" onclick="openSettings()"><span class="ic">⚙️</span><span>Ajustes</span></div>
-      <div class="navbtn" onclick="exportBackup()"><span class="ic">💾</span><span>Exportar</span></div>
-      <div class="navbtn" onclick="triggerImportBackup()"><span class="ic">📥</span><span>Importar</span></div>
+      <div class="navbtn" onclick="openSettings()">${navIcon('ajustes')}<span>Ajustes</span></div>
+      <div class="navbtn" onclick="exportBackup()">${navIcon('exportar')}<span>Exportar</span></div>
+      <div class="navbtn" onclick="triggerImportBackup()">${navIcon('importar')}<span>Importar</span></div>
       <input type="file" id="import-file-input" accept="application/json" style="display:none;" onchange="handleImportFile(this)">
     </div>
   </nav>
