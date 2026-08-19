@@ -193,9 +193,25 @@ function getApiKey(){ return LS.get('vl:apikey') || ''; }
 function setApiKey(k){ return LS.set('vl:apikey', k); }
 function getForecastConfig(){ return LS.get('vl:forecast-config') || { heightCm:null, targetWeightKg:null }; }
 function setForecastConfig(c){ return LS.set('vl:forecast-config', c); }
-function getNutritionCache(){ return LS.get('vl:nutrition-cache') || {}; }
+function normalizeFoodKey(s){ return String(s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' '); }
+function rekeyByLabel(raw, getLabel){
+  const fixed = {};
+  let dirty = false;
+  Object.keys(raw).forEach(k=>{
+    const entry = raw[k];
+    const properKey = normalizeFoodKey(getLabel(entry));
+    if(properKey !== k) dirty = true;
+    if(!fixed[properKey] || (entry.ts||0) > (fixed[properKey].ts||0)) fixed[properKey] = entry;
+  });
+  return { fixed, dirty };
+}
+function getNutritionCache(){
+  const raw = LS.get('vl:nutrition-cache') || {};
+  const { fixed, dirty } = rekeyByLabel(raw, e=>e.label);
+  if(dirty) setNutritionCache(fixed);
+  return fixed;
+}
 function setNutritionCache(c){ return LS.set('vl:nutrition-cache', c); }
-function normalizeFoodKey(s){ return String(s||'').trim().toLowerCase().replace(/\s+/g,' '); }
 function rememberNutrition(name, entry){
   const cache = getNutritionCache();
   const key = normalizeFoodKey(name);
@@ -205,7 +221,12 @@ function rememberNutrition(name, entry){
     note: entry.note||'', ts: Date.now() };
   setNutritionCache(cache);
 }
-function getExerciseHistory(){ return LS.get('vl:exercise-history') || {}; }
+function getExerciseHistory(){
+  const raw = LS.get('vl:exercise-history') || {};
+  const { fixed, dirty } = rekeyByLabel(raw, e=>e.label);
+  if(dirty) setExerciseHistory(fixed);
+  return fixed;
+}
 function setExerciseHistory(h){ return LS.set('vl:exercise-history', h); }
 function rememberExercise(name, minutes, calories){
   const hist = getExerciseHistory();
