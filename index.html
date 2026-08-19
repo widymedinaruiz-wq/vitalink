@@ -777,6 +777,11 @@ function renderSalud(){
 }
 
 function lastBodyComp(day){ return (day.bodyComp && day.bodyComp.length) ? day.bodyComp[day.bodyComp.length-1] : null; }
+function latestBodyCompValue(day, key){
+  const arr = day.bodyComp || [];
+  for(let i=arr.length-1;i>=0;i--){ if(arr[i][key]!=null) return arr[i][key]; }
+  return null;
+}
 
 /* ================= forecast (Pronóstico) ================= */
 const KCAL_PER_KG = 7700; // approx. energy density of body fat, used to translate a calorie balance into a weight-change rate
@@ -810,8 +815,8 @@ function getAvgDailyExerciseBurn(days){
 }
 function getLatestBMR(){
   for(let n=0;n<=60;n++){
-    const bc = lastBodyComp(dayAt(isoDaysAgo(n)));
-    if(bc && bc.bmr!=null) return bc.bmr;
+    const v = latestBodyCompValue(dayAt(isoDaysAgo(n)), 'bmr');
+    if(v!=null) return v;
   }
   return null;
 }
@@ -876,14 +881,14 @@ function bodyCompEntryHTML(bc, onDelete){
 }
 function renderComposicion(){
   const d = state.day;
-  const latest = lastBodyComp(d);
   const headline = ['bmi','bodyFatPct','skeletalMusclePct','visceralFat'];
   return `
   <div class="stack">
     <div class="grid2" style="grid-template-columns:repeat(4,1fr);">
       ${headline.map(k=>{
         const f = BODYCOMP_FIELDS.find(x=>x.key===k);
-        const v = latest && latest[k]!=null ? latest[k]+(f.unit?' '+f.unit:'') : '—';
+        const val = latestBodyCompValue(d, k);
+        const v = val!=null ? val+(f.unit?' '+f.unit:'') : '—';
         return statTile('⚖️', f.label, v);
       }).join('')}
     </div>
@@ -908,10 +913,7 @@ function renderComposicionCharts(){
   const days = isos.map(iso => iso===todayISO() ? { iso, ...state.day } : { iso, ...getDay(iso) });
   const colors = ['var(--accent)','var(--accent2)','var(--accent3)','var(--danger)'];
   const charts = BODYCOMP_FIELDS.map((f,i)=>{
-    const pts = days.map(day=>{
-      const bc = lastBodyComp(day);
-      return { label:dayLetter(day.iso), v: bc ? bc[f.key] : null };
-    });
+    const pts = days.map(day=>({ label:dayLetter(day.iso), v: latestBodyCompValue(day, f.key) }));
     return `<div class="card"><div class="label" style="display:flex;align-items:center;gap:6px;justify-content:space-between;">
         <span>${f.label}${f.unit?' ('+f.unit+')':''}</span>
         <button class="info-btn" onclick="openBodyCompInfo('${f.key}')" title="Qué significa este dato">ⓘ</button>
