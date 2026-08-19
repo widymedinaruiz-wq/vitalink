@@ -1218,9 +1218,12 @@ function renderDayDetail(iso){
           ${MEAL_TYPES.map(mt=>`<option value="${mt.id}">${mt.label}</option>`).join('')}
         </select>
         <div style="display:flex;gap:6px;margin-bottom:6px;">
-          <input id="cal-meal-name" placeholder="Nombre" style="flex:2;min-width:0;">
+          <input id="cal-meal-name" list="cal-meal-history" placeholder="Nombre" style="flex:2;min-width:0;" oninput="checkCacheHintForDay()">
           <input id="cal-meal-time" type="time" value="${nowHM()}" style="flex:1;min-width:0;">
         </div>
+        <datalist id="cal-meal-history">
+          ${Object.values(getNutritionCache()).sort((a,b)=>b.ts-a.ts).slice(0,40).map(e=>`<option value="${esc(e.label)}"></option>`).join('')}
+        </datalist>
         <div style="display:flex;gap:6px;margin-bottom:6px;">
           <input id="cal-meal-cal" type="number" placeholder="kcal" style="flex:1;min-width:0;">
           <button class="btn btn-primary" id="cal-est-btn" onclick="handleEstimateForDay()">${navIcon('sparkle',14)}Estimar</button>
@@ -1660,6 +1663,24 @@ function checkCacheHint(){
     document.getElementById('meal-p').value = hit.protein;
     document.getElementById('meal-c').value = hit.carbs;
     document.getElementById('meal-f').value = hit.fat;
+    window._pendingMicros = { key: normalizeFoodKey(name), data: hit };
+    noteEl.textContent = '✓ Reconocido de tu historial — sin usar API';
+  } else {
+    noteEl.textContent = '';
+  }
+}
+function checkCacheHintForDay(){
+  const nameEl = document.getElementById('cal-meal-name');
+  if(!nameEl) return;
+  const name = nameEl.value.trim();
+  const noteEl = document.getElementById('cal-meal-note');
+  const cache = getNutritionCache();
+  const hit = cache[normalizeFoodKey(name)];
+  if(hit){
+    document.getElementById('cal-meal-cal').value = hit.calories;
+    document.getElementById('cal-meal-p').value = hit.protein;
+    document.getElementById('cal-meal-c').value = hit.carbs;
+    document.getElementById('cal-meal-f').value = hit.fat;
     window._pendingMicros = { key: normalizeFoodKey(name), data: hit };
     noteEl.textContent = '✓ Reconocido de tu historial — sin usar API';
   } else {
