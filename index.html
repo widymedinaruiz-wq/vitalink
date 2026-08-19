@@ -536,8 +536,23 @@ function renderHoy(){
   const exMin = d.exercises.reduce((s,e)=>s+(Number(e.minutes)||0),0);
   const exCal = d.exercises.reduce((s,e)=>s+(Number(e.calories)||0),0);
   const lastBP = d.bp[d.bp.length-1];
+  const vScore = vitalityScore();
   return `
   <div class="stack">
+    ${vScore!=null ? `<div class="card" style="text-align:center;padding:22px;">
+      <div class="label" style="margin-bottom:12px;">Vitalidad de hoy</div>
+      <div style="position:relative;width:120px;height:120px;margin:0 auto;">
+        <svg width="120" height="120" viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="52" fill="none" stroke="var(--line)" stroke-width="10"/>
+          <circle cx="60" cy="60" r="52" fill="none" stroke="${vScore>=75?'var(--accent3)':vScore>=50?'var(--accent2)':'var(--danger)'}" stroke-width="10"
+            stroke-dasharray="${2*Math.PI*52*clamp(vScore,0,100)/100} ${2*Math.PI*52}" stroke-linecap="round" transform="rotate(-90 60 60)"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+          <span class="display" style="font-size:34px;font-weight:700;">${vScore}</span>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:10px;">Combina comida, agua, ejercicio, sueño, presión y medicamentos de hoy</div>
+    </div>` : ''}
     <div class="card dial-wrap">
       <div style="position:relative;width:168px;height:168px;display:flex;align-items:center;justify-content:center;">
         ${dialSVG(calEaten/g.calorieGoal, d.water/g.waterGoal, exMin/g.exerciseGoal)}
@@ -824,6 +839,35 @@ function medAdherence(days){
   let taken=0;
   for(let n=0;n<days;n++) taken += dayAt(isoDaysAgo(n)).medsTaken.length;
   return Math.round((taken/(dosesPerDay*days))*100);
+}
+function clamp(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); }
+function vitalityScore(){
+  const d = state.day, g = state.goals;
+  const parts = [];
+
+  const calEaten = d.meals.reduce((s,m)=>s+(Number(m.calories)||0),0);
+  if(g.calorieGoal>0 && calEaten>0) parts.push(clamp(100 - Math.abs(calEaten-g.calorieGoal)/g.calorieGoal*100, 0, 100));
+
+  if(g.waterGoal>0 && d.water>0) parts.push(clamp((d.water/g.waterGoal)*100, 0, 100));
+
+  const exMin = d.exercises.reduce((s,e)=>s+(Number(e.minutes)||0),0);
+  if(g.exerciseGoal>0 && exMin>0) parts.push(clamp((exMin/g.exerciseGoal)*100, 0, 100));
+
+  if(d.sleepHours!=null) parts.push(clamp(100 - Math.abs(d.sleepHours-8)*20, 0, 100));
+
+  const lastBP = d.bp[d.bp.length-1];
+  if(lastBP){
+    const bpScores = {'Normal':100,'Elevada':75,'Hipertensión etapa 1':50,'Hipertensión etapa 2':25,'Crisis hipertensiva':0};
+    parts.push(bpScores[bpCategory(lastBP.systolic, lastBP.diastolic).label] ?? 50);
+  }
+
+  if(state.meds.length>0){
+    const adh = medAdherence(7);
+    if(adh!=null) parts.push(adh);
+  }
+
+  if(!parts.length) return null;
+  return Math.round(parts.reduce((a,b)=>a+b,0)/parts.length);
 }
 function getWeightHistory(days){
   const isos = Array.from({length:days}).map((_,i)=>isoDaysAgo(days-1-i));
