@@ -257,6 +257,74 @@ Alimento: "${desc}"`;
   return parsed;
 }
 
+/* ================= daily AI insight ================= */
+function getDailyInsightCache(){ return LS.get('vl:insight-cache') || {}; }
+function setDailyInsightCache(c){ return LS.set('vl:insight-cache', c); }
+async function generateDailyInsight(force){
+  const iso = todayISO();
+  const cache = getDailyInsightCache();
+  if(!force && cache[iso]) return cache[iso];
+  const key = getApiKey();
+  if(!key) throw new Error('Agrega tu API key de Anthropic en Ajustes para usar esta función');
+
+  const d = state.day, g = state.goals;
+  const calEaten = d.meals.reduce((s,m)=>s+(Number(m.calories)||0),0);
+  const exMin = d.exercises.reduce((s,e)=>s+(Number(e.minutes)||0),0);
+  const lastBP = d.bp[d.bp.length-1];
+  const score = vitalityScore();
+  const weightHist = getWeightHistory(7);
+  const weightTrend = weightHist.length>=2 ? (weightHist[weightHist.length-1].weight - weightHist[0].weight) : null;
+  const adherence = state.meds.length>0 ? medAdherence(7) : null;
+
+  const context = [
+    score!=null ? `Puntaje de vitalidad hoy: ${score}/100` : null,
+    `Calorías: ${calEaten} de meta ${g.calorieGoal} kcal`,
+    `Agua: ${d.water} de meta ${g.waterGoal} vasos`,
+    `Ejercicio: ${exMin} de meta ${g.exerciseGoal} min`,
+    d.sleepHours!=null ? `Sueño: ${d.sleepHours} h` : null,
+    lastBP ? `Presión: ${lastBP.systolic}/${lastBP.diastolic} mmHg (${bpCategory(lastBP.systolic,lastBP.diastolic).label})` : null,
+    adherence!=null ? `Adherencia a medicamentos (7 días): ${adherence}%` : null,
+    weightTrend!=null ? `Cambio de peso (7 días): ${weightTrend>0?'+':''}${weightTrend.toFixed(1)} kg` : null,
+  ].filter(Boolean).join('\n');
+
+  const prompt = `Eres un asistente de salud breve y alentador, nunca clínico ni alarmista. Con base en estos datos del día de un usuario, escribe UNA sola frase corta (máximo 20 palabras) en español, observando un patrón real de los datos o dando ánimo específico. No repitas los números tal cual, interprétalos. No des consejo médico. No uses signos de exclamación en exceso.
+
+Datos de hoy:
+${context}
+
+Responde solo con la frase, sin comillas ni explicación adicional.`;
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key': key,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true'
+    },
+    body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:100, messages:[{role:'user', content:prompt}] })
+  });
+  if(!res.ok){ const t = await res.text(); throw new Error('API error: '+t.slice(0,200)); }
+  const data = await res.json();
+  const text = (data.content||[]).map(b=>b.text||'').join('').trim();
+  cache[iso] = text;
+  setDailyInsightCache(cache);
+  return text;
+}
+async function handleGenerateInsight(force){
+  const btn = document.getElementById('insight-btn');
+  const errEl = document.getElementById('insight-error');
+  if(btn){ btn.disabled = true; btn.textContent = 'Generando…'; }
+  if(errEl) errEl.textContent = '';
+  try{
+    await generateDailyInsight(force);
+    render();
+  }catch(e){
+    if(errEl) errEl.textContent = e.message || 'No se pudo generar el insight';
+    if(btn){ btn.disabled=false; btn.textContent='Generar insight'; }
+  }
+}
+
 /* ================= barcode scanner + Open Food Facts lookup ================= */
 function getBarcodeCache(){ return LS.get('vl:barcode-cache') || {}; }
 function setBarcodeCache(c){ return LS.set('vl:barcode-cache', c); }
@@ -537,6 +605,7 @@ function renderHoy(){
   const exCal = d.exercises.reduce((s,e)=>s+(Number(e.calories)||0),0);
   const lastBP = d.bp[d.bp.length-1];
   const vScore = vitalityScore();
+  const todayInsight = getDailyInsightCache()[todayISO()];
   return `
   <div class="stack">
     ${vScore!=null ? `<div class="card" style="text-align:center;padding:22px;">
@@ -552,6 +621,17 @@ function renderHoy(){
         </div>
       </div>
       <div style="font-size:11px;color:var(--muted);margin-top:10px;">Combina comida, agua, ejercicio, sueño, presión y medicamentos de hoy</div>
+    </div>` : ''}
+    ${vScore!=null ? `<div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div class="label" style="margin:0;">✨ Insight de hoy</div>
+        ${todayInsight ? `<button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;" onclick="handleGenerateInsight(true)">↻ Regenerar</button>` : ''}
+      </div>
+      ${todayInsight
+        ? `<div style="font-size:14px;line-height:1.5;">${esc(todayInsight)}</div>`
+        : `<button class="btn btn-primary" style="width:100%;" id="insight-btn" onclick="handleGenerateInsight(false)">Generar insight</button>`
+      }
+      <div id="insight-error" style="font-size:11px;color:var(--danger);margin-top:6px;"></div>
     </div>` : ''}
     <div class="card dial-wrap">
       <div style="position:relative;width:168px;height:168px;display:flex;align-items:center;justify-content:center;">
