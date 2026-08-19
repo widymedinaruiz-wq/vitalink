@@ -202,6 +202,15 @@ function rememberNutrition(name, entry){
     note: entry.note||'', ts: Date.now() };
   setNutritionCache(cache);
 }
+function getExerciseHistory(){ return LS.get('vl:exercise-history') || {}; }
+function setExerciseHistory(h){ return LS.set('vl:exercise-history', h); }
+function rememberExercise(name, minutes, calories){
+  const hist = getExerciseHistory();
+  const key = normalizeFoodKey(name);
+  if(!key) return;
+  hist[key] = { label: name.trim(), minutes: minutes||0, calories: calories||0, ts: Date.now() };
+  setExerciseHistory(hist);
+}
 function dayHasData(iso){
   const raw = LS.get('vl:day:'+iso);
   if(!raw) return false;
@@ -876,9 +885,12 @@ function renderEjercicio(){
     <div class="card">
       <div class="label">Agregar ejercicio</div>
       <div style="display:flex;gap:8px;margin-bottom:8px;">
-        <input id="ex-name" placeholder="Actividad" style="flex:2;min-width:0;">
+        <input id="ex-name" list="ex-history" placeholder="Actividad" style="flex:2;min-width:0;" oninput="checkExerciseHint()">
         <input id="ex-min" type="number" placeholder="min" style="flex:1;min-width:0;">
       </div>
+      <datalist id="ex-history">
+        ${Object.values(getExerciseHistory()).sort((a,b)=>b.ts-a.ts).slice(0,40).map(e=>`<option value="${esc(e.label)}"></option>`).join('')}
+      </datalist>
       <input id="ex-cal" type="number" placeholder="kcal quemadas (opcional)" style="width:100%;margin-bottom:8px;">
       <button class="btn btn-primary" style="width:100%;" onclick="addExercise()">+ Agregar</button>
     </div>
@@ -1240,9 +1252,12 @@ function renderDayDetail(iso){
         <div class="label">Ejercicio</div>
         ${d.exercises.length? `<div class="stack" style="gap:6px;margin-bottom:10px;">${d.exercises.map(e=>rowItem(e.name, e.time, e.minutes+' min', `removeExerciseForDay('${iso}','${e.id}')`)).join('')}</div>` : `<div style="color:var(--muted);font-size:12px;margin-bottom:10px;">Sin registros</div>`}
         <div style="display:flex;gap:6px;margin-bottom:6px;">
-          <input id="cal-ex-name" placeholder="Actividad" style="flex:2;min-width:0;">
+          <input id="cal-ex-name" list="cal-ex-history" placeholder="Actividad" style="flex:2;min-width:0;" oninput="checkExerciseHintForDay()">
           <input id="cal-ex-min" type="number" placeholder="min" style="flex:1;min-width:0;">
         </div>
+        <datalist id="cal-ex-history">
+          ${Object.values(getExerciseHistory()).sort((a,b)=>b.ts-a.ts).slice(0,40).map(e=>`<option value="${esc(e.label)}"></option>`).join('')}
+        </datalist>
         <div style="display:flex;gap:6px;margin-bottom:6px;">
           <input id="cal-ex-time" type="time" value="${nowHM()}" style="flex:1;min-width:0;">
           <input id="cal-ex-cal" type="number" placeholder="kcal (opc.)" style="flex:1;min-width:0;">
@@ -1754,15 +1769,22 @@ function addMeal(){
 }
 function removeMeal(id){ state.day.meals = state.day.meals.filter(m=>m.id!==id); saveDay(); render(); }
 
+function checkExerciseHint(){
+  const nameEl = document.getElementById('ex-name');
+  if(!nameEl) return;
+  const hit = getExerciseHistory()[normalizeFoodKey(nameEl.value.trim())];
+  if(hit){
+    document.getElementById('ex-min').value = hit.minutes;
+    document.getElementById('ex-cal').value = hit.calories;
+  }
+}
 function addExercise(){
   const name = document.getElementById('ex-name').value.trim();
   if(!name) return;
-  state.day.exercises.push({
-    id: uid(), name,
-    minutes: Number(document.getElementById('ex-min').value)||0,
-    calories: Number(document.getElementById('ex-cal').value)||0,
-    time: nowHM(),
-  });
+  const minutes = Number(document.getElementById('ex-min').value)||0;
+  const calories = Number(document.getElementById('ex-cal').value)||0;
+  state.day.exercises.push({ id: uid(), name, minutes, calories, time: nowHM() });
+  rememberExercise(name, minutes, calories);
   saveDay(); render();
 }
 function removeExercise(id){ state.day.exercises = state.day.exercises.filter(e=>e.id!==id); saveDay(); render(); }
@@ -1926,16 +1948,28 @@ function addMealForDay(iso){
   mutateDay(iso, day=>day.meals.push(meal));
 }
 function removeMealForDay(iso, id){ mutateDay(iso, day=>{ day.meals = day.meals.filter(m=>m.id!==id); }); }
+function checkExerciseHintForDay(){
+  const nameEl = document.getElementById('cal-ex-name');
+  if(!nameEl) return;
+  const hit = getExerciseHistory()[normalizeFoodKey(nameEl.value.trim())];
+  if(hit){
+    document.getElementById('cal-ex-min').value = hit.minutes;
+    document.getElementById('cal-ex-cal').value = hit.calories;
+  }
+}
 function addExerciseForDay(iso){
   const name = document.getElementById('cal-ex-name').value.trim();
   if(!name) return;
+  const minutes = Number(document.getElementById('cal-ex-min').value)||0;
+  const calories = Number(document.getElementById('cal-ex-cal').value)||0;
   const ex = {
     id: uid(),
     name,
     time: document.getElementById('cal-ex-time').value || nowHM(),
-    minutes: Number(document.getElementById('cal-ex-min').value)||0,
-    calories: Number(document.getElementById('cal-ex-cal').value)||0,
+    minutes,
+    calories,
   };
+  rememberExercise(name, minutes, calories);
   mutateDay(iso, day=>day.exercises.push(ex));
 }
 function removeExerciseForDay(iso, id){ mutateDay(iso, day=>{ day.exercises = day.exercises.filter(e=>e.id!==id); }); }
