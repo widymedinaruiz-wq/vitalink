@@ -532,7 +532,7 @@ function renderHoy(){
       ${statTile('🔥','Quemadas', exCal+' kcal')}
       ${statTile('🏋️','Ejercicio', exMin+' min')}
       ${statTile('⚖️','Peso', d.weight? d.weight+' kg':'—')}
-      ${statTile('❤️','Presión', lastBP? lastBP.systolic+'/'+lastBP.diastolic+(lastBP.pulse?' · '+lastBP.pulse+'bpm':''):'—')}
+      ${statTile('❤️','Presión', lastBP? lastBP.systolic+'/'+lastBP.diastolic+(lastBP.pulse?' · '+lastBP.pulse+'bpm':'')+'<div style="margin-top:4px;">'+bpBadge(lastBP.systolic,lastBP.diastolic)+'</div>' : '—')}
     </div>
     ${macroCard(d.meals)}
     ${microCard(d.meals)}
@@ -734,7 +734,7 @@ function renderSalud(){
         <button class="btn btn-primary" onclick="addBP()">+</button>
       </div>
       ${d.bp.length===0 ? emptyState('❤️','Sin lecturas hoy') :
-        `<div class="stack" style="gap:8px;">${d.bp.map(b=>rowItem(b.systolic+'/'+b.diastolic+' mmHg', b.time, b.pulse?b.pulse+' bpm':'', `removeBP('${b.id}')`)).join('')}</div>`}
+        `<div class="stack" style="gap:8px;">${d.bp.map(b=>rowItem(b.systolic+'/'+b.diastolic+' mmHg', b.time, b.pulse?b.pulse+' bpm':'', `removeBP('${b.id}')`, bpBadge(b.systolic,b.diastolic))).join('')}</div>`}
     </div>
 
     <div class="card">
@@ -1029,7 +1029,7 @@ function renderDayDetail(iso){
     <div class="grid2" style="margin-top:16px;">
       <div>
         <div class="label">Presión arterial</div>
-        ${d.bp.length? `<div class="stack" style="gap:6px;">${d.bp.map(b=>rowItemStatic(b.systolic+'/'+b.diastolic+' mmHg', b.time, b.pulse?b.pulse+' bpm':'')).join('')}</div>` : `<div style="color:var(--muted);font-size:12px;">Sin registros</div>`}
+        ${d.bp.length? `<div class="stack" style="gap:6px;">${d.bp.map(b=>rowItemStatic(b.systolic+'/'+b.diastolic+' mmHg', b.time, b.pulse?b.pulse+' bpm':'', bpBadge(b.systolic,b.diastolic))).join('')}</div>` : `<div style="color:var(--muted);font-size:12px;">Sin registros</div>`}
       </div>
       <div>
         <div class="label">Medicamentos tomados</div>
@@ -1299,25 +1299,29 @@ function saveForecastConfig(){
   toast('Datos guardados');
 }
 
-function rowItem(left, sub, right, onDelete){
+function rowItem(left, sub, right, onDelete, badge){
   return `<div class="row-item">
     <div style="min-width:0;">
       <div style="font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(left)}</div>
       ${sub?`<div style="font-size:11px;color:var(--muted);">${esc(sub)}</div>`:''}
     </div>
     <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+      ${badge||''}
       ${right?`<span class="display" style="font-size:12px;color:var(--muted);">${esc(right)}</span>`:''}
       <button onclick="${onDelete}" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;">✕</button>
     </div>
   </div>`;
 }
-function rowItemStatic(left, sub, right){
+function rowItemStatic(left, sub, right, badge){
   return `<div class="row-item">
     <div style="min-width:0;">
       <div style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(left)}</div>
       ${sub?`<div style="font-size:11px;color:var(--muted);">${esc(sub)}</div>`:''}
     </div>
-    ${right?`<span class="display" style="font-size:12px;color:var(--muted);">${esc(right)}</span>`:''}
+    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+      ${badge||''}
+      ${right?`<span class="display" style="font-size:12px;color:var(--muted);">${esc(right)}</span>`:''}
+    </div>
   </div>`;
 }
 function emptyState(ic,text){
@@ -1506,6 +1510,17 @@ function addExercise(){
 }
 function removeExercise(id){ state.day.exercises = state.day.exercises.filter(e=>e.id!==id); saveDay(); render(); }
 
+function bpCategory(sys, dia){
+  if(sys>180 || dia>120) return { label:'Crisis hipertensiva', color:'var(--danger)' };
+  if(sys>=140 || dia>=90) return { label:'Hipertensión etapa 2', color:'var(--danger)' };
+  if(sys>=130 || dia>=80) return { label:'Hipertensión etapa 1', color:'var(--accent2)' };
+  if(sys>=120 && dia<80) return { label:'Elevada', color:'var(--accent2)' };
+  return { label:'Normal', color:'var(--accent3)' };
+}
+function bpBadge(sys, dia){
+  const cat = bpCategory(sys, dia);
+  return `<span style="font-size:10px;font-weight:700;color:${cat.color};border:1px solid ${cat.color};border-radius:99px;padding:2px 8px;white-space:nowrap;">${cat.label}</span>`;
+}
 function addBP(){
   const sys = Number(document.getElementById('bp-sys').value);
   const dia = Number(document.getElementById('bp-dia').value);
