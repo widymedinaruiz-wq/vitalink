@@ -134,10 +134,10 @@ function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','
 /* ================= data model ================= */
 const DEFAULT_GOALS = { calorieGoal:2000, waterGoal:4, exerciseGoal:30 };
 const MEAL_TYPES = [
-  { id:'desayuno', label:'Desayuno', ic:'☕' },
-  { id:'merienda', label:'Merienda', ic:'🍎' },
-  { id:'almuerzo', label:'Almuerzo', ic:'☀️' },
-  { id:'cena', label:'Cena', ic:'🌙' },
+  { id:'desayuno', label:'Desayuno', ic:'desayuno' },
+  { id:'merienda', label:'Merienda', ic:'merienda' },
+  { id:'almuerzo', label:'Almuerzo', ic:'almuerzo' },
+  { id:'cena', label:'Cena', ic:'cena' },
 ];
 const BODYCOMP_FIELDS = [
   { key:'bmi', label:'IMC', unit:'', info:'El IMC es tu peso dividido entre tu estatura al cuadrado (kg/m²). Es un indicador rápido de si tu peso está en un rango saludable para tu altura, pero no distingue entre grasa y músculo — una persona muy musculosa puede tener un IMC alto sin exceso de grasa real.<br><br>Se relaciona directamente con tu <b>Grasa corporal %</b>: cuando el IMC está alto por exceso de grasa (no de músculo), ambos suben juntos.<br><br><b>Rangos de referencia:</b><br>Bajo peso: menos de 18.5<br>Normal: 18.5 – 24.9<br>Sobrepeso: 25 – 29.9<br>Obesidad: 30 o más' },
@@ -556,8 +556,17 @@ const NAV_ICONS = {
   ajustes: '<circle cx="12" cy="12" r="3"/><path d="M12 3v2.6M12 18.4V21M4.2 7.5l2.25 1.3M17.55 15.2l2.25 1.3M3 12h2.6M18.4 12H21M4.2 16.5l2.25-1.3M17.55 8.8l2.25-1.3M7.5 4.2l1.3 2.25M15.2 17.55l1.3 2.25M7.5 19.8l1.3-2.25M15.2 6.4l1.3-2.25"/>',
   exportar: '<path d="M12 4v10M8 10l4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>',
   importar: '<path d="M12 14V4M8 8l4-4 4 4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>',
+  desayuno: '<rect x="5" y="9" width="11" height="9" rx="2"/><path d="M16 11a2.5 3.5 0 0 1 0 7"/><path d="M8 6c0-1 1-1 1-2M11 6c0-1 1-1 1-2"/>',
+  merienda: '<circle cx="12" cy="13" r="7"/><path d="M12 6V4"/><path d="M12 5q2-2 3 0q-2 1.5-3 0"/>',
+  almuerzo: '<circle cx="12" cy="12" r="4"/><path d="M12 3.5v3M12 17.5v3M20.5 12h-3M6.5 12h-3M17.5 6.5l-2.1 2.1M8.6 15.3l-2.1 2.1M17.5 17.5l-2.1-2.1M8.6 8.7L6.5 6.6"/>',
+  cena: '<path d="M15 4a8 8 0 1 0 5 13.5A9 9 0 0 1 15 4z"/>',
+  calorias: '<path d="M12 21c-3.5 0-6-2.5-6-5.8C6 11 9 8 9.5 5c.3 2 1.5 3 1.5 3S9 4 12 2c0 3 2.5 4 4 6.5 1.3 2.2 2 4.3 2 6.7 0 3.3-2.5 5.8-6 5.8z"/>',
+  peso: '<rect x="4" y="8" width="16" height="12" rx="2.5"/><path d="M9 8a3 3 0 0 1 6 0"/><circle class="fill" cx="12" cy="14" r="1.4"/>',
+  sueno: '<path d="M4 13c3-4 13-4 16 0"/><path d="M9 15.5l-1 2M15 15.5l1 2M12 16v2.3"/>',
+  meta: '<circle cx="12" cy="12" r="8" opacity=".4"/><circle cx="12" cy="12" r="5" opacity=".7"/><circle class="fill" cx="12" cy="12" r="2"/>',
+  imc: '<path d="M4 20 20 20 4 4z"/><path d="M8 20v-3M12 20v-5M16 20v-3"/>',
 };
-function navIcon(key){ return `<svg class="ic-svg" viewBox="0 0 24 24">${NAV_ICONS[key]||''}</svg>`; }
+function navIcon(key, size){ return `<svg class="ic-svg" style="${size?`width:${size}px;height:${size}px;`:''}" viewBox="0 0 24 24">${NAV_ICONS[key]||''}</svg>`; }
 function renderApp(){
   const tabs = [
     { id:'hoy', label:'Hoy' },
@@ -666,10 +675,10 @@ function renderHoy(){
       </div>
     </div>
     <div class="grid2" style="grid-template-columns:repeat(4,1fr);">
-      ${statTile('🔥','Quemadas', exCal+' kcal')}
-      ${statTile('🏋️','Ejercicio', exMin+' min')}
-      ${statTile('⚖️','Peso', d.weight? d.weight+' kg':'—')}
-      ${statTile('❤️','Presión', lastBP? lastBP.systolic+'/'+lastBP.diastolic+(lastBP.pulse?' · '+lastBP.pulse+'bpm':'')+'<div style="margin-top:4px;">'+bpBadge(lastBP.systolic,lastBP.diastolic)+'</div>' : '—')}
+      ${statTile(navIcon('calorias',14),'Quemadas', exCal+' kcal')}
+      ${statTile(navIcon('ejercicio',14),'Ejercicio', exMin+' min')}
+      ${statTile(navIcon('peso',14),'Peso', d.weight? d.weight+' kg':'—')}
+      ${statTile(navIcon('salud',14),'Presión', lastBP? lastBP.systolic+'/'+lastBP.diastolic+(lastBP.pulse?' · '+lastBP.pulse+'bpm':'')+'<div style="margin-top:4px;">'+bpBadge(lastBP.systolic,lastBP.diastolic)+'</div>' : '—')}
     </div>
     ${macroCard(d.meals)}
     ${microCard(d.meals)}
@@ -778,7 +787,7 @@ function renderComidas(){
       <div class="label">Tipo de comida</div>
       <div class="grid4" style="margin-bottom:14px;">
         ${MEAL_TYPES.map(mt=>`<div class="meal-type-btn ${activeType===mt.id?'active':''}" onclick="setMealType('${mt.id}')">
-          <span>${mt.ic}</span><span>${mt.label}</span></div>`).join('')}
+          ${navIcon(mt.ic, 20)}<span>${mt.label}</span></div>`).join('')}
       </div>
       <div class="label">Agregar a ${MEAL_TYPES.find(m=>m.id===activeType).label.toLowerCase()}</div>
       <input id="meal-name" list="meal-history" placeholder='Ej. "lata atún 6oz", "plátano mediano"' style="width:100%;margin-bottom:8px;" oninput="checkCacheHint()">
@@ -1073,7 +1082,7 @@ function renderComposicion(){
         const val = latestBodyCompValue(d, k);
         const status = bodyCompStatus(k, val);
         const v = val!=null ? `<span style="${status?'color:'+statusColor(status)+';':''}">${val}${f.unit?' '+f.unit:''}</span>` : '—';
-        return statTile('⚖️', f.label, v);
+        return statTile(navIcon('composicion',14), f.label, v);
       }).join('')}
     </div>
     <div class="card">
@@ -1148,10 +1157,10 @@ function renderDayDetail(iso){
   <div class="card">
     <div class="label" style="text-transform:capitalize;">${formatDateEs(iso)}</div>
     <div class="grid2" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
-      ${statTile('🔥','Calorías', totalCal+' kcal')}
-      ${statTile('🏋️','Ejercicio', totalMin+' min')}
-      ${statTile('⚖️','Peso', d.weight?d.weight+' kg':'—')}
-      ${statTile('😴','Sueño', d.sleepHours?d.sleepHours+' h':'—')}
+      ${statTile(navIcon('calorias',14),'Calorías', totalCal+' kcal')}
+      ${statTile(navIcon('ejercicio',14),'Ejercicio', totalMin+' min')}
+      ${statTile(navIcon('peso',14),'Peso', d.weight?d.weight+' kg':'—')}
+      ${statTile(navIcon('sueno',14),'Sueño', d.sleepHours?d.sleepHours+' h':'—')}
     </div>
     <div class="card" style="margin-bottom:16px;">
       <div class="grid2">
@@ -1178,7 +1187,7 @@ function renderDayDetail(iso){
         <div class="label">Comidas</div>
         ${d.meals.length? `<div class="stack" style="gap:6px;margin-bottom:10px;">${d.meals.map(m=>rowItem(m.name, m.time, m.calories+' kcal', `removeMealForDay('${iso}','${m.id}')`)).join('')}</div>` : `<div style="color:var(--muted);font-size:12px;margin-bottom:10px;">Sin registros</div>`}
         <select id="cal-meal-type" style="width:100%;margin-bottom:6px;">
-          ${MEAL_TYPES.map(mt=>`<option value="${mt.id}">${mt.ic} ${mt.label}</option>`).join('')}
+          ${MEAL_TYPES.map(mt=>`<option value="${mt.id}">${mt.label}</option>`).join('')}
         </select>
         <div style="display:flex;gap:6px;margin-bottom:6px;">
           <input id="cal-meal-name" placeholder="Nombre" style="flex:2;min-width:0;">
@@ -1438,9 +1447,9 @@ function renderPronostico(){
           Según ${methodLabel}, tu peso se está moviendo en dirección contraria a tu meta (${forecast.remainingKg>0?'necesitas bajar':'necesitas subir'} ${Math.abs(forecast.remainingKg).toFixed(1)} kg, pero tu ritmo actual es de ${weeklyRate>0?'+':''}${weeklyRate.toFixed(2)} kg/semana).
         </div>
         <div class="grid2" style="grid-template-columns:repeat(3,1fr);">
-          ${statTile('⚖️','Peso actual', forecast.latest.weight+' kg')}
-          ${statTile('🎯','Meta', forecast.cfg.targetWeightKg+' kg')}
-          ${statTile('📐','IMC actual', forecast.currentBMI.toFixed(1))}
+          ${statTile(navIcon('peso',14),'Peso actual', forecast.latest.weight+' kg')}
+          ${statTile(navIcon('meta',14),'Meta', forecast.cfg.targetWeightKg+' kg')}
+          ${statTile(navIcon('imc',14),'IMC actual', forecast.currentBMI.toFixed(1))}
         </div>
       </div>`;
       break;
@@ -1449,10 +1458,10 @@ function renderPronostico(){
       resultCard = `<div class="card">
         <div class="label">Pronóstico</div>
         <div class="grid2" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
-          ${statTile('⚖️','Peso actual', forecast.latest.weight+' kg')}
-          ${statTile('🎯','Meta', forecast.cfg.targetWeightKg+' kg')}
-          ${statTile('📐','IMC actual', forecast.currentBMI.toFixed(1))}
-          ${statTile('📐','IMC meta', forecast.targetBMI.toFixed(1))}
+          ${statTile(navIcon('peso',14),'Peso actual', forecast.latest.weight+' kg')}
+          ${statTile(navIcon('meta',14),'Meta', forecast.cfg.targetWeightKg+' kg')}
+          ${statTile(navIcon('imc',14),'IMC actual', forecast.currentBMI.toFixed(1))}
+          ${statTile(navIcon('imc',14),'IMC meta', forecast.targetBMI.toFixed(1))}
         </div>
         <div style="text-align:center;padding:14px 0;">
           <div class="display" style="font-size:15px;color:var(--muted);margin-bottom:4px;">Tiempo estimado para llegar a tu meta</div>
