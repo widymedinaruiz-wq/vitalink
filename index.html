@@ -152,6 +152,30 @@ const BODYCOMP_FIELDS = [
   { key:'proteinPct', label:'Proteína', unit:'%', info:'Es el porcentaje de tu peso corporal que corresponde a proteína — presente en músculos, órganos, piel y otros tejidos, no solo en el músculo.<br><br>Se relaciona directamente con tu <b>Masa muscular</b>: a mayor masa muscular, mayor será normalmente tu % de proteína, ya que el tejido muscular es rico en proteína.<br><br><b>Rango de referencia aproximado:</b> 16% – 20%.<br><br>Un valor muy bajo puede ser señal de desnutrición o pérdida muscular, mientras que valores normales-altos suelen acompañar una buena masa muscular.' },
   { key:'bodyAge', label:'Edad corporal', unit:'años', info:'Es una estimación algorítmica de tu "edad metabólica" comparada con el promedio poblacional, calculada combinando varias de las métricas anteriores (metabolismo basal, músculo, grasa, etc.), según el fabricante de tu báscula.<br><br>Está relacionada con <b>todas las demás métricas de esta sección</b> — es básicamente un resumen compuesto de qué tan bien o mal se comparan tus números con los de tu edad real.<br><br>Si tu edad corporal es <b>menor</b> a tu edad real, es una señal positiva de buena condición física relativa. Si es <b>mayor</b>, indica áreas de mejora (normalmente relacionadas con más músculo y menos grasa).<br><br>Es solo una estimación orientativa del fabricante, no un diagnóstico médico.' },
 ];
+// General adult reference bands, not personalized by sex/age. Fields without a
+// universally-agreed target (bmr, fatLossKg, muscleMassKg, skeletalMassKg,
+// bodyAge) are intentionally omitted — no color is more honest than a fake one.
+const BODYCOMP_RANGES = {
+  bmi: { good:[18.5,24.9], badLow:17, badHigh:30 },
+  bodyFatPct: { good:[10,25], badLow:6, badHigh:32 },
+  bodyWaterPct: { good:[45,65], badLow:40, badHigh:70 },
+  skeletalMusclePct: { good:[24,40], badLow:20, badHigh:999 },
+  subcutaneousFatPct: { good:[0,25], badLow:-999, badHigh:30 },
+  heartRate: { good:[60,100], badLow:50, badHigh:110 },
+  cardiacIndex: { good:[2.5,4.0], badLow:2.0, badHigh:4.5 },
+  visceralFat: { good:[1,9], badLow:-999, badHigh:15 },
+  proteinPct: { good:[16,20], badLow:14, badHigh:22 },
+};
+function bodyCompStatus(key, v){
+  const r = BODYCOMP_RANGES[key];
+  if(!r || v==null) return null;
+  if(v>=r.good[0] && v<=r.good[1]) return 'good';
+  if(v<r.badLow || v>r.badHigh) return 'bad';
+  return 'warn';
+}
+function statusColor(status){
+  return status==='good' ? 'var(--accent3)' : status==='warn' ? 'var(--accent2)' : status==='bad' ? 'var(--danger)' : 'var(--text)';
+}
 function emptyDay(){ return { meals:[], exercises:[], weight:null, sleepHours:null, water:0, bp:[], medsTaken:[], bodyComp:[] }; }
 function getDay(iso){ return { ...emptyDay(), ...(LS.get('vl:day:'+iso) || {}) }; }
 function setDayData(iso, data){ return LS.set('vl:day:'+iso, data); }
@@ -868,9 +892,11 @@ function computeForecast(){
   return { status:'ok', cfg, latest, currentBMI, targetBMI, remainingKg, ratePerDay, method, daysNeeded, etaDate };
 }
 function bodyCompEntryHTML(bc, onDelete){
-  const chips = BODYCOMP_FIELDS.filter(f=>bc[f.key]!=null).map(f=>
-    `<span style="font-size:11px;background:var(--raised);border:1px solid var(--line);border-radius:8px;padding:4px 8px;color:var(--text);">${f.label}: <b>${bc[f.key]}${f.unit?' '+f.unit:''}</b></span>`
-  ).join('');
+  const chips = BODYCOMP_FIELDS.filter(f=>bc[f.key]!=null).map(f=>{
+    const status = bodyCompStatus(f.key, bc[f.key]);
+    const color = statusColor(status);
+    return `<span style="font-size:11px;background:var(--raised);border:1px solid ${status?color:'var(--line)'};border-radius:8px;padding:4px 8px;color:var(--text);">${f.label}: <b style="color:${color};">${bc[f.key]}${f.unit?' '+f.unit:''}</b></span>`;
+  }).join('');
   return `<div style="padding:10px 0;border-bottom:1px solid var(--line);">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
       <span style="font-size:12px;color:var(--muted);">${bc.time}</span>
@@ -888,7 +914,8 @@ function renderComposicion(){
       ${headline.map(k=>{
         const f = BODYCOMP_FIELDS.find(x=>x.key===k);
         const val = latestBodyCompValue(d, k);
-        const v = val!=null ? val+(f.unit?' '+f.unit:'') : '—';
+        const status = bodyCompStatus(k, val);
+        const v = val!=null ? `<span style="${status?'color:'+statusColor(status)+';':''}">${val}${f.unit?' '+f.unit:''}</span>` : '—';
         return statTile('⚖️', f.label, v);
       }).join('')}
     </div>
