@@ -565,6 +565,13 @@ const NAV_ICONS = {
   sueno: '<path d="M4 13c3-4 13-4 16 0"/><path d="M9 15.5l-1 2M15 15.5l1 2M12 16v2.3"/>',
   meta: '<circle cx="12" cy="12" r="8" opacity=".4"/><circle cx="12" cy="12" r="5" opacity=".7"/><circle class="fill" cx="12" cy="12" r="2"/>',
   imc: '<path d="M4 20 20 20 4 4z"/><path d="M8 20v-3M12 20v-5M16 20v-3"/>',
+  sparkle: '<path d="M12 9V3M15 12H21M12 15V21M9 12H3M14.1 9.9L18.4 5.6M14.1 14.1L18.4 18.4M9.9 14.1L5.6 18.4M9.9 9.9L5.6 5.6"/><circle class="fill" cx="12" cy="12" r="1.8"/>',
+  refresh: '<path d="M20 12a8 8 0 1 1-2.5-5.8"/><path d="M20 3v4.5h-4.5"/>',
+  gota: '<path d="M12 3c3 4 6 7.5 6 11a6 6 0 1 1-12 0c0-3.5 3-7 6-11z"/>',
+  camara: '<rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M8 7l1.5-2.5h5L16 7"/><circle cx="12" cy="13.5" r="3.5"/>',
+  login: '<path d="M12 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6"/><path d="M15 8l4 4-4 4M19 12H9"/>',
+  medicamento: '<circle cx="12" cy="12" r="7"/><path d="M5 12h14"/>',
+  logrado: '<circle cx="12" cy="12" r="8"/><path d="M8 12.5l2.7 2.7L16.5 9"/>',
 };
 function navIcon(key, size){ return `<svg class="ic-svg" style="${size?`width:${size}px;height:${size}px;`:''}" viewBox="0 0 24 24">${NAV_ICONS[key]||''}</svg>`; }
 function renderApp(){
@@ -651,8 +658,8 @@ function renderHoy(){
     </div>` : ''}
     ${vScore!=null ? `<div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <div class="label" style="margin:0;">✨ Insight de hoy</div>
-        ${todayInsight ? `<button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;" onclick="handleGenerateInsight(true)">↻ Regenerar</button>` : ''}
+        <div class="label" style="margin:0;display:flex;align-items:center;gap:6px;">${navIcon('sparkle',13)}Insight de hoy</div>
+        ${todayInsight ? `<button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;display:inline-flex;align-items:center;gap:5px;" onclick="handleGenerateInsight(true)">${navIcon('refresh',12)}Regenerar</button>` : ''}
       </div>
       ${todayInsight
         ? `<div style="font-size:14px;line-height:1.5;">${esc(todayInsight)}</div>`
@@ -689,8 +696,8 @@ function renderHoy(){
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;">
         ${Array.from({length:Math.max(g.waterGoal, d.water)}).map((_,i)=>`
-          <button class="btn ${i<d.water?'btn-primary':'btn-ghost'}" style="width:36px;height:36px;padding:0;border-radius:9px;"
-            onclick="setWater(${i+1===d.water?i:i+1})">💧</button>`).join('')}
+          <button class="btn ${i<d.water?'btn-primary':'btn-ghost'}" style="width:36px;height:36px;padding:0;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;"
+            onclick="setWater(${i+1===d.water?i:i+1})">${navIcon('gota',17)}</button>`).join('')}
       </div>
       <div class="grid2">
         <div>
@@ -703,7 +710,7 @@ function renderHoy(){
         </div>
       </div>
     </div>
-    <button class="btn btn-ghost" style="border-style:dashed;" onclick="openSettings()">⚙️ Ajustar metas diarias</button>
+    <button class="btn btn-ghost" style="border-style:dashed;" onclick="openSettings()">${navIcon('ajustes',14)}Ajustar metas diarias</button>
   </div>`;
 }
 function statTile(ic,label,value){
@@ -796,9 +803,9 @@ function renderComidas(){
       </datalist>
       <div style="display:flex;gap:8px;margin-bottom:6px;">
         <input id="meal-cal" type="number" placeholder="kcal" style="flex:1;min-width:0;">
-        <button class="btn btn-primary" id="est-btn" onclick="handleEstimate()">✨ Estimar</button>
+        <button class="btn btn-primary" id="est-btn" onclick="handleEstimate()">${navIcon('sparkle',14)}Estimar</button>
       </div>
-      <button class="btn btn-ghost" style="width:100%;margin-bottom:8px;" onclick="openScanner()">📷 Escanear código de barras</button>
+      <button class="btn btn-ghost" style="width:100%;margin-bottom:8px;" onclick="openScanner()">${navIcon('camara',14)}Escanear código de barras</button>
       <div id="meal-note" style="font-size:11px;color:var(--accent3);margin-bottom:8px;"></div>
       <div class="grid4" style="margin-bottom:10px;">
         <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Prot(g)</div><input id="meal-p" type="number" placeholder="0" style="width:100%;"></div>
@@ -822,7 +829,7 @@ function renderComidas(){
         <span>Azúcar ${microSums(d.meals).sugar}g</span>
         <span>Sodio ${microSums(d.meals).sodium}mg</span>
       </div>` : ''}
-      ${d.meals.length===0 ? emptyState('🍽️','Sin comidas registradas — agrega la primera arriba') :
+      ${d.meals.length===0 ? emptyState('comidas','Sin comidas registradas — agrega la primera arriba') :
         groups.filter(g=>g.items.length).map(g=>{
           const sub = g.items.reduce((s,m)=>s+(Number(m.calories)||0),0);
           const isTop = sub===maxSub && maxSub>0;
@@ -859,7 +866,7 @@ function renderEjercicio(){
         <div class="label">Hoy</div>
         <span class="display" style="color:var(--accent2);font-weight:700;font-size:13px;">${totalMin} min</span>
       </div>
-      ${d.exercises.length===0 ? emptyState('🏋️','Sin ejercicio registrado — agrega el primero arriba') :
+      ${d.exercises.length===0 ? emptyState('ejercicio','Sin ejercicio registrado — agrega el primero arriba') :
         `<div class="stack" style="gap:8px;">${d.exercises.map(e=>rowItem(e.name, `${e.time} · ${e.minutes} min`, e.calories?e.calories+' kcal':'', `removeExercise('${e.id}')`)).join('')}</div>`}
     </div>
   </div>`;
@@ -879,7 +886,7 @@ function renderSalud(){
         <input id="bp-pulse" type="number" placeholder="Pulso (bpm)" style="flex:1;min-width:0;">
         <button class="btn btn-primary" onclick="addBP()">+</button>
       </div>
-      ${d.bp.length===0 ? emptyState('❤️','Sin lecturas hoy') :
+      ${d.bp.length===0 ? emptyState('salud','Sin lecturas hoy') :
         `<div class="stack" style="gap:8px;">${d.bp.map(b=>rowItem(b.systolic+'/'+b.diastolic+' mmHg', b.time, b.pulse?b.pulse+' bpm':'', `removeBP('${b.id}')`, bpBadge(b.systolic,b.diastolic))).join('')}</div>`}
     </div>
 
@@ -900,7 +907,7 @@ function renderSalud(){
           <span class="display" style="font-size:15px;font-weight:700;color:${color};">${a7}%</span>
         </div>`;
       })() : ''}
-      ${meds.length===0 ? emptyState('💊','Agrega un medicamento abajo para ver su horario aquí') :
+      ${meds.length===0 ? emptyState('medicamento','Agrega un medicamento abajo para ver su horario aquí') :
         `<div class="stack" style="gap:8px;">${meds.flatMap(med => med.times.map(t=>{
           const key = med.id+':'+t;
           const taken = takenIds.has(key);
@@ -1094,7 +1101,7 @@ function renderComposicion(){
     </div>
     <div class="card">
       <div class="label">Mediciones de hoy</div>
-      ${d.bodyComp.length===0 ? emptyState('⚖️','Sin mediciones hoy') :
+      ${d.bodyComp.length===0 ? emptyState('composicion','Sin mediciones hoy') :
         d.bodyComp.map(bc=>bodyCompEntryHTML(bc, `removeBodyComp('${bc.id}')`)).join('')}
     </div>
     ${renderComposicionCharts()}
@@ -1195,7 +1202,7 @@ function renderDayDetail(iso){
         </div>
         <div style="display:flex;gap:6px;margin-bottom:6px;">
           <input id="cal-meal-cal" type="number" placeholder="kcal" style="flex:1;min-width:0;">
-          <button class="btn btn-primary" id="cal-est-btn" onclick="handleEstimateForDay()">✨ Estimar</button>
+          <button class="btn btn-primary" id="cal-est-btn" onclick="handleEstimateForDay()">${navIcon('sparkle',14)}Estimar</button>
         </div>
         <div id="cal-meal-note" style="font-size:11px;color:var(--accent3);margin-bottom:6px;"></div>
         <div style="display:flex;gap:6px;margin-bottom:6px;">
@@ -1253,7 +1260,7 @@ function weightSummaryHTML(pts){
     const offTrack = (needLoss && movingGain) || (needGain && movingLoss);
     color = onTrack ? 'var(--accent3)' : offTrack ? 'var(--danger)' : 'var(--text)';
     goalLine = Math.abs(dist)<0.05
-      ? `<div style="font-size:10px;color:var(--accent3);">🎯 En tu meta</div>`
+      ? `<div style="font-size:10px;color:var(--accent3);display:flex;align-items:center;gap:4px;">${navIcon('logrado',12)}En tu meta</div>`
       : `<div style="font-size:10px;color:var(--muted);">${dist>0?'Faltan':'Sobran'} ${Math.abs(dist).toFixed(1)} kg para tu meta</div>`;
   }
   return `<div style="text-align:right;">
@@ -1423,13 +1430,13 @@ function renderPronostico(){
   let resultCard = '';
   switch(forecast.status){
     case 'missing-config':
-      resultCard = `<div class="card">${emptyState('🔮','Ingresa tu altura y peso meta arriba para generar tu pronóstico')}</div>`;
+      resultCard = `<div class="card">${emptyState('pronostico','Ingresa tu altura y peso meta arriba para generar tu pronóstico')}</div>`;
       break;
     case 'no-weight':
-      resultCard = `<div class="card">${emptyState('⚖️','Aún no tienes ningún peso registrado — agrega uno en Hoy o en el Calendario')}</div>`;
+      resultCard = `<div class="card">${emptyState('peso','Aún no tienes ningún peso registrado — agrega uno en Hoy o en el Calendario')}</div>`;
       break;
     case 'at-goal':
-      resultCard = `<div class="card">${emptyState('🎉','¡Ya estás en tu peso meta! Peso actual: '+forecast.latest.weight+' kg')}</div>`;
+      resultCard = `<div class="card">${emptyState('logrado','¡Ya estás en tu peso meta! Peso actual: '+forecast.latest.weight+' kg')}</div>`;
       break;
     case 'insufficient-data':
       resultCard = `<div class="card">
@@ -1517,8 +1524,8 @@ function rowItemStatic(left, sub, right, badge){
     </div>
   </div>`;
 }
-function emptyState(ic,text){
-  return `<div style="text-align:center;padding:24px 10px;color:var(--muted);font-size:13px;">${ic}<br><br>${text}</div>`;
+function emptyState(key,text){
+  return `<div style="text-align:center;padding:24px 10px;color:var(--muted);font-size:13px;"><div style="display:flex;justify-content:center;margin-bottom:12px;">${navIcon(key,30)}</div>${text}</div>`;
 }
 
 function syncSectionHTML(){
@@ -1528,7 +1535,7 @@ function syncSectionHTML(){
   }
   if(!s.user){
     return `<div>
-      <button class="btn btn-ghost" style="width:100%;margin-bottom:6px;" onclick="firebaseSignIn()">🔗 Iniciar sesión con Google</button>
+      <button class="btn btn-ghost" style="width:100%;margin-bottom:6px;" onclick="firebaseSignIn()">${navIcon('login',14)}Iniciar sesión con Google</button>
       <div style="font-size:11px;color:var(--muted);">Conecta tu cuenta para que tus datos se sincronicen automáticamente entre tu computadora y tu celular.</div>
       ${s.error?`<div style="font-size:11px;color:var(--danger);margin-top:6px;">Error: ${esc(s.error)}</div>`:''}
     </div>`;
@@ -1572,7 +1579,7 @@ function modalHTML(){
   if(window._modal==='scanner'){
     return `<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;" onclick="closeScanner(event)">
       <div class="card" style="width:380px;max-width:92vw;" onclick="event.stopPropagation()">
-        <div class="display" style="font-weight:700;font-size:16px;margin-bottom:12px;">📷 Escanear código</div>
+        <div class="display" style="font-weight:700;font-size:16px;margin-bottom:12px;display:flex;align-items:center;gap:8px;">${navIcon('camara',18)}Escanear código</div>
         <div class="scanner-video-wrap">
           <video id="scanner-video" autoplay playsinline muted></video>
           <div class="scanner-frame"></div>
@@ -1666,7 +1673,7 @@ async function handleEstimate(){
   }catch(e){
     toast(e.message || 'No se pudo estimar', true);
   }finally{
-    btn.disabled=false; btn.innerHTML='✨ Estimar';
+    btn.disabled=false; btn.innerHTML=navIcon('sparkle',14)+'Estimar';
   }
 }
 function addMeal(){
@@ -1823,7 +1830,7 @@ async function handleEstimateForDay(){
   }catch(e){
     toast(e.message || 'No se pudo estimar', true);
   }finally{
-    btn.disabled=false; btn.innerHTML='✨ Estimar';
+    btn.disabled=false; btn.innerHTML=navIcon('sparkle',14)+'Estimar';
   }
 }
 function addMealForDay(iso){
