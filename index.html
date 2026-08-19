@@ -205,10 +205,38 @@ function rekeyByLabel(raw, getLabel){
   });
   return { fixed, dirty };
 }
+// One-time backfill: older entries added before a history feature existed only ever
+// got written into that day's own record, never into the shared suggestion cache.
+// Walk every saved day and fill in anything still missing, without touching entries
+// the cache already has (those stay authoritative, including any newer edits).
+function backfillFromDays(existing, extractItems, buildEntry){
+  let dirty = false;
+  for(let i=0;i<localStorage.length;i++){
+    const k = localStorage.key(i);
+    if(!k || !k.startsWith('vl:day:')) continue;
+    const iso = k.slice('vl:day:'.length);
+    let day;
+    try{ day = JSON.parse(localStorage.getItem(k)); }catch{ continue; }
+    if(!day) continue;
+    extractItems(day).forEach(item=>{
+      const key = normalizeFoodKey(item.name);
+      if(!key || existing[key]) return;
+      const ts = Date.parse(`${iso}T${item.time||'00:00'}:00`) || 0;
+      existing[key] = buildEntry(item, ts);
+      dirty = true;
+    });
+  }
+  return dirty;
+}
 function getNutritionCache(){
   const raw = LS.get('vl:nutrition-cache') || {};
   const { fixed, dirty } = rekeyByLabel(raw, e=>e.label);
-  if(dirty) setNutritionCache(fixed);
+  const backfilled = backfillFromDays(fixed, day=>day.meals||[], (item, ts)=>({
+    label: item.name, calories: item.calories||0, protein: item.protein||0, carbs: item.carbs||0, fat: item.fat||0,
+    fiber: item.fiber||0, sugar: item.sugar||0, sodium: item.sodium||0, iron: item.iron||0, calcium: item.calcium||0,
+    potassium: item.potassium||0, vitaminC: item.vitaminC||0, note: '', ts
+  }));
+  if(dirty || backfilled) setNutritionCache(fixed);
   return fixed;
 }
 function setNutritionCache(c){ return LS.set('vl:nutrition-cache', c); }
@@ -224,7 +252,10 @@ function rememberNutrition(name, entry){
 function getExerciseHistory(){
   const raw = LS.get('vl:exercise-history') || {};
   const { fixed, dirty } = rekeyByLabel(raw, e=>e.label);
-  if(dirty) setExerciseHistory(fixed);
+  const backfilled = backfillFromDays(fixed, day=>day.exercises||[], (item, ts)=>({
+    label: item.name, minutes: item.minutes||0, calories: item.calories||0, ts
+  }));
+  if(dirty || backfilled) setExerciseHistory(fixed);
   return fixed;
 }
 function setExerciseHistory(h){ return LS.set('vl:exercise-history', h); }
