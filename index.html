@@ -171,6 +171,26 @@ const I18N = {
     bc_bmr:'Metabolismo basal (MMR)', bc_fatLossKg:'Pérdida de grasa', bc_subcutaneousFatPct:'Grasa subcutánea',
     bc_heartRate:'Frecuencia cardíaca', bc_cardiacIndex:'Índice cardíaco', bc_visceralFat:'Grasa visceral',
     bc_muscleMassKg:'Masa muscular', bc_skeletalMassKg:'Masa esquelética', bc_proteinPct:'Proteína', bc_bodyAge:'Edad corporal',
+    prog_dias:'días', prog_promedio_7dias:'Promedio 7 días', prog_calorias_meta:'Calorías (meta {goal})',
+    prog_ejercicio_min_meta:'Ejercicio min (meta {goal})',
+    nutr_ultimos_30_dias:'Últimos 30 días', nutr_macro_g:'Macronutrientes (g)',
+    pron_tus_datos:'Tus datos', pron_altura:'Altura (cm)', pron_peso_meta:'Peso meta (kg)',
+    pron_ej_170:'Ej. 170', pron_ej_68:'Ej. 68', pron_datos_guardados:'Datos guardados',
+    pron_ingresa_datos:'Ingresa tu altura y peso meta arriba para generar tu pronóstico',
+    pron_no_peso:'Aún no tienes ningún peso registrado — agrega uno en Hoy o en el Calendario',
+    pron_en_meta_msg:'¡Ya estás en tu peso meta! Peso actual: {w} kg',
+    pron_insuficientes:'Todavía no hay suficientes datos para estimar un ritmo de cambio.',
+    pron_desbloquear:'Para desbloquear el pronóstico, registra <b>al menos 4 días de peso</b> en las últimas semanas (Progreso), o registra tu <b>metabolismo basal</b> en Composición junto con tus <b>comidas</b> del día — con eso podemos estimar tu balance calórico.',
+    pron_metodo_tendencia:'tu tendencia de peso real (últimos 30 días)',
+    pron_metodo_balance:'tu balance calórico estimado (metabolismo basal + ejercicio vs. comidas)',
+    pron_segun:'Según', pron_moviendo_contrario:', tu peso se está moviendo en dirección contraria a tu meta (',
+    pron_necesita_bajar:'necesitas bajar', pron_necesita_subir:'necesitas subir',
+    pron_pero_ritmo:', pero tu ritmo actual es de', pron_kg_semana:'kg/semana', pron_cierre_parentesis:').',
+    pron_peso_actual:'Peso actual', pron_meta_label:'Meta', pron_imc_actual:'IMC actual', pron_imc_meta:'IMC meta',
+    pron_tiempo_estimado:'Tiempo estimado para llegar a tu meta', pron_semanas:'semanas',
+    pron_fecha_estimada:'Fecha estimada:', pron_ritmo_estimado:'Ritmo estimado: {rate} kg/semana, basado en {method}.',
+    pron_peso_vs_meta:'Peso vs. meta — últimos 30 días',
+    chart_no_data:'No hay suficientes datos aún',
   },
   en: {
     nav_hoy:'Today', nav_comidas:'Meals', nav_ejercicio:'Exercise', nav_salud:'Health',
@@ -214,11 +234,32 @@ const I18N = {
     bc_bmr:'Basal metabolism (BMR)', bc_fatLossKg:'Fat loss', bc_subcutaneousFatPct:'Subcutaneous fat',
     bc_heartRate:'Heart rate', bc_cardiacIndex:'Cardiac index', bc_visceralFat:'Visceral fat',
     bc_muscleMassKg:'Muscle mass', bc_skeletalMassKg:'Skeletal mass', bc_proteinPct:'Protein', bc_bodyAge:'Body age',
+    prog_dias:'days', prog_promedio_7dias:'7-day average', prog_calorias_meta:'Calories (goal {goal})',
+    prog_ejercicio_min_meta:'Exercise min (goal {goal})',
+    nutr_ultimos_30_dias:'Last 30 days', nutr_macro_g:'Macronutrients (g)',
+    pron_tus_datos:'Your info', pron_altura:'Height (cm)', pron_peso_meta:'Target weight (kg)',
+    pron_ej_170:'E.g. 170', pron_ej_68:'E.g. 68', pron_datos_guardados:'Data saved',
+    pron_ingresa_datos:'Enter your height and target weight above to generate your forecast',
+    pron_no_peso:"You don't have any weight logged yet — add one in Today or Calendar",
+    pron_en_meta_msg:"You're already at your target weight! Current weight: {w} kg",
+    pron_insuficientes:"There isn't enough data yet to estimate a rate of change.",
+    pron_desbloquear:'To unlock the forecast, log <b>at least 4 days of weight</b> in the last few weeks (Progress), or log your <b>basal metabolism</b> in Body Comp along with your <b>meals</b> for the day — that lets us estimate your calorie balance.',
+    pron_metodo_tendencia:'your actual weight trend (last 30 days)',
+    pron_metodo_balance:'your estimated calorie balance (basal metabolism + exercise vs. meals)',
+    pron_segun:'Based on', pron_moviendo_contrario:', your weight is moving the opposite way from your goal (',
+    pron_necesita_bajar:'you need to lose', pron_necesita_subir:'you need to gain',
+    pron_pero_ritmo:', but your current rate is', pron_kg_semana:'kg/week', pron_cierre_parentesis:').',
+    pron_peso_actual:'Current weight', pron_meta_label:'Goal', pron_imc_actual:'Current BMI', pron_imc_meta:'Target BMI',
+    pron_tiempo_estimado:'Estimated time to reach your goal', pron_semanas:'weeks',
+    pron_fecha_estimada:'Estimated date:', pron_ritmo_estimado:'Estimated rate: {rate} kg/week, based on {method}.',
+    pron_peso_vs_meta:'Weight vs. goal — last 30 days',
+    chart_no_data:'Not enough data yet',
   },
 };
 function getLang(){ return LS.get('vl:lang') || 'es'; }
 function setLang(l){ LS.set('vl:lang', l); state.lang = l; render(); }
 function tr(key){ return (I18N[state.lang] && I18N[state.lang][key]) ?? I18N.es[key] ?? key; }
+function trf(key, params){ return tr(key).replace(/\{(\w+)\}/g, (_,k)=>params[k]??''); }
 
 const DOW_ES = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 const DOW_EN = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
@@ -452,7 +493,9 @@ async function lookupSharedFoodSafe(key){
 }
 function contributeSharedFoodSafe(key, name, r){
   if(typeof window.contributeSharedFood !== 'function') return;
-  window.contributeSharedFood(key, { label:name.trim(), calories:r.calories, protein:r.protein||0, carbs:r.carbs||0, fat:r.fat||0, fiber:r.fiber||0, sugar:r.sugar||0, sodium:r.sodium||0, iron:r.iron||0, calcium:r.calcium||0, potassium:r.potassium||0, vitaminC:r.vitaminC||0, note:r.note||'', ts:Date.now() });
+  // lang records what language the contributor typed the name in — informational only,
+  // lookups still match on the literal (accent-stripped) text, never across languages.
+  window.contributeSharedFood(key, { label:name.trim(), calories:r.calories, protein:r.protein||0, carbs:r.carbs||0, fat:r.fat||0, fiber:r.fiber||0, sugar:r.sugar||0, sodium:r.sodium||0, iron:r.iron||0, calcium:r.calcium||0, potassium:r.potassium||0, vitaminC:r.vitaminC||0, note:r.note||'', lang: state.lang, ts:Date.now() });
 }
 async function lookupSharedBarcodeSafe(code){
   if(typeof window.lookupSharedBarcode !== 'function') return null;
@@ -669,7 +712,7 @@ function refGridSVG(min, range, w, h, pad, steps, unit){
 function lineChartSVG(points, opts){
   const w = opts.w||520, h = opts.h||150, pad=28;
   const vals = points.map(p=>p.v).filter(v=>v!=null);
-  if(vals.length < 2) return `<div style="color:var(--muted);font-size:12px;padding:20px;text-align:center;">${opts.emptyMsg||'No hay suficientes datos aún'}</div>`;
+  if(vals.length < 2) return `<div style="color:var(--muted);font-size:12px;padding:20px;text-align:center;">${opts.emptyMsg||tr('chart_no_data')}</div>`;
   let min = Math.min(...vals), max = Math.max(...vals);
   if(opts.targetValue!=null){ min = Math.min(min, opts.targetValue); max = Math.max(max, opts.targetValue); }
   const range = (max-min)||1;
@@ -694,7 +737,7 @@ function lineChartSVG(points, opts){
 function multiLineChartSVG(points, series, opts){
   const w = opts.w||520, h = opts.h||150, pad=28;
   const allVals = points.flatMap(p=>series.map(s=>p[s.key])).filter(v=>v!=null);
-  if(allVals.length < 2) return `<div style="color:var(--muted);font-size:12px;padding:20px;text-align:center;">${opts.emptyMsg||'No hay suficientes datos aún'}</div>`;
+  if(allVals.length < 2) return `<div style="color:var(--muted);font-size:12px;padding:20px;text-align:center;">${opts.emptyMsg||tr('chart_no_data')}</div>`;
   const min = Math.min(...allVals), max = Math.max(...allVals);
   const range = (max-min)||1;
   const stepX = (w-pad*2)/(points.length-1);
@@ -1498,14 +1541,14 @@ function bpSummaryHTML(){
   const avgDia = readings.reduce((s,r)=>s+r.diastolic,0)/readings.length;
   return `<div style="text-align:right;">
     <div style="font-size:13px;font-weight:700;color:var(--text);">${Math.round(avgSys)}/${Math.round(avgDia)} mmHg</div>
-    <div style="font-size:10px;color:var(--muted);">Promedio 7 días</div>
+    <div style="font-size:10px;color:var(--muted);">${tr('prog_promedio_7dias')}</div>
   </div>`;
 }
 function avgSummaryHTML(value, unit, decimals){
   if(value==null) return '';
   return `<div style="text-align:right;">
     <div style="font-size:13px;font-weight:700;color:var(--text);">${value.toFixed(decimals??0)}${unit?' '+unit:''}</div>
-    <div style="font-size:10px;color:var(--muted);">Promedio 7 días</div>
+    <div style="font-size:10px;color:var(--muted);">${tr('prog_promedio_7dias')}</div>
   </div>`;
 }
 function pulseSummaryHTML(){
@@ -1547,42 +1590,42 @@ function renderProgreso(){
   return `
   <div class="stack">
     <div style="display:flex;gap:8px;">
-      ${[7,14,30].map(r=>`<button class="btn ${state.progressRange===r?'btn-primary':'btn-ghost'}" onclick="setRange(${r})">${r} días</button>`).join('')}
+      ${[7,14,30].map(r=>`<button class="btn ${state.progressRange===r?'btn-primary':'btn-ghost'}" onclick="setRange(${r})">${r} ${tr('prog_dias')}</button>`).join('')}
     </div>
     <div class="grid2">
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
-          <div class="label" style="margin:0;">Peso (kg)</div>
+          <div class="label" style="margin:0;">${tr('hoy_peso')}</div>
           ${weightSummaryHTML(weightPts)}
         </div>
         <div class="chart-box">${lineChartSVG(weightPts,{color:'var(--accent3)', gridLines:true, gridSteps:4, unit:'kg'})}</div>
       </div>
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
-          <div class="label" style="margin:0;">Presión arterial</div>
+          <div class="label" style="margin:0;">${tr('salud_presion')}</div>
           ${bpSummaryHTML()}
         </div>
         <div class="chart-box">${multiLineChartSVG(bpPts,[{key:'sys',color:'var(--accent)'},{key:'dia',color:'var(--accent3)'}],{gridLines:true, gridSteps:4, unit:'mmHg'})}</div>
       </div>
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
-          <div class="label" style="margin:0;">Pulso (bpm)</div>
+          <div class="label" style="margin:0;">${tr('salud_pulso')}</div>
           ${pulseSummaryHTML()}
         </div>
         <div class="chart-box">${lineChartSVG(pulsePts,{color:'var(--danger)', gridLines:true, gridSteps:4, unit:'bpm'})}</div>
       </div>
-      <div class="card"><div class="label">Calorías (meta ${state.goals.calorieGoal})</div><div class="chart-box">${barChartSVG(calPts,{color:'var(--accent)',goal:state.goals.calorieGoal, gridLines:true, gridSteps:4, unit:'kcal'})}</div></div>
+      <div class="card"><div class="label">${trf('prog_calorias_meta',{goal:state.goals.calorieGoal})}</div><div class="chart-box">${barChartSVG(calPts,{color:'var(--accent)',goal:state.goals.calorieGoal, gridLines:true, gridSteps:4, unit:'kcal'})}</div></div>
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
-          <div class="label" style="margin:0;">Ejercicio min (meta ${state.goals.exerciseGoal})</div>
+          <div class="label" style="margin:0;">${trf('prog_ejercicio_min_meta',{goal:state.goals.exerciseGoal})}</div>
           ${exerciseAvgSummaryHTML()}
         </div>
         <div class="chart-box">${barChartSVG(exPts,{color:'var(--accent2)',goal:state.goals.exerciseGoal, gridLines:true, gridSteps:4, unit:'min'})}</div>
       </div>
-      <div class="card"><div class="label">Agua (L)</div><div class="chart-box">${barChartSVG(waterPts,{color:'var(--accent3)',goal:state.goals.waterGoal, gridLines:true, gridSteps:4, unit:'L'})}</div></div>
+      <div class="card"><div class="label">${tr('hoy_agua')}</div><div class="chart-box">${barChartSVG(waterPts,{color:'var(--accent3)',goal:state.goals.waterGoal, gridLines:true, gridSteps:4, unit:'L'})}</div></div>
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
-          <div class="label" style="margin:0;">Sueño (h)</div>
+          <div class="label" style="margin:0;">${tr('hoy_sueno')}</div>
           ${sleepAvgSummaryHTML()}
         </div>
         <div class="chart-box">${barChartSVG(sleepPts,{color:'var(--accent2)', gridLines:true, gridSteps:4, unit:'h'})}</div>
@@ -1600,13 +1643,13 @@ function renderNutricion(){
     return { label:dayLetter(d.iso), protein:s.protein, carbs:s.carbs, fat:s.fat };
   });
   const microDefs = [
-    { key:'fiber', label:'Fibra (g)', color:'var(--accent3)', unit:'g' },
-    { key:'sugar', label:'Azúcar (g)', color:'var(--accent2)', unit:'g' },
-    { key:'sodium', label:'Sodio (mg)', color:'var(--danger)', unit:'mg' },
-    { key:'iron', label:'Hierro (mg)', color:'var(--accent)', unit:'mg' },
-    { key:'calcium', label:'Calcio (mg)', color:'var(--accent3)', unit:'mg' },
-    { key:'potassium', label:'Potasio (mg)', color:'var(--accent2)', unit:'mg' },
-    { key:'vitaminC', label:'Vitamina C (mg)', color:'var(--accent)', unit:'mg' },
+    { key:'fiber', label:tr('micro_fibra')+' (g)', color:'var(--accent3)', unit:'g' },
+    { key:'sugar', label:tr('micro_azucar')+' (g)', color:'var(--accent2)', unit:'g' },
+    { key:'sodium', label:tr('micro_sodio')+' (mg)', color:'var(--danger)', unit:'mg' },
+    { key:'iron', label:tr('micro_hierro')+' (mg)', color:'var(--accent)', unit:'mg' },
+    { key:'calcium', label:tr('micro_calcio')+' (mg)', color:'var(--accent3)', unit:'mg' },
+    { key:'potassium', label:tr('micro_potasio')+' (mg)', color:'var(--accent2)', unit:'mg' },
+    { key:'vitaminC', label:tr('micro_vitc')+' (mg)', color:'var(--accent)', unit:'mg' },
   ];
   const microCharts = microDefs.map(mk=>{
     const pts = days.map(d=>({ label:dayLetter(d.iso), v: microSums(d.meals)[mk.key] }));
@@ -1615,15 +1658,15 @@ function renderNutricion(){
 
   return `
   <div class="stack">
-    <div style="font-size:12px;color:var(--muted);">Últimos 30 días</div>
+    <div style="font-size:12px;color:var(--muted);">${tr('nutr_ultimos_30_dias')}</div>
     <div class="grid2">
       <div class="card">
-        <div class="label">Macronutrientes (g)</div>
+        <div class="label">${tr('nutr_macro_g')}</div>
         <div class="chart-box">${multiLineChartSVG(macroPts,[{key:'protein',color:'var(--accent)'},{key:'carbs',color:'var(--accent2)'},{key:'fat',color:'var(--accent3)'}],{gridLines:true, gridSteps:4, unit:'g'})}</div>
         <div class="legend" style="margin-top:10px;">
-          <span><span class="dot" style="background:var(--accent);"></span>Proteína</span>
-          <span><span class="dot" style="background:var(--accent2);"></span>Carbohidratos</span>
-          <span><span class="dot" style="background:var(--accent3);"></span>Grasas</span>
+          <span><span class="dot" style="background:var(--accent);"></span>${tr('macro_proteina')}</span>
+          <span><span class="dot" style="background:var(--accent2);"></span>${tr('macro_carbohidratos')}</span>
+          <span><span class="dot" style="background:var(--accent3);"></span>${tr('macro_grasas')}</span>
         </div>
       </div>
       ${microCharts}
@@ -1635,67 +1678,67 @@ function renderPronostico(){
   const cfg = getForecastConfig();
   const forecast = computeForecast();
   const weeklyRate = forecast.ratePerDay!=null ? forecast.ratePerDay*7 : null;
-  const methodLabel = forecast.method==='trend' ? 'tu tendencia de peso real (últimos 30 días)' : forecast.method==='calorie-balance' ? 'tu balance calórico estimado (metabolismo basal + ejercicio vs. comidas)' : '';
+  const methodLabel = forecast.method==='trend' ? tr('pron_metodo_tendencia') : forecast.method==='calorie-balance' ? tr('pron_metodo_balance') : '';
 
   const configCard = `
   <div class="card">
-    <div class="label">Tus datos</div>
+    <div class="label">${tr('pron_tus_datos')}</div>
     <div class="grid2" style="margin-bottom:14px;">
-      <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Altura (cm)</div><input id="fc-height" type="number" value="${cfg.heightCm??''}" placeholder="Ej. 170" style="width:100%;"></div>
-      <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Peso meta (kg)</div><input id="fc-target" type="number" step="0.1" value="${cfg.targetWeightKg??''}" placeholder="Ej. 68" style="width:100%;"></div>
+      <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('pron_altura')}</div><input id="fc-height" type="number" value="${cfg.heightCm??''}" placeholder="${tr('pron_ej_170')}" style="width:100%;"></div>
+      <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('pron_peso_meta')}</div><input id="fc-target" type="number" step="0.1" value="${cfg.targetWeightKg??''}" placeholder="${tr('pron_ej_68')}" style="width:100%;"></div>
     </div>
-    <button class="btn btn-primary" style="width:100%;" onclick="saveForecastConfig()">Guardar</button>
+    <button class="btn btn-primary" style="width:100%;" onclick="saveForecastConfig()">${tr('cal_guardar')}</button>
   </div>`;
 
   let resultCard = '';
   switch(forecast.status){
     case 'missing-config':
-      resultCard = `<div class="card">${emptyState('pronostico','Ingresa tu altura y peso meta arriba para generar tu pronóstico')}</div>`;
+      resultCard = `<div class="card">${emptyState('pronostico', tr('pron_ingresa_datos'))}</div>`;
       break;
     case 'no-weight':
-      resultCard = `<div class="card">${emptyState('peso','Aún no tienes ningún peso registrado — agrega uno en Hoy o en el Calendario')}</div>`;
+      resultCard = `<div class="card">${emptyState('peso', tr('pron_no_peso'))}</div>`;
       break;
     case 'at-goal':
-      resultCard = `<div class="card">${emptyState('logrado','¡Ya estás en tu peso meta! Peso actual: '+forecast.latest.weight+' kg')}</div>`;
+      resultCard = `<div class="card">${emptyState('logrado', trf('pron_en_meta_msg',{w:forecast.latest.weight}))}</div>`;
       break;
     case 'insufficient-data':
       resultCard = `<div class="card">
-        <div class="label">Pronóstico</div>
+        <div class="label">${tr('nav_pronostico')}</div>
         <div style="color:var(--muted);font-size:13px;line-height:1.6;">
-          Todavía no hay suficientes datos para estimar un ritmo de cambio.<br><br>
-          Para desbloquear el pronóstico, registra <b>al menos 4 días de peso</b> en las últimas semanas (Progreso), o registra tu <b>metabolismo basal</b> en Composición junto con tus <b>comidas</b> del día — con eso podemos estimar tu balance calórico.
+          ${tr('pron_insuficientes')}<br><br>
+          ${tr('pron_desbloquear')}
         </div>
       </div>`;
       break;
     case 'wrong-direction':
       resultCard = `<div class="card">
-        <div class="label">Pronóstico</div>
+        <div class="label">${tr('nav_pronostico')}</div>
         <div style="color:var(--danger);font-size:13px;margin-bottom:10px;">
-          Según ${methodLabel}, tu peso se está moviendo en dirección contraria a tu meta (${forecast.remainingKg>0?'necesitas bajar':'necesitas subir'} ${Math.abs(forecast.remainingKg).toFixed(1)} kg, pero tu ritmo actual es de ${weeklyRate>0?'+':''}${weeklyRate.toFixed(2)} kg/semana).
+          ${tr('pron_segun')} ${methodLabel}${tr('pron_moviendo_contrario')}${forecast.remainingKg>0?tr('pron_necesita_bajar'):tr('pron_necesita_subir')} ${Math.abs(forecast.remainingKg).toFixed(1)} kg${tr('pron_pero_ritmo')} ${weeklyRate>0?'+':''}${weeklyRate.toFixed(2)} ${tr('pron_kg_semana')}${tr('pron_cierre_parentesis')}
         </div>
         <div class="grid2" style="grid-template-columns:repeat(3,1fr);">
-          ${statTile(navIcon('peso',14),'Peso actual', forecast.latest.weight+' kg')}
-          ${statTile(navIcon('meta',14),'Meta', forecast.cfg.targetWeightKg+' kg')}
-          ${statTile(navIcon('imc',14),'IMC actual', forecast.currentBMI.toFixed(1))}
+          ${statTile(navIcon('peso',14),tr('pron_peso_actual'), forecast.latest.weight+' kg')}
+          ${statTile(navIcon('meta',14),tr('pron_meta_label'), forecast.cfg.targetWeightKg+' kg')}
+          ${statTile(navIcon('imc',14),tr('pron_imc_actual'), forecast.currentBMI.toFixed(1))}
         </div>
       </div>`;
       break;
     case 'ok': {
       const weeks = forecast.daysNeeded/7;
       resultCard = `<div class="card">
-        <div class="label">Pronóstico</div>
+        <div class="label">${tr('nav_pronostico')}</div>
         <div class="grid2" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
-          ${statTile(navIcon('peso',14),'Peso actual', forecast.latest.weight+' kg')}
-          ${statTile(navIcon('meta',14),'Meta', forecast.cfg.targetWeightKg+' kg')}
-          ${statTile(navIcon('imc',14),'IMC actual', forecast.currentBMI.toFixed(1))}
-          ${statTile(navIcon('imc',14),'IMC meta', forecast.targetBMI.toFixed(1))}
+          ${statTile(navIcon('peso',14),tr('pron_peso_actual'), forecast.latest.weight+' kg')}
+          ${statTile(navIcon('meta',14),tr('pron_meta_label'), forecast.cfg.targetWeightKg+' kg')}
+          ${statTile(navIcon('imc',14),tr('pron_imc_actual'), forecast.currentBMI.toFixed(1))}
+          ${statTile(navIcon('imc',14),tr('pron_imc_meta'), forecast.targetBMI.toFixed(1))}
         </div>
         <div style="text-align:center;padding:14px 0;">
-          <div class="display" style="font-size:15px;color:var(--muted);margin-bottom:4px;">Tiempo estimado para llegar a tu meta</div>
-          <div class="display" style="font-size:32px;font-weight:700;color:var(--accent);">${weeks<1?Math.round(forecast.daysNeeded)+' días':weeks.toFixed(1)+' semanas'}</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:6px;">Fecha estimada: ${forecast.etaDate.toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'})}</div>
+          <div class="display" style="font-size:15px;color:var(--muted);margin-bottom:4px;">${tr('pron_tiempo_estimado')}</div>
+          <div class="display" style="font-size:32px;font-weight:700;color:var(--accent);">${weeks<1?Math.round(forecast.daysNeeded)+' '+tr('prog_dias'):weeks.toFixed(1)+' '+tr('pron_semanas')}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:6px;">${tr('pron_fecha_estimada')} ${forecast.etaDate.toLocaleDateString(state.lang==='en'?'en-US':'es-ES',{day:'numeric',month:'long',year:'numeric'})}</div>
         </div>
-        <div style="font-size:11px;color:var(--muted);text-align:center;">Ritmo estimado: ${weeklyRate>0?'+':''}${weeklyRate.toFixed(2)} kg/semana, basado en ${methodLabel}.</div>
+        <div style="font-size:11px;color:var(--muted);text-align:center;">${trf('pron_ritmo_estimado',{rate:(weeklyRate>0?'+':'')+weeklyRate.toFixed(2), method:methodLabel})}</div>
       </div>`;
       break;
     }
@@ -1703,7 +1746,7 @@ function renderPronostico(){
 
   const weightHist = getWeightHistory(30);
   const chartCard = weightHist.length ? `<div class="card">
-    <div class="label">Peso vs. meta — últimos 30 días</div>
+    <div class="label">${tr('pron_peso_vs_meta')}</div>
     <div class="chart-box">${lineChartSVG(
       Array.from({length:30}).map((_,i)=>{ const iso=isoDaysAgo(29-i); return { label:dayLetter(iso), v: dayAt(iso).weight }; }),
       {color:'var(--accent3)', gridLines:true, gridSteps:4, unit:'kg', targetValue: cfg.targetWeightKg||null}
@@ -1716,7 +1759,7 @@ function saveForecastConfig(){
   const height = Number(document.getElementById('fc-height').value)||null;
   const target = Number(document.getElementById('fc-target').value)||null;
   setForecastConfig({ heightCm: height, targetWeightKg: target });
-  toast('Datos guardados');
+  toast(tr('pron_datos_guardados'));
 }
 
 function rowItem(left, sub, right, onDelete, badge){
