@@ -191,6 +191,17 @@ const I18N = {
     pron_fecha_estimada:'Fecha estimada:', pron_ritmo_estimado:'Ritmo estimado: {rate} kg/semana, basado en {method}.',
     pron_peso_vs_meta:'Peso vs. meta — últimos 30 días',
     chart_no_data:'No hay suficientes datos aún',
+    set_metas_diarias:'Metas diarias', set_ejercicio_min:'Ejercicio (min)',
+    set_apikey_label:'API key de Anthropic (opcional, para estimar calorías con IA)',
+    set_apikey_note:'Se guarda solo en este navegador. Nunca la compartas si publicas este archivo.',
+    set_sync_title:'Sincronización entre dispositivos', set_cancelar:'Cancelar', set_ajustes_guardados:'Ajustes guardados',
+    set_cerrar:'Cerrar',
+    scan_titulo:'Escanear código', scan_apunta:'Apunta la cámara al código de barras del producto…',
+    sync_cargando:'Cargando sincronización…', sync_iniciar_sesion:'Iniciar sesión con Google',
+    sync_conecta:'Conecta tu cuenta para que tus datos se sincronicen automáticamente entre tu computadora y tu celular.',
+    sync_error:'Error:', sync_nunca:'nunca', sync_cerrar_sesion:'Cerrar sesión',
+    sync_sincronizando:'Sincronizando…', sync_ultima:'Última sincronización:',
+    comp_sin_info:'Sin información disponible.',
   },
   en: {
     nav_hoy:'Today', nav_comidas:'Meals', nav_ejercicio:'Exercise', nav_salud:'Health',
@@ -254,6 +265,17 @@ const I18N = {
     pron_fecha_estimada:'Estimated date:', pron_ritmo_estimado:'Estimated rate: {rate} kg/week, based on {method}.',
     pron_peso_vs_meta:'Weight vs. goal — last 30 days',
     chart_no_data:'Not enough data yet',
+    set_metas_diarias:'Daily goals', set_ejercicio_min:'Exercise (min)',
+    set_apikey_label:'Anthropic API key (optional, for AI calorie estimates)',
+    set_apikey_note:"Stored only in this browser. Never share it if you publish this file.",
+    set_sync_title:'Cross-device sync', set_cancelar:'Cancel', set_ajustes_guardados:'Settings saved',
+    set_cerrar:'Close',
+    scan_titulo:'Scan code', scan_apunta:"Point the camera at the product's barcode…",
+    sync_cargando:'Loading sync…', sync_iniciar_sesion:'Sign in with Google',
+    sync_conecta:'Connect your account so your data syncs automatically between your computer and phone.',
+    sync_error:'Error:', sync_nunca:'never', sync_cerrar_sesion:'Sign out',
+    sync_sincronizando:'Syncing…', sync_ultima:'Last synced:',
+    comp_sin_info:'No information available.',
   },
 };
 function getLang(){ return LS.get('vl:lang') || 'es'; }
@@ -285,20 +307,34 @@ const MEAL_TYPES = [
   { id:'cena', label:'Cena', ic:'cena' },
 ];
 const BODYCOMP_FIELDS = [
-  { key:'bmi', label:'IMC', unit:'', info:'El IMC es tu peso dividido entre tu estatura al cuadrado (kg/m²). Es un indicador rápido de si tu peso está en un rango saludable para tu altura, pero no distingue entre grasa y músculo — una persona muy musculosa puede tener un IMC alto sin exceso de grasa real.<br><br>Se relaciona directamente con tu <b>Grasa corporal %</b>: cuando el IMC está alto por exceso de grasa (no de músculo), ambos suben juntos.<br><br><b>Rangos de referencia:</b><br>Bajo peso: menos de 18.5<br>Normal: 18.5 – 24.9<br>Sobrepeso: 25 – 29.9<br>Obesidad: 30 o más' },
-  { key:'bodyFatPct', label:'Grasa corporal', unit:'%', info:'Es el porcentaje de tu peso total que corresponde a grasa corporal (visceral + subcutánea). Es más preciso que el IMC porque sí distingue grasa de músculo.<br><br>Se relaciona con <b>Grasa visceral</b> y <b>Grasa subcutánea</b> (la suma aproximada de ambas), y de forma inversa con tu <b>Agua corporal %</b> y <b>Músculo esquelético %</b> — el tejido graso retiene mucha menos agua que el muscular, así que a mayor grasa, menor % de agua y músculo.<br><br><b>Rangos de referencia aproximados</b> (varían por edad y sexo):<br>Hombres: 10–20% saludable<br>Mujeres: 18–28% saludable' },
-  { key:'bodyWaterPct', label:'Agua corporal', unit:'%', info:'Es el porcentaje de tu peso que es agua — presente en sangre, músculos, órganos y piel. El músculo contiene mucha más agua que la grasa, así que este número tiende a subir cuando ganas músculo o pierdes grasa.<br><br>Se relaciona de forma inversa con tu <b>Grasa corporal %</b>: cuando uno sube, el otro suele bajar, aunque ambos cambien por la misma causa (más o menos grasa).<br><br><b>Rangos de referencia aproximados:</b><br>Hombres: 50–65%<br>Mujeres: 45–60%' },
-  { key:'skeletalMusclePct', label:'Músculo esquelético', unit:'%', info:'Es el porcentaje de tu peso que corresponde a músculo esquelético (el que mueves voluntariamente, sin contar músculo liso ni cardíaco).<br><br>Se relaciona directamente con tu <b>Masa muscular (kg)</b> y <b>Masa esquelética (kg)</b> (son la versión en kilos de este mismo dato), y con tu <b>Metabolismo basal</b>: más músculo significa que tu cuerpo quema más calorías en reposo.<br><br><b>Rangos de referencia aproximados:</b><br>Hombres: 33–39%<br>Mujeres: 24–30%<br><br>Mantenerlo o aumentarlo con el tiempo es especialmente importante después de los 40 años, cuando el cuerpo pierde músculo de forma natural (sarcopenia).' },
-  { key:'bmr', label:'Metabolismo basal (MMR)', unit:'kcal', info:'Es la energía (en kcal) que tu cuerpo necesita solo para mantenerse vivo en reposo absoluto — respirar, mantener la temperatura, el corazón latiendo — sin contar ninguna actividad.<br><br>Depende directamente de tu <b>Músculo esquelético %</b> y <b>Masa muscular</b>: más músculo eleva tu metabolismo basal, porque el tejido muscular consume más energía en reposo que la grasa. VitaLink usa este valor junto con tu ejercicio y comidas en la pestaña <b>Pronóstico</b> para estimar tu balance calórico.<br><br>No hay un "número meta" único — depende de tu edad, sexo, peso y composición — pero aumentarlo indirectamente (ganando músculo) ayuda a quemar más calorías incluso en descanso.' },
-  { key:'fatLossKg', label:'Pérdida de grasa', unit:'kg', info:'Es el cambio estimado en tu grasa corporal (en kg) que calcula la báscula, comparando con una medición de referencia anterior.<br><br>Se relaciona con tu <b>Grasa corporal %</b> y <b>Grasa visceral</b> — si estos bajan con el tiempo, este valor debería reflejar una pérdida de grasa acumulada.<br><br>Un ritmo saludable de pérdida de grasa es de aproximadamente <b>0.5% a 1% de tu peso corporal por semana</b> — perder más rápido suele significar pérdida de músculo y agua, no solo grasa.' },
-  { key:'subcutaneousFatPct', label:'Grasa subcutánea', unit:'%', info:'Es la grasa que está justo debajo de la piel — la que puedes pellizcar — y representa la mayor parte de tu grasa corporal total. Es distinta de la grasa visceral, que rodea tus órganos internos.<br><br>Junto con tu <b>Grasa visceral</b>, forma aproximadamente tu <b>Grasa corporal %</b> total. Es menos riesgosa para la salud metabólica que la grasa visceral, pero en exceso también refleja sobrepeso general.<br><br>No tiene un rango universal estandarizado como otros parámetros — lo más útil es ver su tendencia junto con tu Grasa corporal % general: si uno baja, el otro normalmente también.' },
-  { key:'heartRate', label:'Frecuencia cardíaca', unit:'bpm', info:'Es tu frecuencia cardíaca (latidos por minuto) en el momento exacto de la medición — no necesariamente en reposo total.<br><br>Se relaciona con tu <b>Índice cardíaco</b>: juntos indican cuánta sangre está bombeando tu corazón. Una frecuencia en reposo baja suele ser señal de buena condición cardiovascular (común en personas entrenadas).<br><br><b>Rango normal en reposo para adultos:</b> 60–100 bpm (atletas entrenados pueden estar por debajo, 40–60 bpm).<br><br>Si ves lecturas consistentemente fuera de este rango, especialmente por encima de 100 en reposo, vale la pena comentarlo con un médico.' },
-  { key:'cardiacIndex', label:'Índice cardíaco', unit:'L/min/m²', info:'Mide cuánta sangre bombea tu corazón por minuto, ajustado a tu tamaño corporal (superficie corporal). Es un parámetro más clínico que los demás.<br><br>Se relaciona directamente con tu <b>Frecuencia cardíaca</b> — ambos reflejan el desempeño de tu sistema cardiovascular en el momento de la medición.<br><br><b>Rango normal de referencia:</b> aproximadamente 2.5 – 4.0 L/min/m² en reposo.<br><br>Valores fuera de este rango no son necesariamente alarmantes por sí solos, pero si se repiten de forma consistente, es un buen dato para compartir con un médico — este parámetro suele usarse en contextos clínicos, no solo de fitness.' },
-  { key:'visceralFat', label:'Grasa visceral', unit:'', info:'Mide la grasa acumulada alrededor de tus órganos internos (abdomen) en una escala de nivel (no porcentaje). Es el tipo de grasa más relacionado con riesgo metabólico — más que la grasa subcutánea.<br><br>Se relaciona con tu <b>Grasa corporal %</b> e <b>IMC</b>, pero es un indicador más específico: puedes tener un IMC normal y aun así tener grasa visceral alta ("delgado por fuera, graso por dentro").<br><br><b>Niveles de referencia (escala típica 1–59):</b><br>1–9: normal<br>10–14: alto<br>15 o más: muy alto (mayor riesgo de diabetes tipo 2 y enfermedad cardiovascular)<br><br><b>Meta recomendada:</b> mantenerlo por debajo de 10.' },
-  { key:'muscleMassKg', label:'Masa muscular', unit:'kg', info:'Es el peso total (en kg) de todo tu tejido muscular — esquelético, liso y cardíaco combinados, según el algoritmo de tu báscula.<br><br>Se relaciona directamente con tu <b>Músculo esquelético %</b> (ese es el porcentaje de esto mismo) y con tu <b>Metabolismo basal</b> — más masa muscular significa más calorías quemadas en reposo.<br><br>No hay un número meta universal — depende de tu estatura, sexo y objetivo — pero mantenerlo estable o creciente con el tiempo (especialmente con entrenamiento de fuerza) es una señal positiva, sobre todo si estás en un proceso de pérdida de peso, donde quieres perder grasa sin perder músculo.' },
-  { key:'skeletalMassKg', label:'Masa esquelética', unit:'kg', info:'Es el peso (en kg) específicamente de tu músculo esquelético — el que mueves de forma voluntaria — sin contar músculo liso ni cardíaco. Suele representar entre el 40% y 50% de tu masa muscular total.<br><br>Se relaciona directamente con tu <b>Músculo esquelético %</b> y tu <b>Masa muscular (kg)</b> — es la pieza más específica de fuerza funcional dentro de esos dos datos.<br><br>Al igual que la masa muscular total, no hay una meta universal, pero mantenerlo o aumentarlo con el tiempo apoya tu fuerza, tu postura y tu metabolismo basal.' },
-  { key:'proteinPct', label:'Proteína', unit:'%', info:'Es el porcentaje de tu peso corporal que corresponde a proteína — presente en músculos, órganos, piel y otros tejidos, no solo en el músculo.<br><br>Se relaciona directamente con tu <b>Masa muscular</b>: a mayor masa muscular, mayor será normalmente tu % de proteína, ya que el tejido muscular es rico en proteína.<br><br><b>Rango de referencia aproximado:</b> 16% – 20%.<br><br>Un valor muy bajo puede ser señal de desnutrición o pérdida muscular, mientras que valores normales-altos suelen acompañar una buena masa muscular.' },
-  { key:'bodyAge', label:'Edad corporal', unit:'años', info:'Es una estimación algorítmica de tu "edad metabólica" comparada con el promedio poblacional, calculada combinando varias de las métricas anteriores (metabolismo basal, músculo, grasa, etc.), según el fabricante de tu báscula.<br><br>Está relacionada con <b>todas las demás métricas de esta sección</b> — es básicamente un resumen compuesto de qué tan bien o mal se comparan tus números con los de tu edad real.<br><br>Si tu edad corporal es <b>menor</b> a tu edad real, es una señal positiva de buena condición física relativa. Si es <b>mayor</b>, indica áreas de mejora (normalmente relacionadas con más músculo y menos grasa).<br><br>Es solo una estimación orientativa del fabricante, no un diagnóstico médico.' },
+  { key:'bmi', label:'IMC', unit:'', info:'El IMC es tu peso dividido entre tu estatura al cuadrado (kg/m²). Es un indicador rápido de si tu peso está en un rango saludable para tu altura, pero no distingue entre grasa y músculo — una persona muy musculosa puede tener un IMC alto sin exceso de grasa real.<br><br>Se relaciona directamente con tu <b>Grasa corporal %</b>: cuando el IMC está alto por exceso de grasa (no de músculo), ambos suben juntos.<br><br><b>Rangos de referencia:</b><br>Bajo peso: menos de 18.5<br>Normal: 18.5 – 24.9<br>Sobrepeso: 25 – 29.9<br>Obesidad: 30 o más',
+    infoEn:`BMI is your weight divided by your height squared (kg/m²). It's a quick indicator of whether your weight is in a healthy range for your height, but it doesn't distinguish fat from muscle — a very muscular person can have a high BMI without excess fat.<br><br>It's directly related to your <b>Body fat %</b>: when BMI is high due to excess fat (not muscle), both rise together.<br><br><b>Reference ranges:</b><br>Underweight: below 18.5<br>Normal: 18.5 – 24.9<br>Overweight: 25 – 29.9<br>Obesity: 30 or above` },
+  { key:'bodyFatPct', label:'Grasa corporal', unit:'%', info:'Es el porcentaje de tu peso total que corresponde a grasa corporal (visceral + subcutánea). Es más preciso que el IMC porque sí distingue grasa de músculo.<br><br>Se relaciona con <b>Grasa visceral</b> y <b>Grasa subcutánea</b> (la suma aproximada de ambas), y de forma inversa con tu <b>Agua corporal %</b> y <b>Músculo esquelético %</b> — el tejido graso retiene mucha menos agua que el muscular, así que a mayor grasa, menor % de agua y músculo.<br><br><b>Rangos de referencia aproximados</b> (varían por edad y sexo):<br>Hombres: 10–20% saludable<br>Mujeres: 18–28% saludable',
+    infoEn:`This is the percentage of your total weight that's body fat (visceral + subcutaneous). It's more precise than BMI because it does distinguish fat from muscle.<br><br>It's related to your <b>Visceral fat</b> and <b>Subcutaneous fat</b> (roughly the sum of both), and inversely to your <b>Body water %</b> and <b>Skeletal muscle %</b> — fat tissue holds much less water than muscle, so higher fat usually means lower water and muscle %.<br><br><b>Approximate reference ranges</b> (vary by age and sex):<br>Men: 10–20% healthy<br>Women: 18–28% healthy` },
+  { key:'bodyWaterPct', label:'Agua corporal', unit:'%', info:'Es el porcentaje de tu peso que es agua — presente en sangre, músculos, órganos y piel. El músculo contiene mucha más agua que la grasa, así que este número tiende a subir cuando ganas músculo o pierdes grasa.<br><br>Se relaciona de forma inversa con tu <b>Grasa corporal %</b>: cuando uno sube, el otro suele bajar, aunque ambos cambien por la misma causa (más o menos grasa).<br><br><b>Rangos de referencia aproximados:</b><br>Hombres: 50–65%<br>Mujeres: 45–60%',
+    infoEn:`This is the percentage of your weight that's water — present in blood, muscles, organs, and skin. Muscle holds far more water than fat, so this number tends to rise when you gain muscle or lose fat.<br><br>It's inversely related to your <b>Body fat %</b>: when one rises, the other usually falls, even though both change for the same reason (more or less fat).<br><br><b>Approximate reference ranges:</b><br>Men: 50–65%<br>Women: 45–60%` },
+  { key:'skeletalMusclePct', label:'Músculo esquelético', unit:'%', info:'Es el porcentaje de tu peso que corresponde a músculo esquelético (el que mueves voluntariamente, sin contar músculo liso ni cardíaco).<br><br>Se relaciona directamente con tu <b>Masa muscular (kg)</b> y <b>Masa esquelética (kg)</b> (son la versión en kilos de este mismo dato), y con tu <b>Metabolismo basal</b>: más músculo significa que tu cuerpo quema más calorías en reposo.<br><br><b>Rangos de referencia aproximados:</b><br>Hombres: 33–39%<br>Mujeres: 24–30%<br><br>Mantenerlo o aumentarlo con el tiempo es especialmente importante después de los 40 años, cuando el cuerpo pierde músculo de forma natural (sarcopenia).',
+    infoEn:`This is the percentage of your weight that's skeletal muscle (the kind you move voluntarily, not counting smooth or cardiac muscle).<br><br>It's directly related to your <b>Muscle mass (kg)</b> and <b>Skeletal mass (kg)</b> (the kilogram version of this same data), and to your <b>Basal metabolism</b>: more muscle means your body burns more calories at rest.<br><br><b>Approximate reference ranges:</b><br>Men: 33–39%<br>Women: 24–30%<br><br>Maintaining or increasing it over time is especially important after age 40, when the body naturally loses muscle (sarcopenia).` },
+  { key:'bmr', label:'Metabolismo basal (MMR)', unit:'kcal', info:'Es la energía (en kcal) que tu cuerpo necesita solo para mantenerse vivo en reposo absoluto — respirar, mantener la temperatura, el corazón latiendo — sin contar ninguna actividad.<br><br>Depende directamente de tu <b>Músculo esquelético %</b> y <b>Masa muscular</b>: más músculo eleva tu metabolismo basal, porque el tejido muscular consume más energía en reposo que la grasa. VitaLink usa este valor junto con tu ejercicio y comidas en la pestaña <b>Pronóstico</b> para estimar tu balance calórico.<br><br>No hay un "número meta" único — depende de tu edad, sexo, peso y composición — pero aumentarlo indirectamente (ganando músculo) ayuda a quemar más calorías incluso en descanso.',
+    infoEn:`This is the energy (in kcal) your body needs just to stay alive at complete rest — breathing, maintaining temperature, your heart beating — without counting any activity.<br><br>It depends directly on your <b>Skeletal muscle %</b> and <b>Muscle mass</b>: more muscle raises your basal metabolism, because muscle tissue burns more energy at rest than fat. VitaLink uses this value along with your exercise and meals in the <b>Forecast</b> tab to estimate your calorie balance.<br><br>There's no single "target number" — it depends on your age, sex, weight, and composition — but raising it indirectly (by gaining muscle) helps you burn more calories even at rest.` },
+  { key:'fatLossKg', label:'Pérdida de grasa', unit:'kg', info:'Es el cambio estimado en tu grasa corporal (en kg) que calcula la báscula, comparando con una medición de referencia anterior.<br><br>Se relaciona con tu <b>Grasa corporal %</b> y <b>Grasa visceral</b> — si estos bajan con el tiempo, este valor debería reflejar una pérdida de grasa acumulada.<br><br>Un ritmo saludable de pérdida de grasa es de aproximadamente <b>0.5% a 1% de tu peso corporal por semana</b> — perder más rápido suele significar pérdida de músculo y agua, no solo grasa.',
+    infoEn:`This is the estimated change in your body fat (in kg) that the scale calculates, compared against an earlier reference measurement.<br><br>It's related to your <b>Body fat %</b> and <b>Visceral fat</b> — if those drop over time, this value should reflect accumulated fat loss.<br><br>A healthy rate of fat loss is roughly <b>0.5% to 1% of your body weight per week</b> — losing faster usually means losing muscle and water, not just fat.` },
+  { key:'subcutaneousFatPct', label:'Grasa subcutánea', unit:'%', info:'Es la grasa que está justo debajo de la piel — la que puedes pellizcar — y representa la mayor parte de tu grasa corporal total. Es distinta de la grasa visceral, que rodea tus órganos internos.<br><br>Junto con tu <b>Grasa visceral</b>, forma aproximadamente tu <b>Grasa corporal %</b> total. Es menos riesgosa para la salud metabólica que la grasa visceral, pero en exceso también refleja sobrepeso general.<br><br>No tiene un rango universal estandarizado como otros parámetros — lo más útil es ver su tendencia junto con tu Grasa corporal % general: si uno baja, el otro normalmente también.',
+    infoEn:`This is the fat right beneath your skin — the kind you can pinch — and it makes up most of your total body fat. It's distinct from visceral fat, which surrounds your internal organs.<br><br>Together with your <b>Visceral fat</b>, it roughly adds up to your total <b>Body fat %</b>. It carries less metabolic health risk than visceral fat, but in excess it still points to overall excess weight.<br><br>It doesn't have a standardized universal range like other parameters — the most useful thing is watching its trend alongside your overall Body fat %: if one drops, the other usually does too.` },
+  { key:'heartRate', label:'Frecuencia cardíaca', unit:'bpm', info:'Es tu frecuencia cardíaca (latidos por minuto) en el momento exacto de la medición — no necesariamente en reposo total.<br><br>Se relaciona con tu <b>Índice cardíaco</b>: juntos indican cuánta sangre está bombeando tu corazón. Una frecuencia en reposo baja suele ser señal de buena condición cardiovascular (común en personas entrenadas).<br><br><b>Rango normal en reposo para adultos:</b> 60–100 bpm (atletas entrenados pueden estar por debajo, 40–60 bpm).<br><br>Si ves lecturas consistentemente fuera de este rango, especialmente por encima de 100 en reposo, vale la pena comentarlo con un médico.',
+    infoEn:`This is your heart rate (beats per minute) at the exact moment of measurement — not necessarily at complete rest.<br><br>It's related to your <b>Cardiac index</b>: together they show how much blood your heart is pumping. A low resting rate is usually a sign of good cardiovascular fitness (common in trained athletes).<br><br><b>Normal resting range for adults:</b> 60–100 bpm (trained athletes can be lower, 40–60 bpm).<br><br>If you see readings consistently outside this range, especially above 100 at rest, it's worth mentioning to a doctor.` },
+  { key:'cardiacIndex', label:'Índice cardíaco', unit:'L/min/m²', info:'Mide cuánta sangre bombea tu corazón por minuto, ajustado a tu tamaño corporal (superficie corporal). Es un parámetro más clínico que los demás.<br><br>Se relaciona directamente con tu <b>Frecuencia cardíaca</b> — ambos reflejan el desempeño de tu sistema cardiovascular en el momento de la medición.<br><br><b>Rango normal de referencia:</b> aproximadamente 2.5 – 4.0 L/min/m² en reposo.<br><br>Valores fuera de este rango no son necesariamente alarmantes por sí solos, pero si se repiten de forma consistente, es un buen dato para compartir con un médico — este parámetro suele usarse en contextos clínicos, no solo de fitness.',
+    infoEn:`This measures how much blood your heart pumps per minute, adjusted for your body size (body surface area). It's a more clinical parameter than the others.<br><br>It's directly related to your <b>Heart rate</b> — together they reflect how your cardiovascular system is performing at the moment of measurement.<br><br><b>Normal reference range:</b> roughly 2.5 – 4.0 L/min/m² at rest.<br><br>Values outside this range aren't necessarily alarming on their own, but if they show up consistently, it's worth sharing with a doctor — this parameter is typically used in clinical settings, not just fitness.` },
+  { key:'visceralFat', label:'Grasa visceral', unit:'', info:'Mide la grasa acumulada alrededor de tus órganos internos (abdomen) en una escala de nivel (no porcentaje). Es el tipo de grasa más relacionado con riesgo metabólico — más que la grasa subcutánea.<br><br>Se relaciona con tu <b>Grasa corporal %</b> e <b>IMC</b>, pero es un indicador más específico: puedes tener un IMC normal y aun así tener grasa visceral alta ("delgado por fuera, graso por dentro").<br><br><b>Niveles de referencia (escala típica 1–59):</b><br>1–9: normal<br>10–14: alto<br>15 o más: muy alto (mayor riesgo de diabetes tipo 2 y enfermedad cardiovascular)<br><br><b>Meta recomendada:</b> mantenerlo por debajo de 10.',
+    infoEn:`This measures the fat built up around your internal organs (abdomen) on a level scale (not a percentage). It's the type of fat most linked to metabolic risk — more so than subcutaneous fat.<br><br>It's related to your <b>Body fat %</b> and <b>BMI</b>, but it's a more specific indicator: you can have a normal BMI and still have high visceral fat ("skinny outside, fat inside").<br><br><b>Reference levels (typical 1–59 scale):</b><br>1–9: normal<br>10–14: high<br>15 or above: very high (higher risk of type 2 diabetes and cardiovascular disease)<br><br><b>Recommended target:</b> keep it below 10.` },
+  { key:'muscleMassKg', label:'Masa muscular', unit:'kg', info:'Es el peso total (en kg) de todo tu tejido muscular — esquelético, liso y cardíaco combinados, según el algoritmo de tu báscula.<br><br>Se relaciona directamente con tu <b>Músculo esquelético %</b> (ese es el porcentaje de esto mismo) y con tu <b>Metabolismo basal</b> — más masa muscular significa más calorías quemadas en reposo.<br><br>No hay un número meta universal — depende de tu estatura, sexo y objetivo — pero mantenerlo estable o creciente con el tiempo (especialmente con entrenamiento de fuerza) es una señal positiva, sobre todo si estás en un proceso de pérdida de peso, donde quieres perder grasa sin perder músculo.',
+    infoEn:`This is the total weight (in kg) of all your muscle tissue — skeletal, smooth, and cardiac combined, according to your scale's algorithm.<br><br>It's directly related to your <b>Skeletal muscle %</b> (that's the percentage version of this same data) and to your <b>Basal metabolism</b> — more muscle mass means more calories burned at rest.<br><br>There's no universal target number — it depends on your height, sex, and goal — but keeping it stable or growing over time (especially with strength training) is a good sign, particularly if you're losing weight and want to lose fat without losing muscle.` },
+  { key:'skeletalMassKg', label:'Masa esquelética', unit:'kg', info:'Es el peso (en kg) específicamente de tu músculo esquelético — el que mueves de forma voluntaria — sin contar músculo liso ni cardíaco. Suele representar entre el 40% y 50% de tu masa muscular total.<br><br>Se relaciona directamente con tu <b>Músculo esquelético %</b> y tu <b>Masa muscular (kg)</b> — es la pieza más específica de fuerza funcional dentro de esos dos datos.<br><br>Al igual que la masa muscular total, no hay una meta universal, pero mantenerlo o aumentarlo con el tiempo apoya tu fuerza, tu postura y tu metabolismo basal.',
+    infoEn:`This is the weight (in kg) specifically of your skeletal muscle — the kind you move voluntarily — not counting smooth or cardiac muscle. It usually makes up 40% to 50% of your total muscle mass.<br><br>It's directly related to your <b>Skeletal muscle %</b> and your <b>Muscle mass (kg)</b> — it's the most specific piece of functional strength within those two figures.<br><br>Like total muscle mass, there's no universal target, but maintaining or increasing it over time supports your strength, posture, and basal metabolism.` },
+  { key:'proteinPct', label:'Proteína', unit:'%', info:'Es el porcentaje de tu peso corporal que corresponde a proteína — presente en músculos, órganos, piel y otros tejidos, no solo en el músculo.<br><br>Se relaciona directamente con tu <b>Masa muscular</b>: a mayor masa muscular, mayor será normalmente tu % de proteína, ya que el tejido muscular es rico en proteína.<br><br><b>Rango de referencia aproximado:</b> 16% – 20%.<br><br>Un valor muy bajo puede ser señal de desnutrición o pérdida muscular, mientras que valores normales-altos suelen acompañar una buena masa muscular.',
+    infoEn:`This is the percentage of your body weight that's protein — present in muscles, organs, skin, and other tissues, not just muscle.<br><br>It's directly related to your <b>Muscle mass</b>: the more muscle mass you have, the higher your protein % usually is, since muscle tissue is protein-rich.<br><br><b>Approximate reference range:</b> 16% – 20%.<br><br>A very low value can signal malnutrition or muscle loss, while normal-to-high values usually go along with good muscle mass.` },
+  { key:'bodyAge', label:'Edad corporal', unit:'años', info:'Es una estimación algorítmica de tu "edad metabólica" comparada con el promedio poblacional, calculada combinando varias de las métricas anteriores (metabolismo basal, músculo, grasa, etc.), según el fabricante de tu báscula.<br><br>Está relacionada con <b>todas las demás métricas de esta sección</b> — es básicamente un resumen compuesto de qué tan bien o mal se comparan tus números con los de tu edad real.<br><br>Si tu edad corporal es <b>menor</b> a tu edad real, es una señal positiva de buena condición física relativa. Si es <b>mayor</b>, indica áreas de mejora (normalmente relacionadas con más músculo y menos grasa).<br><br>Es solo una estimación orientativa del fabricante, no un diagnóstico médico.',
+    infoEn:`This is an algorithmic estimate of your "metabolic age" compared to the population average, calculated by combining several of the metrics above (basal metabolism, muscle, fat, etc.), according to your scale's manufacturer.<br><br>It's related to <b>every other metric in this section</b> — it's essentially a composite summary of how well or poorly your numbers compare to people your actual age.<br><br>If your body age is <b>lower</b> than your actual age, that's a positive sign of relatively good physical condition. If it's <b>higher</b>, it points to areas for improvement (usually related to more muscle and less fat).<br><br>It's only a rough estimate from the manufacturer, not a medical diagnosis.` },
 ];
 // Groups the long scale-reading form into scannable sections instead of one flat list.
 const BODYCOMP_GROUPS = {
@@ -319,6 +355,7 @@ function groupedBodyCompFields(){
   return order.map(groupKey=>({ groupKey, fields: map[groupKey] }));
 }
 function bcUnit(f){ return f.key==='bodyAge' ? (state.lang==='en'?'years':'años') : f.unit; }
+function bcInfo(f){ return state.lang==='en' ? (f.infoEn||f.info) : f.info; }
 // General adult reference bands, not personalized by sex/age. Fields without a
 // universally-agreed target (bmr, fatLossKg, muscleMassKg, skeletalMassKg,
 // bodyAge) are intentionally omitted — no color is more honest than a fake one.
@@ -1794,22 +1831,22 @@ function emptyState(key,text){
 function syncSectionHTML(){
   const s = window._syncState;
   if(!s.ready){
-    return `<div style="font-size:12px;color:var(--muted);">Cargando sincronización…</div>`;
+    return `<div style="font-size:12px;color:var(--muted);">${tr('sync_cargando')}</div>`;
   }
   if(!s.user){
     return `<div>
-      <button class="btn btn-ghost" style="width:100%;margin-bottom:6px;" onclick="firebaseSignIn()">${navIcon('login',14)}Iniciar sesión con Google</button>
-      <div style="font-size:11px;color:var(--muted);">Conecta tu cuenta para que tus datos se sincronicen automáticamente entre tu computadora y tu celular.</div>
-      ${s.error?`<div style="font-size:11px;color:var(--danger);margin-top:6px;">Error: ${esc(s.error)}</div>`:''}
+      <button class="btn btn-ghost" style="width:100%;margin-bottom:6px;" onclick="firebaseSignIn()">${navIcon('login',14)}${tr('sync_iniciar_sesion')}</button>
+      <div style="font-size:11px;color:var(--muted);">${tr('sync_conecta')}</div>
+      ${s.error?`<div style="font-size:11px;color:var(--danger);margin-top:6px;">${tr('sync_error')} ${esc(s.error)}</div>`:''}
     </div>`;
   }
-  const lastSync = s.lastSyncAt ? new Date(s.lastSyncAt).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}) : 'nunca';
+  const lastSync = s.lastSyncAt ? new Date(s.lastSyncAt).toLocaleTimeString(state.lang==='en'?'en-US':'es-ES',{hour:'2-digit',minute:'2-digit'}) : tr('sync_nunca');
   return `<div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
       <span style="font-size:12px;color:var(--text);">✅ ${esc(s.user.email)}</span>
-      <button class="btn btn-ghost" style="padding:6px 10px;font-size:11px;" onclick="firebaseSignOut()">Cerrar sesión</button>
+      <button class="btn btn-ghost" style="padding:6px 10px;font-size:11px;" onclick="firebaseSignOut()">${tr('sync_cerrar_sesion')}</button>
     </div>
-    <div style="font-size:11px;color:var(--muted);">${s.syncing?'Sincronizando…':'Última sincronización: '+lastSync}${s.error?' — Error: '+esc(s.error):''}</div>
+    <div style="font-size:11px;color:var(--muted);">${s.syncing?tr('sync_sincronizando'):tr('sync_ultima')+' '+lastSync}${s.error?' — '+tr('sync_error')+' '+esc(s.error):''}</div>
   </div>`;
 }
 /* ================= modal (settings) ================= */
@@ -1820,21 +1857,21 @@ function modalHTML(){
     const g = state.goals;
     return `<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;" onclick="closeModal(event)">
       <div class="card" style="width:360px;max-width:90vw;" onclick="event.stopPropagation()">
-        <div class="display" style="font-weight:700;font-size:16px;margin-bottom:16px;">Ajustes</div>
-        <div class="label">Metas diarias</div>
+        <div class="display" style="font-weight:700;font-size:16px;margin-bottom:16px;">${tr('nav_ajustes')}</div>
+        <div class="label">${tr('set_metas_diarias')}</div>
         <div class="grid2" style="margin-bottom:14px;">
-          <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Calorías</div><input id="g-cal" type="number" value="${g.calorieGoal}" style="width:100%;"></div>
-          <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Agua (L)</div><input id="g-water" type="number" value="${g.waterGoal}" style="width:100%;"></div>
+          <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('cal_calorias')}</div><input id="g-cal" type="number" value="${g.calorieGoal}" style="width:100%;"></div>
+          <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('hoy_agua')}</div><input id="g-water" type="number" value="${g.waterGoal}" style="width:100%;"></div>
         </div>
-        <div style="margin-bottom:16px;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Ejercicio (min)</div><input id="g-ex" type="number" value="${g.exerciseGoal}" style="width:100%;"></div>
-        <div class="label">API key de Anthropic (opcional, para estimar calorías con IA)</div>
+        <div style="margin-bottom:16px;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('set_ejercicio_min')}</div><input id="g-ex" type="number" value="${g.exerciseGoal}" style="width:100%;"></div>
+        <div class="label">${tr('set_apikey_label')}</div>
         <input id="g-apikey" type="password" value="${getApiKey()}" placeholder="sk-ant-..." style="width:100%;margin-bottom:6px;">
-        <div style="font-size:11px;color:var(--muted);margin-bottom:16px;">Se guarda solo en este navegador. Nunca la compartas si publicas este archivo.</div>
-        <div class="label">Sincronización entre dispositivos</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:16px;">${tr('set_apikey_note')}</div>
+        <div class="label">${tr('set_sync_title')}</div>
         <div style="margin-bottom:16px;">${syncSectionHTML()}</div>
         <div style="display:flex;gap:8px;">
-          <button class="btn btn-ghost" style="flex:1;" onclick="closeModal()">Cancelar</button>
-          <button class="btn btn-primary" style="flex:1;" onclick="saveSettings()">Guardar</button>
+          <button class="btn btn-ghost" style="flex:1;" onclick="closeModal()">${tr('set_cancelar')}</button>
+          <button class="btn btn-primary" style="flex:1;" onclick="saveSettings()">${tr('cal_guardar')}</button>
         </div>
       </div>
     </div>`;
@@ -1842,13 +1879,13 @@ function modalHTML(){
   if(window._modal==='scanner'){
     return `<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;" onclick="closeScanner(event)">
       <div class="card" style="width:380px;max-width:92vw;" onclick="event.stopPropagation()">
-        <div class="display" style="font-weight:700;font-size:16px;margin-bottom:12px;display:flex;align-items:center;gap:8px;">${navIcon('camara',18)}Escanear código</div>
+        <div class="display" style="font-weight:700;font-size:16px;margin-bottom:12px;display:flex;align-items:center;gap:8px;">${navIcon('camara',18)}${tr('scan_titulo')}</div>
         <div class="scanner-video-wrap">
           <video id="scanner-video" autoplay playsinline muted></video>
           <div class="scanner-frame"></div>
         </div>
-        <div id="scanner-status" style="font-size:12px;color:var(--muted);margin:12px 0;text-align:center;">Apunta la cámara al código de barras del producto…</div>
-        <button class="btn btn-ghost" style="width:100%;" onclick="closeScanner()">Cancelar</button>
+        <div id="scanner-status" style="font-size:12px;color:var(--muted);margin:12px 0;text-align:center;">${tr('scan_apunta')}</div>
+        <button class="btn btn-ghost" style="width:100%;" onclick="closeScanner()">${tr('set_cancelar')}</button>
       </div>
     </div>`;
   }
@@ -1857,9 +1894,9 @@ function modalHTML(){
     if(!f) return '';
     return `<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;" onclick="closeModal(event)">
       <div class="card" style="width:440px;max-width:100%;max-height:80vh;overflow-y:auto;" onclick="event.stopPropagation()">
-        <div class="display" style="font-weight:700;font-size:16px;margin-bottom:12px;">${f.label}${f.unit?' ('+f.unit+')':''}</div>
-        <div style="font-size:13px;color:var(--text);line-height:1.6;">${f.info||'Sin información disponible.'}</div>
-        <button class="btn btn-ghost" style="width:100%;margin-top:16px;" onclick="closeModal()">Cerrar</button>
+        <div class="display" style="font-weight:700;font-size:16px;margin-bottom:12px;">${tr('bc_'+f.key)}${f.unit?' ('+bcUnit(f)+')':''}</div>
+        <div style="font-size:13px;color:var(--text);line-height:1.6;">${bcInfo(f)||tr('comp_sin_info')}</div>
+        <button class="btn btn-ghost" style="width:100%;margin-top:16px;" onclick="closeModal()">${tr('set_cerrar')}</button>
       </div>
     </div>`;
   }
@@ -1877,7 +1914,7 @@ function saveSettings(){
   setGoals(state.goals);
   setApiKey(document.getElementById('g-apikey').value.trim());
   window._modal=null;
-  toast('Ajustes guardados');
+  toast(tr('set_ajustes_guardados'));
 }
 
 /* ================= actions ================= */
