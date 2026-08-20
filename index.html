@@ -44,8 +44,9 @@
 
   #app{display:flex;min-height:100vh;max-width:1180px;margin:0 auto;}
   nav.side{width:210px;flex-shrink:0;padding:24px 12px;border-right:1px solid var(--line);position:sticky;top:0;height:100vh;display:flex;flex-direction:column;}
-  nav.side .brand{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;padding:0 12px 22px;}
+  nav.side .brand{display:flex;align-items:center;justify-content:space-between;gap:10px;font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;padding:0 12px 22px;}
   nav.side .brand .owner{font-family:'Inter',sans-serif;font-size:12px;font-weight:500;color:var(--muted);margin-top:2px;}
+  nav.side .brand-logo{width:36px;height:36px;flex-shrink:0;}
   nav.side .navbtn{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:12px;color:var(--muted);cursor:pointer;font-size:14px;margin-bottom:2px;}
   nav.side .navbtn.active{background:var(--raised);color:var(--accent);font-weight:700;}
   nav.side .navbtn .ic{font-size:16px;width:20px;text-align:center;}
@@ -915,7 +916,15 @@ function renderApp(){
 
   return `
   <nav class="side">
-    <div class="brand">VitaLink<div class="owner">Widy Medina</div></div>
+    <div class="brand">
+      <div>VitaLink<div class="owner">Widy Medina</div></div>
+      <svg class="brand-logo" viewBox="0 0 120 120">
+        <rect width="120" height="120" rx="26" fill="var(--raised)"/>
+        <circle cx="44" cy="60" r="27" fill="none" stroke="var(--accent3)" stroke-width="7"/>
+        <circle cx="76" cy="60" r="27" fill="none" stroke="var(--accent)" stroke-width="7"/>
+        <path d="M8 60 L38 60 L47 35 L59 86 L67 60 L112 60" fill="none" stroke="var(--text)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
     ${navBtns}
     <div class="foot">
       <div class="navbtn" onclick="openSettings()">${navIcon('ajustes')}<span>${tr('nav_ajustes')}</span></div>
