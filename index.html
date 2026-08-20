@@ -901,10 +901,10 @@ function renderComidas(){
           ${navIcon(mt.ic, 20)}<span>${mt.label}</span></div>`).join('')}
       </div>
       <div class="label">Agregar a ${MEAL_TYPES.find(m=>m.id===activeType).label.toLowerCase()}</div>
-      <input id="meal-name" list="meal-history" placeholder='Ej. "lata atún 6oz", "plátano mediano"' style="width:100%;margin-bottom:8px;" oninput="checkCacheHint()">
-      <datalist id="meal-history">
-        ${Object.values(getNutritionCache()).sort((a,b)=>b.ts-a.ts).slice(0,40).map(e=>`<option value="${esc(e.label)}"></option>`).join('')}
-      </datalist>
+      <div style="position:relative;margin-bottom:8px;">
+        <input id="meal-name" placeholder='Ej. "lata atún 6oz", "plátano mediano"' style="width:100%;" autocomplete="off" oninput="onMealNameInput()" onfocus="onMealNameInput()" onblur="hideMealSuggest()">
+        <div id="meal-suggest" class="suggest-list" style="display:none;"></div>
+      </div>
       <div style="display:flex;gap:8px;margin-bottom:6px;">
         <input id="meal-cal" type="number" placeholder="kcal" style="flex:1;min-width:0;">
         <button class="btn btn-primary" id="est-btn" onclick="handleEstimate()">${navIcon('sparkle',14)}Estimar</button>
@@ -1306,12 +1306,12 @@ function renderDayDetail(iso){
           ${MEAL_TYPES.map(mt=>`<option value="${mt.id}">${mt.label}</option>`).join('')}
         </select>
         <div style="display:flex;gap:6px;margin-bottom:6px;">
-          <input id="cal-meal-name" list="cal-meal-history" placeholder="Nombre" style="flex:2;min-width:0;" oninput="checkCacheHintForDay()">
+          <div style="flex:2;min-width:0;position:relative;">
+            <input id="cal-meal-name" placeholder="Nombre" style="width:100%;" autocomplete="off" oninput="onMealNameInputForDay()" onfocus="onMealNameInputForDay()" onblur="hideMealSuggestForDay()">
+            <div id="cal-meal-suggest" class="suggest-list" style="display:none;"></div>
+          </div>
           <input id="cal-meal-time" type="time" value="${nowHM()}" style="flex:1;min-width:0;">
         </div>
-        <datalist id="cal-meal-history">
-          ${Object.values(getNutritionCache()).sort((a,b)=>b.ts-a.ts).slice(0,40).map(e=>`<option value="${esc(e.label)}"></option>`).join('')}
-        </datalist>
         <div style="display:flex;gap:6px;margin-bottom:6px;">
           <input id="cal-meal-cal" type="number" placeholder="kcal" style="flex:1;min-width:0;">
           <button class="btn btn-primary" id="cal-est-btn" onclick="handleEstimateForDay()">${navIcon('sparkle',14)}Estimar</button>
@@ -1760,6 +1760,32 @@ function checkCacheHint(){
     noteEl.textContent = '';
   }
 }
+function mealSuggestions(query){
+  const cache = Object.values(getNutritionCache()).sort((a,b)=>b.ts-a.ts);
+  const q = normalizeFoodKey(query);
+  if(!q) return cache.slice(0,8);
+  return cache.filter(e=>normalizeFoodKey(e.label).includes(q)).slice(0,8);
+}
+function onMealNameInput(){
+  checkCacheHint();
+  const box = document.getElementById('meal-suggest');
+  const nameEl = document.getElementById('meal-name');
+  if(!box || !nameEl) return;
+  const items = mealSuggestions(nameEl.value);
+  if(!items.length){ box.style.display='none'; box.innerHTML=''; return; }
+  box.innerHTML = items.map(e=>`<div class="suggest-item" onmousedown="pickMealSuggest(this)">${esc(e.label)}</div>`).join('');
+  box.style.display = 'block';
+}
+function pickMealSuggest(el){
+  const nameEl = document.getElementById('meal-name');
+  nameEl.value = el.textContent;
+  checkCacheHint();
+  hideMealSuggest();
+}
+function hideMealSuggest(){
+  const box = document.getElementById('meal-suggest');
+  if(box) box.style.display = 'none';
+}
 function checkCacheHintForDay(){
   const nameEl = document.getElementById('cal-meal-name');
   if(!nameEl) return;
@@ -1777,6 +1803,26 @@ function checkCacheHintForDay(){
   } else {
     noteEl.textContent = '';
   }
+}
+function onMealNameInputForDay(){
+  checkCacheHintForDay();
+  const box = document.getElementById('cal-meal-suggest');
+  const nameEl = document.getElementById('cal-meal-name');
+  if(!box || !nameEl) return;
+  const items = mealSuggestions(nameEl.value);
+  if(!items.length){ box.style.display='none'; box.innerHTML=''; return; }
+  box.innerHTML = items.map(e=>`<div class="suggest-item" onmousedown="pickMealSuggestForDay(this)">${esc(e.label)}</div>`).join('');
+  box.style.display = 'block';
+}
+function pickMealSuggestForDay(el){
+  const nameEl = document.getElementById('cal-meal-name');
+  nameEl.value = el.textContent;
+  checkCacheHintForDay();
+  hideMealSuggestForDay();
+}
+function hideMealSuggestForDay(){
+  const box = document.getElementById('cal-meal-suggest');
+  if(box) box.style.display = 'none';
 }
 async function handleEstimate(){
   const name = document.getElementById('meal-name').value.trim();
