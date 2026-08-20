@@ -159,6 +159,24 @@ const BODYCOMP_FIELDS = [
   { key:'proteinPct', label:'Proteína', unit:'%', info:'Es el porcentaje de tu peso corporal que corresponde a proteína — presente en músculos, órganos, piel y otros tejidos, no solo en el músculo.<br><br>Se relaciona directamente con tu <b>Masa muscular</b>: a mayor masa muscular, mayor será normalmente tu % de proteína, ya que el tejido muscular es rico en proteína.<br><br><b>Rango de referencia aproximado:</b> 16% – 20%.<br><br>Un valor muy bajo puede ser señal de desnutrición o pérdida muscular, mientras que valores normales-altos suelen acompañar una buena masa muscular.' },
   { key:'bodyAge', label:'Edad corporal', unit:'años', info:'Es una estimación algorítmica de tu "edad metabólica" comparada con el promedio poblacional, calculada combinando varias de las métricas anteriores (metabolismo basal, músculo, grasa, etc.), según el fabricante de tu báscula.<br><br>Está relacionada con <b>todas las demás métricas de esta sección</b> — es básicamente un resumen compuesto de qué tan bien o mal se comparan tus números con los de tu edad real.<br><br>Si tu edad corporal es <b>menor</b> a tu edad real, es una señal positiva de buena condición física relativa. Si es <b>mayor</b>, indica áreas de mejora (normalmente relacionadas con más músculo y menos grasa).<br><br>Es solo una estimación orientativa del fabricante, no un diagnóstico médico.' },
 ];
+// Groups the long scale-reading form into scannable sections instead of one flat list.
+const BODYCOMP_GROUPS = {
+  bmi:'Composición corporal', bodyFatPct:'Composición corporal', bodyWaterPct:'Composición corporal',
+  skeletalMusclePct:'Composición corporal', subcutaneousFatPct:'Composición corporal', visceralFat:'Composición corporal',
+  muscleMassKg:'Composición corporal', skeletalMassKg:'Composición corporal', proteinPct:'Composición corporal',
+  heartRate:'Cardiovascular', cardiacIndex:'Cardiovascular',
+  bmr:'Metabolismo y resumen', fatLossKg:'Metabolismo y resumen', bodyAge:'Metabolismo y resumen',
+};
+function groupedBodyCompFields(){
+  const order = [];
+  const map = {};
+  BODYCOMP_FIELDS.forEach(f=>{
+    const g = BODYCOMP_GROUPS[f.key] || 'Otros';
+    if(!map[g]){ map[g] = []; order.push(g); }
+    map[g].push(f);
+  });
+  return order.map(name=>({ name, fields: map[name] }));
+}
 // General adult reference bands, not personalized by sex/age. Fields without a
 // universally-agreed target (bmr, fatLossKg, muscleMassKg, skeletalMassKg,
 // bodyAge) are intentionally omitted — no color is more honest than a fake one.
@@ -1183,9 +1201,11 @@ function renderComposicion(){
     </div>
     <div class="card">
       <div class="label">Registrar medición de báscula</div>
-      <div class="grid2" style="gap:10px;margin-bottom:12px;">
-        ${BODYCOMP_FIELDS.map(f=>`<div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${f.label}${f.unit?' ('+f.unit+')':''}</div><input id="bc-${f.key}" type="number" step="0.1" placeholder="0" style="width:100%;"></div>`).join('')}
-      </div>
+      ${groupedBodyCompFields().map((g,gi)=>`
+        <div style="font-size:11px;font-weight:700;color:var(--accent3);text-transform:uppercase;letter-spacing:.06em;margin:${gi===0?'0':'16px'} 0 8px;">${g.name}</div>
+        <div class="grid2" style="gap:10px;margin-bottom:12px;">
+          ${g.fields.map(f=>`<div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${f.label}${f.unit?' ('+f.unit+')':''}</div><input id="bc-${f.key}" type="number" step="0.1" style="width:100%;"></div>`).join('')}
+        </div>`).join('')}
       <button class="btn btn-primary" style="width:100%;" onclick="addBodyComp()">+ Agregar medición</button>
     </div>
     <div class="card">
