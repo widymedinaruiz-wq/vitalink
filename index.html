@@ -818,7 +818,7 @@ function barChartSVG(points, opts){
     ${goalLine}${bars}${labels}
   </svg>`;
 }
-function dialSVG(calPct, waterPct, exPct, size){
+function dialSVG(calPct, waterPct, exPct, size, responsive){
   const s = size || 168;
   const scale = s/168;
   const rings = [
@@ -834,7 +834,8 @@ function dialSVG(calPct, waterPct, exPct, size){
     <circle cx="${cx}" cy="${cx}" r="${ring.r}" fill="none" stroke="${ring.color}" stroke-width="${strokeW}" stroke-linecap="round"
       stroke-dasharray="${c*clamped} ${c}" transform="rotate(-90 ${cx} ${cx})"/>`;
   }).join('');
-  return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">${circles}</svg>`;
+  const styleAttr = responsive ? ' style="width:100%;height:auto;display:block;"' : '';
+  return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}"${styleAttr}>${circles}</svg>`;
 }
 function weeklyGoalsCard(){
   const g = state.goals;
@@ -850,21 +851,18 @@ function weeklyGoalsCard(){
     const exPct = exMin/g.exerciseGoal;
     if(calPct>=1 && waterPct>=1 && exPct>=1) achieved++;
     const isToday = d.iso===todayISO();
-    return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
-      ${dialSVG(calPct, waterPct, exPct, 34)}
-      <span style="font-size:10px;color:${isToday?'var(--accent)':'var(--muted)'};font-weight:${isToday?'700':'400'};">${dayLetter(d.iso)}</span>
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1 1 auto;max-width:56px;min-width:0;">
+      ${dialSVG(calPct, waterPct, exPct, 44, true)}
+      <span style="font-size:11px;color:${isToday?'var(--accent)':'var(--muted)'};font-weight:${isToday?'700':'400'};">${dayLetter(d.iso)}</span>
     </div>`;
   }).join('');
   return `<div class="card">
-    <div class="label" style="margin-bottom:2px;">${tr('hoy_metas_titulo')}</div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:14px;">${tr('hoy_ultimos_7_dias')}</div>
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-      <div style="flex-shrink:0;">
-        <div class="display" style="font-size:22px;font-weight:700;color:var(--accent);">${achieved}/7</div>
-        <div style="font-size:11px;color:var(--muted);">${tr('hoy_cumplidos')}</div>
-      </div>
-      <div style="display:flex;gap:6px;">${dials}</div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;">
+      <div class="label" style="margin:0;">${tr('hoy_metas_titulo')}</div>
+      <span style="font-size:13px;font-weight:700;color:var(--accent);">${achieved}/7 ${tr('hoy_cumplidos')}</span>
     </div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:18px;">${tr('hoy_ultimos_7_dias')}</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">${dials}</div>
   </div>`;
 }
 
