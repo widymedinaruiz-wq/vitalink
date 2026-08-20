@@ -1364,6 +1364,23 @@ function getLatestWeight(){
   }
   return null;
 }
+function getFirstEverWeight(){
+  let earliest = null;
+  for(let i=0;i<localStorage.length;i++){
+    const k = localStorage.key(i);
+    if(!k || !k.startsWith('vl:day:')) continue;
+    const iso = k.slice('vl:day:'.length);
+    let day;
+    try{ day = JSON.parse(localStorage.getItem(k)); }catch{ continue; }
+    if(!day || day.weight==null) continue;
+    if(!earliest || iso < earliest.iso) earliest = { iso, weight: day.weight };
+  }
+  if(state.day.weight!=null){
+    const iso = todayISO();
+    if(!earliest || iso < earliest.iso) earliest = { iso, weight: state.day.weight };
+  }
+  return earliest;
+}
 function computeForecast(){
   const cfg = getForecastConfig();
   if(!cfg.heightCm || !cfg.targetWeightKg) return { status:'missing-config' };
@@ -1603,7 +1620,8 @@ function renderDayDetail(iso){
 function weightSummaryHTML(pts){
   const valid = pts.filter(p=>p.v!=null);
   if(valid.length < 2) return '';
-  const first = valid[0].v, last = valid[valid.length-1].v;
+  const firstEver = getFirstEverWeight();
+  const first = firstEver ? firstEver.weight : valid[0].v, last = valid[valid.length-1].v;
   const change = last - first;
   const sign = change>0?'+':'';
   const targetKg = getForecastConfig().targetWeightKg;
