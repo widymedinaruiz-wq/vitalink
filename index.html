@@ -124,13 +124,113 @@ function pad(n){ return String(n).padStart(2,'0'); }
 function todayISO(){ const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
 function isoDaysAgo(n){ const d=new Date(); d.setDate(d.getDate()-n); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
 function isoOf(y,m,day){ return `${y}-${pad(m+1)}-${pad(day)}`; }
-const DOW = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
-function dayLetter(iso){ const [y,m,dd]=iso.split('-').map(Number); const idx=(new Date(y,m-1,dd).getDay()+6)%7; return ['L','M','X','J','V','S','D'][idx]; }
-const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+/* ================= i18n ================= */
+// Scoped translation: navigation, forms, and everyday logging UI are covered.
+// Long educational text (body-comp field explanations, AI-generated insights)
+// stays Spanish-only for now — see conversation history for the rationale.
+const I18N = {
+  es: {
+    nav_hoy:'Hoy', nav_comidas:'Comidas', nav_ejercicio:'Ejercicio', nav_salud:'Salud',
+    nav_composicion:'Composición', nav_calendario:'Calendario', nav_progreso:'Progreso',
+    nav_nutricion:'Análisis Nutrición', nav_pronostico:'Pronóstico',
+    nav_ajustes:'Ajustes', nav_exportar:'Exportar', nav_importar:'Importar',
+    meal_desayuno:'Desayuno', meal_merienda:'Merienda', meal_almuerzo:'Almuerzo', meal_cena:'Cena',
+    hoy_vitality:'Vitalidad de hoy', hoy_vitality_sub:'Combina comida, agua, ejercicio, sueño, presión y medicamentos de hoy',
+    hoy_insight:'Insight de hoy', hoy_regenerar:'Regenerar', hoy_generar_insight:'Generar insight',
+    hoy_de:'de', legend_comida:'Comida', legend_agua:'Agua', legend_ejercicio:'Ejercicio',
+    stat_quemadas:'Quemadas', stat_ejercicio:'Ejercicio', stat_peso:'Peso', stat_presion:'Presión',
+    macro_title:'Macronutrientes', macro_proteina:'Proteína', macro_carbohidratos:'Carbohidratos', macro_grasas:'Grasas',
+    micro_title:'Micronutrientes', micro_fibra:'Fibra', micro_azucar:'Azúcar', micro_sodio:'Sodio',
+    micro_hierro:'Hierro', micro_calcio:'Calcio', micro_potasio:'Potasio', micro_vitc:'Vitamina C',
+    hoy_agua:'Agua (L)', hoy_peso:'Peso (kg)', hoy_sueno:'Sueño (h)', hoy_ajustar_metas:'Ajustar metas diarias',
+    comidas_tipo:'Tipo de comida', comidas_agregar_a:'Agregar a', comidas_placeholder:'Ej. "lata atún 6oz", "plátano mediano"',
+    comidas_estimar:'Estimar', comidas_escanear:'Escanear código de barras',
+    comidas_prot_g:'Prot(g)', comidas_carb_g:'Carb(g)', comidas_grasa_g:'Grasa(g)',
+    btn_agregar:'+ Agregar', comidas_hoy:'Hoy', comidas_empty:'Sin comidas registradas — agrega la primera arriba',
+    comidas_prot:'Prot', comidas_carb:'Carb', comidas_grasa:'Grasa', comidas_fibra:'Fibra', comidas_azucar:'Azúcar', comidas_sodio:'Sodio',
+    ejercicio_agregar:'Agregar ejercicio', ejercicio_actividad:'Actividad', ejercicio_min:'min',
+    ejercicio_kcal_opc:'kcal quemadas (opcional)', ejercicio_empty:'Sin ejercicio registrado — agrega el primero arriba',
+    salud_presion:'Presión arterial', salud_sistolica:'Sistólica', salud_diastolica:'Diastólica', salud_pulso:'Pulso (bpm)',
+    salud_sin_lecturas:'Sin lecturas hoy', salud_medicamentos_hoy:'Medicamentos de hoy', salud_alertas:'Alertas',
+    salud_alertas_sub:'Las alertas solo suenan mientras esta pestaña esté abierta.', salud_adherencia:'Adherencia últimos 7 días',
+    salud_empty_meds:'Agrega un medicamento abajo para ver su horario aquí', salud_pendiente:'pendiente',
+    salud_tomado:'✓ Tomado', salud_marcar_tomado:'Marcar tomado', salud_administrar:'Administrar medicamentos',
+    salud_nombre:'Nombre', salud_dosis:'Dosis (opcional)', salud_horarios:'Horarios, ej: 08:00, 20:00',
+    comp_registrar:'Registrar medición de báscula', comp_group_corporal:'Composición corporal',
+    comp_group_cardio:'Cardiovascular', comp_group_metabolismo:'Metabolismo y resumen',
+    comp_agregar_medicion:'+ Agregar medición', comp_mediciones_hoy:'Mediciones de hoy', comp_sin_mediciones:'Sin mediciones hoy',
+    comp_tendencia:'Tendencia — últimos 30 días', comp_info_title:'Qué significa este dato', comp_sin_valores:'Sin valores',
+    cal_calorias:'Calorías', cal_ejercicio:'Ejercicio', cal_peso:'Peso', cal_sueno:'Sueño',
+    cal_editar_peso:'Editar peso (kg)', cal_editar_sueno:'Editar sueño (h)', cal_guardar:'Guardar',
+    cal_comidas:'Comidas', cal_sin_registros:'Sin registros', cal_nombre:'Nombre', cal_agregar_comida:'+ Agregar comida',
+    cal_actividad:'Actividad', cal_kcal_opc:'kcal (opc.)', cal_agregar_ejercicio:'+ Agregar ejercicio',
+    cal_presion_arterial:'Presión arterial', cal_medicamentos_tomados:'Medicamentos tomados',
+    cal_composicion_corporal:'Composición corporal', cal_medicamento_generico:'Medicamento',
+    cal_en_meta:'En tu meta', cal_faltan:'Faltan', cal_sobran:'Sobran', cal_para_meta:'kg para tu meta',
+    bc_bmi:'IMC', bc_bodyFatPct:'Grasa corporal', bc_bodyWaterPct:'Agua corporal', bc_skeletalMusclePct:'Músculo esquelético',
+    bc_bmr:'Metabolismo basal (MMR)', bc_fatLossKg:'Pérdida de grasa', bc_subcutaneousFatPct:'Grasa subcutánea',
+    bc_heartRate:'Frecuencia cardíaca', bc_cardiacIndex:'Índice cardíaco', bc_visceralFat:'Grasa visceral',
+    bc_muscleMassKg:'Masa muscular', bc_skeletalMassKg:'Masa esquelética', bc_proteinPct:'Proteína', bc_bodyAge:'Edad corporal',
+  },
+  en: {
+    nav_hoy:'Today', nav_comidas:'Meals', nav_ejercicio:'Exercise', nav_salud:'Health',
+    nav_composicion:'Body Comp', nav_calendario:'Calendar', nav_progreso:'Progress',
+    nav_nutricion:'Nutrition Analysis', nav_pronostico:'Forecast',
+    nav_ajustes:'Settings', nav_exportar:'Export', nav_importar:'Import',
+    meal_desayuno:'Breakfast', meal_merienda:'Snack', meal_almuerzo:'Lunch', meal_cena:'Dinner',
+    hoy_vitality:"Today's vitality", hoy_vitality_sub:"Combines today's food, water, exercise, sleep, blood pressure and medications",
+    hoy_insight:"Today's insight", hoy_regenerar:'Regenerate', hoy_generar_insight:'Generate insight',
+    hoy_de:'of', legend_comida:'Food', legend_agua:'Water', legend_ejercicio:'Exercise',
+    stat_quemadas:'Burned', stat_ejercicio:'Exercise', stat_peso:'Weight', stat_presion:'Pressure',
+    macro_title:'Macronutrients', macro_proteina:'Protein', macro_carbohidratos:'Carbs', macro_grasas:'Fat',
+    micro_title:'Micronutrients', micro_fibra:'Fiber', micro_azucar:'Sugar', micro_sodio:'Sodium',
+    micro_hierro:'Iron', micro_calcio:'Calcium', micro_potasio:'Potassium', micro_vitc:'Vitamin C',
+    hoy_agua:'Water (L)', hoy_peso:'Weight (kg)', hoy_sueno:'Sleep (h)', hoy_ajustar_metas:'Adjust daily goals',
+    comidas_tipo:'Meal type', comidas_agregar_a:'Add to', comidas_placeholder:'E.g. "6oz tuna can", "medium banana"',
+    comidas_estimar:'Estimate', comidas_escanear:'Scan barcode',
+    comidas_prot_g:'Prot(g)', comidas_carb_g:'Carbs(g)', comidas_grasa_g:'Fat(g)',
+    btn_agregar:'+ Add', comidas_hoy:'Today', comidas_empty:'No meals logged yet — add the first one above',
+    comidas_prot:'Prot', comidas_carb:'Carbs', comidas_grasa:'Fat', comidas_fibra:'Fiber', comidas_azucar:'Sugar', comidas_sodio:'Sodium',
+    ejercicio_agregar:'Add exercise', ejercicio_actividad:'Activity', ejercicio_min:'min',
+    ejercicio_kcal_opc:'kcal burned (optional)', ejercicio_empty:'No exercise logged yet — add the first one above',
+    salud_presion:'Blood pressure', salud_sistolica:'Systolic', salud_diastolica:'Diastolic', salud_pulso:'Pulse (bpm)',
+    salud_sin_lecturas:'No readings today', salud_medicamentos_hoy:"Today's medications", salud_alertas:'Alerts',
+    salud_alertas_sub:'Alerts only sound while this tab is open.', salud_adherencia:'7-day adherence',
+    salud_empty_meds:'Add a medication below to see its schedule here', salud_pendiente:'due',
+    salud_tomado:'✓ Taken', salud_marcar_tomado:'Mark taken', salud_administrar:'Manage medications',
+    salud_nombre:'Name', salud_dosis:'Dose (optional)', salud_horarios:'Times, e.g. 08:00, 20:00',
+    comp_registrar:'Log a scale reading', comp_group_corporal:'Body composition',
+    comp_group_cardio:'Cardiovascular', comp_group_metabolismo:'Metabolism & summary',
+    comp_agregar_medicion:'+ Add reading', comp_mediciones_hoy:"Today's readings", comp_sin_mediciones:'No readings today',
+    comp_tendencia:'Trend — last 30 days', comp_info_title:'What this metric means', comp_sin_valores:'No values',
+    cal_calorias:'Calories', cal_ejercicio:'Exercise', cal_peso:'Weight', cal_sueno:'Sleep',
+    cal_editar_peso:'Edit weight (kg)', cal_editar_sueno:'Edit sleep (h)', cal_guardar:'Save',
+    cal_comidas:'Meals', cal_sin_registros:'No entries', cal_nombre:'Name', cal_agregar_comida:'+ Add meal',
+    cal_actividad:'Activity', cal_kcal_opc:'kcal (opt.)', cal_agregar_ejercicio:'+ Add exercise',
+    cal_presion_arterial:'Blood pressure', cal_medicamentos_tomados:'Medications taken',
+    cal_composicion_corporal:'Body composition', cal_medicamento_generico:'Medication',
+    cal_en_meta:'At your goal', cal_faltan:'Remaining', cal_sobran:'Over', cal_para_meta:'kg to reach your goal',
+    bc_bmi:'BMI', bc_bodyFatPct:'Body fat', bc_bodyWaterPct:'Body water', bc_skeletalMusclePct:'Skeletal muscle',
+    bc_bmr:'Basal metabolism (BMR)', bc_fatLossKg:'Fat loss', bc_subcutaneousFatPct:'Subcutaneous fat',
+    bc_heartRate:'Heart rate', bc_cardiacIndex:'Cardiac index', bc_visceralFat:'Visceral fat',
+    bc_muscleMassKg:'Muscle mass', bc_skeletalMassKg:'Skeletal mass', bc_proteinPct:'Protein', bc_bodyAge:'Body age',
+  },
+};
+function getLang(){ return LS.get('vl:lang') || 'es'; }
+function setLang(l){ LS.set('vl:lang', l); state.lang = l; render(); }
+function tr(key){ return (I18N[state.lang] && I18N[state.lang][key]) ?? I18N.es[key] ?? key; }
+
+const DOW_ES = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+const DOW_EN = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+function dowLabels(){ return state.lang==='en' ? DOW_EN : DOW_ES; }
+function dayLetter(iso){ const [y,m,dd]=iso.split('-').map(Number); const idx=(new Date(y,m-1,dd).getDay()+6)%7; return dowLabels()[idx][0]; }
+const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const MONTHS_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+function monthLabels(){ return state.lang==='en' ? MONTHS_EN : MONTHS_ES; }
 function formatDateEs(iso){
   const [y,m,d] = iso.split('-').map(Number);
   const dt = new Date(y, m-1, d);
-  return dt.toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long' });
+  return dt.toLocaleDateString(state.lang==='en' ? 'en-US' : 'es-ES', { weekday:'long', day:'numeric', month:'long' });
 }
 function nowHM(){ const d=new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; }
 function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -161,22 +261,23 @@ const BODYCOMP_FIELDS = [
 ];
 // Groups the long scale-reading form into scannable sections instead of one flat list.
 const BODYCOMP_GROUPS = {
-  bmi:'Composición corporal', bodyFatPct:'Composición corporal', bodyWaterPct:'Composición corporal',
-  skeletalMusclePct:'Composición corporal', subcutaneousFatPct:'Composición corporal', visceralFat:'Composición corporal',
-  muscleMassKg:'Composición corporal', skeletalMassKg:'Composición corporal', proteinPct:'Composición corporal',
-  heartRate:'Cardiovascular', cardiacIndex:'Cardiovascular',
-  bmr:'Metabolismo y resumen', fatLossKg:'Metabolismo y resumen', bodyAge:'Metabolismo y resumen',
+  bmi:'corporal', bodyFatPct:'corporal', bodyWaterPct:'corporal',
+  skeletalMusclePct:'corporal', subcutaneousFatPct:'corporal', visceralFat:'corporal',
+  muscleMassKg:'corporal', skeletalMassKg:'corporal', proteinPct:'corporal',
+  heartRate:'cardio', cardiacIndex:'cardio',
+  bmr:'metabolismo', fatLossKg:'metabolismo', bodyAge:'metabolismo',
 };
 function groupedBodyCompFields(){
   const order = [];
   const map = {};
   BODYCOMP_FIELDS.forEach(f=>{
-    const g = BODYCOMP_GROUPS[f.key] || 'Otros';
+    const g = BODYCOMP_GROUPS[f.key] || 'otros';
     if(!map[g]){ map[g] = []; order.push(g); }
     map[g].push(f);
   });
-  return order.map(name=>({ name, fields: map[name] }));
+  return order.map(groupKey=>({ groupKey, fields: map[groupKey] }));
 }
+function bcUnit(f){ return f.key==='bodyAge' ? (state.lang==='en'?'years':'años') : f.unit; }
 // General adult reference bands, not personalized by sex/age. Fields without a
 // universally-agreed target (bmr, fatLossKg, muscleMassKg, skeletalMassKg,
 // bodyAge) are intentionally omitted — no color is more honest than a fake one.
@@ -303,6 +404,7 @@ const state = {
   alertsOn: false,
   progressRange: 7,
   bodyCompFormOpen: false,
+  lang: getLang(),
 };
 function toggleBodyCompForm(){ state.bodyCompFormOpen = !state.bodyCompFormOpen; render(); }
 
@@ -681,32 +783,27 @@ const NAV_ICONS = {
 };
 function navIcon(key, size){ return `<svg class="ic-svg" style="${size?`width:${size}px;height:${size}px;`:''}" viewBox="0 0 24 24">${NAV_ICONS[key]||''}</svg>`; }
 function renderApp(){
-  const tabs = [
-    { id:'hoy', label:'Hoy' },
-    { id:'comidas', label:'Comidas' },
-    { id:'ejercicio', label:'Ejercicio' },
-    { id:'salud', label:'Salud' },
-    { id:'composicion', label:'Composición' },
-    { id:'calendario', label:'Calendario' },
-    { id:'progreso', label:'Progreso' },
-    { id:'nutricion', label:'Análisis Nutrición' },
-    { id:'pronostico', label:'Pronóstico' },
-  ];
+  const tabs = ['hoy','comidas','ejercicio','salud','composicion','calendario','progreso','nutricion','pronostico']
+    .map(id=>({ id, label: tr('nav_'+id) }));
   const navBtns = tabs.map(t=>`
     <div class="navbtn ${state.tab===t.id?'active':''}" onclick="setTab('${t.id}')">
       ${navIcon(t.id)}<span>${t.label}</span>
     </div>`).join('');
 
-  const titles = { hoy:'Hoy', comidas:'Comidas', ejercicio:'Ejercicio', salud:'Salud', composicion:'Composición', calendario:'Calendario', progreso:'Progreso', nutricion:'Análisis Nutrición', pronostico:'Pronóstico' };
+  const titles = Object.fromEntries(tabs.map(t=>[t.id, t.label]));
+  const langToggle = `<div style="display:flex;gap:4px;">
+    <button class="btn ${state.lang==='es'?'btn-primary':'btn-ghost'}" style="padding:5px 10px;font-size:11px;" onclick="setLang('es')">ES</button>
+    <button class="btn ${state.lang==='en'?'btn-primary':'btn-ghost'}" style="padding:5px 10px;font-size:11px;" onclick="setLang('en')">EN</button>
+  </div>`;
 
   return `
   <nav class="side">
     <div class="brand">VitaLink<div class="owner">Widy Medina</div></div>
     ${navBtns}
     <div class="foot">
-      <div class="navbtn" onclick="openSettings()">${navIcon('ajustes')}<span>Ajustes</span></div>
-      <div class="navbtn" onclick="exportBackup()">${navIcon('exportar')}<span>Exportar</span></div>
-      <div class="navbtn" onclick="triggerImportBackup()">${navIcon('importar')}<span>Importar</span></div>
+      <div class="navbtn" onclick="openSettings()">${navIcon('ajustes')}<span>${tr('nav_ajustes')}</span></div>
+      <div class="navbtn" onclick="exportBackup()">${navIcon('exportar')}<span>${tr('nav_exportar')}</span></div>
+      <div class="navbtn" onclick="triggerImportBackup()">${navIcon('importar')}<span>${tr('nav_importar')}</span></div>
       <input type="file" id="import-file-input" accept="application/json" style="display:none;" onchange="handleImportFile(this)">
     </div>
   </nav>
@@ -716,6 +813,7 @@ function renderApp(){
         <h1>${titles[state.tab]}</h1>
         <div class="sub">${formatDateEs(todayISO())}</div>
       </div>
+      ${langToggle}
     </header>
     ${state.toast ? `<div class="toast ${state.toast.isError?'':'ok'}">${esc(state.toast.msg)}</div>` : ''}
     ${renderTab()}
@@ -749,7 +847,7 @@ function renderHoy(){
   return `
   <div class="stack">
     ${vScore!=null ? `<div class="card" style="text-align:center;padding:22px;">
-      <div class="label" style="margin-bottom:12px;">Vitalidad de hoy</div>
+      <div class="label" style="margin-bottom:12px;">${tr('hoy_vitality')}</div>
       <div style="position:relative;width:120px;height:120px;margin:0 auto;">
         <svg width="120" height="120" viewBox="0 0 120 120">
           <circle cx="60" cy="60" r="52" fill="none" stroke="var(--line)" stroke-width="10"/>
@@ -760,16 +858,16 @@ function renderHoy(){
           <span class="display" style="font-size:34px;font-weight:700;">${vScore}</span>
         </div>
       </div>
-      <div style="font-size:11px;color:var(--muted);margin-top:10px;">Combina comida, agua, ejercicio, sueño, presión y medicamentos de hoy</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:10px;">${tr('hoy_vitality_sub')}</div>
     </div>` : ''}
     ${vScore!=null ? `<div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <div class="label" style="margin:0;display:flex;align-items:center;gap:6px;">${navIcon('sparkle',13)}Insight de hoy</div>
-        ${todayInsight ? `<button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;display:inline-flex;align-items:center;gap:5px;" onclick="handleGenerateInsight(true)">${navIcon('refresh',12)}Regenerar</button>` : ''}
+        <div class="label" style="margin:0;display:flex;align-items:center;gap:6px;">${navIcon('sparkle',13)}${tr('hoy_insight')}</div>
+        ${todayInsight ? `<button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;display:inline-flex;align-items:center;gap:5px;" onclick="handleGenerateInsight(true)">${navIcon('refresh',12)}${tr('hoy_regenerar')}</button>` : ''}
       </div>
       ${todayInsight
         ? `<div style="font-size:14px;line-height:1.5;">${esc(todayInsight)}</div>`
-        : `<button class="btn btn-primary" style="width:100%;" id="insight-btn" onclick="handleGenerateInsight(false)">Generar insight</button>`
+        : `<button class="btn btn-primary" style="width:100%;" id="insight-btn" onclick="handleGenerateInsight(false)">${tr('hoy_generar_insight')}</button>`
       }
       <div id="insight-error" style="font-size:11px;color:var(--danger);margin-top:6px;"></div>
     </div>` : ''}
@@ -778,26 +876,26 @@ function renderHoy(){
         ${dialSVG(calEaten/g.calorieGoal, d.water/g.waterGoal, exMin/g.exerciseGoal)}
         <div style="position:absolute;text-align:center;">
           <div class="display" style="font-size:30px;font-weight:700;">${calEaten}</div>
-          <div style="font-size:11px;color:var(--muted);">de ${g.calorieGoal} kcal</div>
+          <div style="font-size:11px;color:var(--muted);">${tr('hoy_de')} ${g.calorieGoal} kcal</div>
         </div>
       </div>
       <div class="legend">
-        <span><span class="dot" style="background:var(--accent);"></span>Comida</span>
-        <span><span class="dot" style="background:var(--accent3);"></span>Agua</span>
-        <span><span class="dot" style="background:var(--accent2);"></span>Ejercicio</span>
+        <span><span class="dot" style="background:var(--accent);"></span>${tr('legend_comida')}</span>
+        <span><span class="dot" style="background:var(--accent3);"></span>${tr('legend_agua')}</span>
+        <span><span class="dot" style="background:var(--accent2);"></span>${tr('legend_ejercicio')}</span>
       </div>
     </div>
     <div class="grid2" style="grid-template-columns:repeat(4,1fr);">
-      ${statTile(navIcon('calorias',14),'Quemadas', exCal+' kcal')}
-      ${statTile(navIcon('ejercicio',14),'Ejercicio', exMin+' min')}
-      ${statTile(navIcon('peso',14),'Peso', d.weight? d.weight+' kg':'—')}
-      ${statTile(navIcon('salud',14),'Presión', lastBP? lastBP.systolic+'/'+lastBP.diastolic+(lastBP.pulse?' · '+lastBP.pulse+'bpm':'')+'<div style="margin-top:4px;">'+bpBadge(lastBP.systolic,lastBP.diastolic)+'</div>' : '—')}
+      ${statTile(navIcon('calorias',14),tr('stat_quemadas'), exCal+' kcal')}
+      ${statTile(navIcon('ejercicio',14),tr('stat_ejercicio'), exMin+' min')}
+      ${statTile(navIcon('peso',14),tr('stat_peso'), d.weight? d.weight+' kg':'—')}
+      ${statTile(navIcon('salud',14),tr('stat_presion'), lastBP? lastBP.systolic+'/'+lastBP.diastolic+(lastBP.pulse?' · '+lastBP.pulse+'bpm':'')+'<div style="margin-top:4px;">'+bpBadge(lastBP.systolic,lastBP.diastolic)+'</div>' : '—')}
     </div>
     ${macroCard(d.meals)}
     ${microCard(d.meals)}
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">
-        <div class="label" style="margin:0;">Agua (L)</div>
+        <div class="label" style="margin:0;">${tr('hoy_agua')}</div>
         <span class="display" style="font-size:13px;color:var(--accent3);font-weight:700;">${d.water} L</span>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;">
@@ -807,16 +905,16 @@ function renderHoy(){
       </div>
       <div class="grid2">
         <div>
-          <div class="label">Peso (kg)</div>
+          <div class="label">${tr('hoy_peso')}</div>
           <input type="number" step="0.1" id="in-weight" value="${d.weight??''}" placeholder="—" style="width:100%;" onchange="setWeight(this.value)">
         </div>
         <div>
-          <div class="label">Sueño (h)</div>
+          <div class="label">${tr('hoy_sueno')}</div>
           <input type="number" step="0.1" id="in-sleep" value="${d.sleepHours??''}" placeholder="—" style="width:100%;" onchange="setSleep(this.value)">
         </div>
       </div>
     </div>
-    <button class="btn btn-ghost" style="border-style:dashed;" onclick="openSettings()">${navIcon('ajustes',14)}Ajustar metas diarias</button>
+    <button class="btn btn-ghost" style="border-style:dashed;" onclick="openSettings()">${navIcon('ajustes',14)}${tr('hoy_ajustar_metas')}</button>
   </div>`;
 }
 function statTile(ic,label,value){
@@ -859,31 +957,31 @@ function microRow(label, value, unit){
 function microCard(meals){
   const s = microSums(meals);
   return `<div class="card">
-    <div class="label">Micronutrientes</div>
+    <div class="label">${tr('micro_title')}</div>
     <div class="grid2" style="gap:8px;">
-      ${microRow('Fibra', s.fiber, 'g')}
-      ${microRow('Azúcar', s.sugar, 'g')}
-      ${microRow('Sodio', s.sodium, 'mg')}
-      ${microRow('Hierro', s.iron, 'mg')}
-      ${microRow('Calcio', s.calcium, 'mg')}
-      ${microRow('Potasio', s.potassium, 'mg')}
-      ${microRow('Vitamina C', s.vitaminC, 'mg')}
+      ${microRow(tr('micro_fibra'), s.fiber, 'g')}
+      ${microRow(tr('micro_azucar'), s.sugar, 'g')}
+      ${microRow(tr('micro_sodio'), s.sodium, 'mg')}
+      ${microRow(tr('micro_hierro'), s.iron, 'mg')}
+      ${microRow(tr('micro_calcio'), s.calcium, 'mg')}
+      ${microRow(tr('micro_potasio'), s.potassium, 'mg')}
+      ${microRow(tr('micro_vitc'), s.vitaminC, 'mg')}
     </div>
   </div>`;
 }
 function macroCard(meals){
   const { protein, carbs, fat } = macroSums(meals);
   return `<div class="card">
-    <div class="label">Macronutrientes</div>
+    <div class="label">${tr('macro_title')}</div>
     <div style="display:flex;height:10px;border-radius:6px;overflow:hidden;background:var(--line);margin-bottom:14px;">
       <div style="flex:${protein};background:var(--accent);"></div>
       <div style="flex:${carbs};background:var(--accent2);"></div>
       <div style="flex:${fat};background:var(--accent3);"></div>
     </div>
     <div class="stack" style="gap:8px;">
-      ${macroLegendRow('var(--accent)','Proteína',protein)}
-      ${macroLegendRow('var(--accent2)','Carbohidratos',carbs)}
-      ${macroLegendRow('var(--accent3)','Grasas',fat)}
+      ${macroLegendRow('var(--accent)',tr('macro_proteina'),protein)}
+      ${macroLegendRow('var(--accent2)',tr('macro_carbohidratos'),carbs)}
+      ${macroLegendRow('var(--accent3)',tr('macro_grasas'),fat)}
     </div>
   </div>`;
 }
@@ -897,51 +995,51 @@ function renderComidas(){
   return `
   <div class="stack">
     <div class="card">
-      <div class="label">Tipo de comida</div>
+      <div class="label">${tr('comidas_tipo')}</div>
       <div class="grid4" style="margin-bottom:14px;">
         ${MEAL_TYPES.map(mt=>`<div class="meal-type-btn ${activeType===mt.id?'active':''}" onclick="setMealType('${mt.id}')">
-          ${navIcon(mt.ic, 20)}<span>${mt.label}</span></div>`).join('')}
+          ${navIcon(mt.ic, 20)}<span>${tr('meal_'+mt.id)}</span></div>`).join('')}
       </div>
-      <div class="label">Agregar a ${MEAL_TYPES.find(m=>m.id===activeType).label.toLowerCase()}</div>
+      <div class="label">${tr('comidas_agregar_a')} ${tr('meal_'+activeType).toLowerCase()}</div>
       <div style="position:relative;margin-bottom:8px;">
-        <input id="meal-name" placeholder='Ej. "lata atún 6oz", "plátano mediano"' style="width:100%;" autocomplete="off" oninput="onMealNameInput()" onfocus="onMealNameInput()" onblur="hideMealSuggest()">
+        <input id="meal-name" placeholder="${esc(tr('comidas_placeholder'))}" style="width:100%;" autocomplete="off" oninput="onMealNameInput()" onfocus="onMealNameInput()" onblur="hideMealSuggest()">
         <div id="meal-suggest" class="suggest-list" style="display:none;"></div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:6px;">
         <input id="meal-cal" type="number" placeholder="kcal" style="flex:1;min-width:0;">
-        <button class="btn btn-primary" id="est-btn" onclick="handleEstimate()">${navIcon('sparkle',14)}Estimar</button>
+        <button class="btn btn-primary" id="est-btn" onclick="handleEstimate()">${navIcon('sparkle',14)}${tr('comidas_estimar')}</button>
       </div>
-      <button class="btn btn-ghost" style="width:100%;margin-bottom:8px;" onclick="openScanner()">${navIcon('camara',14)}Escanear código de barras</button>
+      <button class="btn btn-ghost" style="width:100%;margin-bottom:8px;" onclick="openScanner()">${navIcon('camara',14)}${tr('comidas_escanear')}</button>
       <div id="meal-note" style="font-size:11px;color:var(--accent3);margin-bottom:8px;"></div>
       <div class="grid4" style="margin-bottom:10px;">
-        <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Prot(g)</div><input id="meal-p" type="number" placeholder="0" style="width:100%;"></div>
-        <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Carb(g)</div><input id="meal-c" type="number" placeholder="0" style="width:100%;"></div>
-        <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Grasa(g)</div><input id="meal-f" type="number" placeholder="0" style="width:100%;"></div>
+        <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('comidas_prot_g')}</div><input id="meal-p" type="number" placeholder="0" style="width:100%;"></div>
+        <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('comidas_carb_g')}</div><input id="meal-c" type="number" placeholder="0" style="width:100%;"></div>
+        <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('comidas_grasa_g')}</div><input id="meal-f" type="number" placeholder="0" style="width:100%;"></div>
       </div>
-      <button class="btn btn-primary" style="width:100%;" onclick="addMeal()">+ Agregar</button>
+      <button class="btn btn-primary" style="width:100%;" onclick="addMeal()">${tr('btn_agregar')}</button>
     </div>
     <div class="card">
       <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-        <div class="label">Hoy</div>
+        <div class="label">${tr('comidas_hoy')}</div>
         <span class="display" style="color:var(--accent);font-weight:700;font-size:13px;">${total} kcal</span>
       </div>
       ${d.meals.length ? `<div style="display:flex;gap:12px;margin-bottom:4px;font-size:11px;color:var(--muted);">
-        <span>Prot ${macroSums(d.meals).protein}g</span>
-        <span>Carb ${macroSums(d.meals).carbs}g</span>
-        <span>Grasa ${macroSums(d.meals).fat}g</span>
+        <span>${tr('comidas_prot')} ${macroSums(d.meals).protein}g</span>
+        <span>${tr('comidas_carb')} ${macroSums(d.meals).carbs}g</span>
+        <span>${tr('comidas_grasa')} ${macroSums(d.meals).fat}g</span>
       </div>
       <div style="display:flex;gap:12px;margin-bottom:12px;font-size:11px;color:var(--muted);">
-        <span>Fibra ${microSums(d.meals).fiber}g</span>
-        <span>Azúcar ${microSums(d.meals).sugar}g</span>
-        <span>Sodio ${microSums(d.meals).sodium}mg</span>
+        <span>${tr('comidas_fibra')} ${microSums(d.meals).fiber}g</span>
+        <span>${tr('comidas_azucar')} ${microSums(d.meals).sugar}g</span>
+        <span>${tr('comidas_sodio')} ${microSums(d.meals).sodium}mg</span>
       </div>` : ''}
-      ${d.meals.length===0 ? emptyState('comidas','Sin comidas registradas — agrega la primera arriba') :
+      ${d.meals.length===0 ? emptyState('comidas', tr('comidas_empty')) :
         groups.filter(g=>g.items.length).map(g=>{
           const sub = g.items.reduce((s,m)=>s+(Number(m.calories)||0),0);
           const isTop = sub===maxSub && maxSub>0;
           return `<div style="margin-bottom:16px;">
             <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-              <span style="font-size:12px;font-weight:700;color:${isTop?'var(--accent)':'var(--text)'};">${g.ic} ${g.label} ${isTop?'🔥':''}</span>
+              <span style="font-size:12px;font-weight:700;color:${isTop?'var(--accent)':'var(--text)'};">${g.ic} ${tr('meal_'+g.id)} ${isTop?'🔥':''}</span>
               <span style="font-size:12px;color:${isTop?'var(--accent)':'var(--muted)'};">${sub} kcal</span>
             </div>
             <div class="stack" style="gap:8px;">
@@ -959,23 +1057,23 @@ function renderEjercicio(){
   return `
   <div class="stack">
     <div class="card">
-      <div class="label">Agregar ejercicio</div>
+      <div class="label">${tr('ejercicio_agregar')}</div>
       <div style="display:flex;gap:8px;margin-bottom:8px;">
         <div style="flex:2;min-width:0;position:relative;">
-          <input id="ex-name" placeholder="Actividad" style="width:100%;" autocomplete="off" oninput="onExerciseNameInput()" onfocus="onExerciseNameInput()" onblur="hideExerciseSuggest()">
+          <input id="ex-name" placeholder="${tr('ejercicio_actividad')}" style="width:100%;" autocomplete="off" oninput="onExerciseNameInput()" onfocus="onExerciseNameInput()" onblur="hideExerciseSuggest()">
           <div id="ex-suggest" class="suggest-list" style="display:none;"></div>
         </div>
-        <input id="ex-min" type="number" placeholder="min" style="flex:1;min-width:0;">
+        <input id="ex-min" type="number" placeholder="${tr('ejercicio_min')}" style="flex:1;min-width:0;">
       </div>
-      <input id="ex-cal" type="number" placeholder="kcal quemadas (opcional)" style="width:100%;margin-bottom:8px;">
-      <button class="btn btn-primary" style="width:100%;" onclick="addExercise()">+ Agregar</button>
+      <input id="ex-cal" type="number" placeholder="${tr('ejercicio_kcal_opc')}" style="width:100%;margin-bottom:8px;">
+      <button class="btn btn-primary" style="width:100%;" onclick="addExercise()">${tr('btn_agregar')}</button>
     </div>
     <div class="card">
       <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
-        <div class="label">Hoy</div>
+        <div class="label">${tr('comidas_hoy')}</div>
         <span class="display" style="color:var(--accent2);font-weight:700;font-size:13px;">${totalMin} min</span>
       </div>
-      ${d.exercises.length===0 ? emptyState('ejercicio','Sin ejercicio registrado — agrega el primero arriba') :
+      ${d.exercises.length===0 ? emptyState('ejercicio', tr('ejercicio_empty')) :
         `<div class="stack" style="gap:8px;">${d.exercises.map(e=>rowItem(e.name, `${e.time} · ${e.minutes} min`, e.calories?e.calories+' kcal':'', `removeExercise('${e.id}')`)).join('')}</div>`}
     </div>
   </div>`;
@@ -988,35 +1086,35 @@ function renderSalud(){
   return `
   <div class="stack">
     <div class="card">
-      <div class="label">Presión arterial</div>
+      <div class="label">${tr('salud_presion')}</div>
       <div style="display:flex;gap:8px;margin-bottom:8px;">
-        <input id="bp-sys" type="number" placeholder="Sistólica" style="flex:1;min-width:0;">
-        <input id="bp-dia" type="number" placeholder="Diastólica" style="flex:1;min-width:0;">
-        <input id="bp-pulse" type="number" placeholder="Pulso (bpm)" style="flex:1;min-width:0;">
+        <input id="bp-sys" type="number" placeholder="${tr('salud_sistolica')}" style="flex:1;min-width:0;">
+        <input id="bp-dia" type="number" placeholder="${tr('salud_diastolica')}" style="flex:1;min-width:0;">
+        <input id="bp-pulse" type="number" placeholder="${tr('salud_pulso')}" style="flex:1;min-width:0;">
         <button class="btn btn-primary" onclick="addBP()">+</button>
       </div>
-      ${d.bp.length===0 ? emptyState('salud','Sin lecturas hoy') :
+      ${d.bp.length===0 ? emptyState('salud', tr('salud_sin_lecturas')) :
         `<div class="stack" style="gap:8px;">${d.bp.map(b=>rowItem(b.systolic+'/'+b.diastolic+' mmHg', b.time, b.pulse?b.pulse+' bpm':'', `removeBP('${b.id}')`, bpBadge(b.systolic,b.diastolic))).join('')}</div>`}
     </div>
 
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-        <div class="label" style="margin:0;">Medicamentos de hoy</div>
+        <div class="label" style="margin:0;">${tr('salud_medicamentos_hoy')}</div>
         <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);">
-          Alertas
+          ${tr('salud_alertas')}
           <div class="switch ${state.alertsOn?'on':''}" onclick="toggleAlerts()"><div class="knob"></div></div>
         </div>
       </div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Las alertas solo suenan mientras esta pestaña esté abierta.</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">${tr('salud_alertas_sub')}</div>
       ${meds.length>0 ? (()=>{
         const a7 = medAdherence(7);
         const color = a7>=90?'var(--accent3)':a7>=70?'var(--accent2)':'var(--danger)';
         return `<div style="display:flex;align-items:center;justify-content:space-between;background:var(--raised);border-radius:10px;padding:9px 12px;margin-bottom:12px;">
-          <span style="font-size:12px;color:var(--muted);">Adherencia últimos 7 días</span>
+          <span style="font-size:12px;color:var(--muted);">${tr('salud_adherencia')}</span>
           <span class="display" style="font-size:15px;font-weight:700;color:${color};">${a7}%</span>
         </div>`;
       })() : ''}
-      ${meds.length===0 ? emptyState('medicamento','Agrega un medicamento abajo para ver su horario aquí') :
+      ${meds.length===0 ? emptyState('medicamento', tr('salud_empty_meds')) :
         `<div class="stack" style="gap:8px;">${meds.flatMap(med => med.times.map(t=>{
           const key = med.id+':'+t;
           const taken = takenIds.has(key);
@@ -1024,22 +1122,22 @@ function renderSalud(){
           return `<div class="med-row ${due?'med-due':''}">
             <div>
               <div style="font-size:14px;">${esc(med.name)} ${med.dose?`<span style="color:var(--muted);font-size:12px;">· ${esc(med.dose)}</span>`:''}</div>
-              <div style="font-size:11px;color:var(--muted);">${t} ${due?'· pendiente':''}</div>
+              <div style="font-size:11px;color:var(--muted);">${t} ${due?'· '+tr('salud_pendiente'):''}</div>
             </div>
-            <button class="btn ${taken?'btn-ghost':'btn-primary'}" onclick="toggleMedTaken('${key}')">${taken?'✓ Tomado':'Marcar tomado'}</button>
+            <button class="btn ${taken?'btn-ghost':'btn-primary'}" onclick="toggleMedTaken('${key}')">${taken?tr('salud_tomado'):tr('salud_marcar_tomado')}</button>
           </div>`;
         })).join('')}</div>`}
     </div>
 
     <div class="card">
-      <div class="label">Administrar medicamentos</div>
+      <div class="label">${tr('salud_administrar')}</div>
       <div style="display:flex;gap:8px;margin-bottom:8px;">
-        <input id="med-name" placeholder="Nombre" style="flex:2;min-width:0;">
-        <input id="med-dose" placeholder="Dosis (opcional)" style="flex:1;min-width:0;">
+        <input id="med-name" placeholder="${tr('salud_nombre')}" style="flex:2;min-width:0;">
+        <input id="med-dose" placeholder="${tr('salud_dosis')}" style="flex:1;min-width:0;">
       </div>
       <div style="display:flex;gap:8px;margin-bottom:8px;">
-        <input id="med-times" placeholder="Horarios, ej: 08:00, 20:00" style="flex:1;min-width:0;">
-        <button class="btn btn-primary" onclick="addMed()">+ Agregar</button>
+        <input id="med-times" placeholder="${tr('salud_horarios')}" style="flex:1;min-width:0;">
+        <button class="btn btn-primary" onclick="addMed()">${tr('btn_agregar')}</button>
       </div>
       ${meds.length ? `<div class="stack" style="gap:8px;">${meds.map(m=>rowItem(m.name, m.times.join(', '), '', `removeMed('${m.id}')`)).join('')}</div>` : ''}
     </div>
@@ -1177,14 +1275,14 @@ function bodyCompEntryHTML(bc, onDelete){
   const chips = BODYCOMP_FIELDS.filter(f=>bc[f.key]!=null).map(f=>{
     const status = bodyCompStatus(f.key, bc[f.key]);
     const color = statusColor(status);
-    return `<span style="font-size:11px;background:var(--raised);border:1px solid ${status?color:'var(--line)'};border-radius:8px;padding:4px 8px;color:var(--text);">${f.label}: <b style="color:${color};">${bc[f.key]}${f.unit?' '+f.unit:''}</b></span>`;
+    return `<span style="font-size:11px;background:var(--raised);border:1px solid ${status?color:'var(--line)'};border-radius:8px;padding:4px 8px;color:var(--text);">${tr('bc_'+f.key)}: <b style="color:${color};">${bc[f.key]}${f.unit?' '+bcUnit(f):''}</b></span>`;
   }).join('');
   return `<div style="padding:10px 0;border-bottom:1px solid var(--line);">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
       <span style="font-size:12px;color:var(--muted);">${bc.time}</span>
       ${onDelete?`<button onclick="${onDelete}" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;">✕</button>`:''}
     </div>
-    <div style="display:flex;flex-wrap:wrap;gap:6px;">${chips || '<span style="font-size:11px;color:var(--muted);">Sin valores</span>'}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;">${chips || `<span style="font-size:11px;color:var(--muted);">${tr('comp_sin_valores')}</span>`}</div>
   </div>`;
 }
 function renderComposicion(){
@@ -1197,27 +1295,27 @@ function renderComposicion(){
         const f = BODYCOMP_FIELDS.find(x=>x.key===k);
         const val = latestBodyCompValue(d, k);
         const status = bodyCompStatus(k, val);
-        const v = val!=null ? `<span style="${status?'color:'+statusColor(status)+';':''}">${val}${f.unit?' '+f.unit:''}</span>` : '—';
-        return statTile(navIcon('composicion',14), f.label, v);
+        const v = val!=null ? `<span style="${status?'color:'+statusColor(status)+';':''}">${val}${f.unit?' '+bcUnit(f):''}</span>` : '—';
+        return statTile(navIcon('composicion',14), tr('bc_'+f.key), v);
       }).join('')}
     </div>
     <div class="card">
       <div class="label" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:${state.bodyCompFormOpen?'10px':'0'};" onclick="toggleBodyCompForm()">
-        <span>Registrar medición de báscula</span>
+        <span>${tr('comp_registrar')}</span>
         <span style="font-size:13px;color:var(--muted);">${state.bodyCompFormOpen?'▾':'▸'}</span>
       </div>
       ${state.bodyCompFormOpen ? `
         ${groupedBodyCompFields().map((g,gi)=>`
-          <div style="font-size:11px;font-weight:700;color:var(--accent3);text-transform:uppercase;letter-spacing:.06em;margin:${gi===0?'0':'16px'} 0 8px;">${g.name}</div>
+          <div style="font-size:11px;font-weight:700;color:var(--accent3);text-transform:uppercase;letter-spacing:.06em;margin:${gi===0?'0':'16px'} 0 8px;">${tr('comp_group_'+g.groupKey)}</div>
           <div class="grid2" style="gap:10px;margin-bottom:12px;">
-            ${g.fields.map(f=>`<div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${f.label}${f.unit?' ('+f.unit+')':''}</div><input id="bc-${f.key}" type="number" step="0.1" style="width:100%;"></div>`).join('')}
+            ${g.fields.map(f=>`<div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('bc_'+f.key)}${f.unit?' ('+bcUnit(f)+')':''}</div><input id="bc-${f.key}" type="number" step="0.1" style="width:100%;"></div>`).join('')}
           </div>`).join('')}
-        <button class="btn btn-primary" style="width:100%;" onclick="addBodyComp()">+ Agregar medición</button>
+        <button class="btn btn-primary" style="width:100%;" onclick="addBodyComp()">${tr('comp_agregar_medicion')}</button>
       ` : ''}
     </div>
     <div class="card">
-      <div class="label">Mediciones de hoy</div>
-      ${d.bodyComp.length===0 ? emptyState('composicion','Sin mediciones hoy') :
+      <div class="label">${tr('comp_mediciones_hoy')}</div>
+      ${d.bodyComp.length===0 ? emptyState('composicion', tr('comp_sin_mediciones')) :
         d.bodyComp.map(bc=>bodyCompEntryHTML(bc, `removeBodyComp('${bc.id}')`)).join('')}
     </div>
     ${renderComposicionCharts()}
@@ -1231,11 +1329,11 @@ function renderComposicionCharts(){
   const charts = BODYCOMP_FIELDS.map((f,i)=>{
     const pts = days.map(day=>({ label:dayLetter(day.iso), v: latestBodyCompValue(day, f.key) }));
     return `<div class="card"><div class="label" style="display:flex;align-items:center;gap:6px;justify-content:space-between;">
-        <span>${f.label}${f.unit?' ('+f.unit+')':''}</span>
-        <button class="info-btn" onclick="openBodyCompInfo('${f.key}')" title="Qué significa este dato">ⓘ</button>
-      </div><div class="chart-box">${lineChartSVG(pts,{color:colors[i%colors.length], gridLines:true, gridSteps:4, unit:f.unit})}</div></div>`;
+        <span>${tr('bc_'+f.key)}${f.unit?' ('+bcUnit(f)+')':''}</span>
+        <button class="info-btn" onclick="openBodyCompInfo('${f.key}')" title="${esc(tr('comp_info_title'))}">ⓘ</button>
+      </div><div class="chart-box">${lineChartSVG(pts,{color:colors[i%colors.length], gridLines:true, gridSteps:4, unit:bcUnit(f)})}</div></div>`;
   }).join('');
-  return `<div style="font-size:12px;color:var(--muted);">Tendencia — últimos 30 días</div><div class="grid2">${charts}</div>`;
+  return `<div style="font-size:12px;color:var(--muted);">${tr('comp_tendencia')}</div><div class="grid2">${charts}</div>`;
 }
 
 function renderCalendario(){
@@ -1247,7 +1345,7 @@ function renderCalendario(){
   for(let i=0;i<startDow;i++) cells.push(null);
   for(let day=1; day<=daysInMonth; day++) cells.push(day);
 
-  const dowRow = DOW.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  const dowRow = dowLabels().map(d=>`<div class="cal-dow">${d}</div>`).join('');
   const dayCells = cells.map(day=>{
     if(day===null) return `<div class="cal-day empty"></div>`;
     const iso = isoOf(y,m,day);
@@ -1263,7 +1361,7 @@ function renderCalendario(){
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
         <button class="btn btn-ghost" onclick="shiftMonth(-1)">←</button>
-        <div class="display" style="font-weight:700;text-transform:capitalize;">${MONTHS[m]} ${y}</div>
+        <div class="display" style="font-weight:700;text-transform:capitalize;">${monthLabels()[m]} ${y}</div>
         <button class="btn btn-ghost" onclick="shiftMonth(1)">→</button>
       </div>
       <div class="cal-grid" style="margin-bottom:6px;">${dowRow}</div>
@@ -1280,25 +1378,25 @@ function renderDayDetail(iso){
   <div class="card">
     <div class="label" style="text-transform:capitalize;">${formatDateEs(iso)}</div>
     <div class="grid2" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
-      ${statTile(navIcon('calorias',14),'Calorías', totalCal+' kcal')}
-      ${statTile(navIcon('ejercicio',14),'Ejercicio', totalMin+' min')}
-      ${statTile(navIcon('peso',14),'Peso', d.weight?d.weight+' kg':'—')}
-      ${statTile(navIcon('sueno',14),'Sueño', d.sleepHours?d.sleepHours+' h':'—')}
+      ${statTile(navIcon('calorias',14),tr('cal_calorias'), totalCal+' kcal')}
+      ${statTile(navIcon('ejercicio',14),tr('cal_ejercicio'), totalMin+' min')}
+      ${statTile(navIcon('peso',14),tr('cal_peso'), d.weight?d.weight+' kg':'—')}
+      ${statTile(navIcon('sueno',14),tr('cal_sueno'), d.sleepHours?d.sleepHours+' h':'—')}
     </div>
     <div class="card" style="margin-bottom:16px;">
       <div class="grid2">
         <div>
-          <div class="label">Editar peso (kg)</div>
+          <div class="label">${tr('cal_editar_peso')}</div>
           <div style="display:flex;gap:8px;">
             <input type="number" step="0.1" id="cal-weight" value="${d.weight??''}" placeholder="—" style="flex:1;min-width:0;">
-            <button class="btn btn-primary" onclick="setWeightForDay('${iso}')">Guardar</button>
+            <button class="btn btn-primary" onclick="setWeightForDay('${iso}')">${tr('cal_guardar')}</button>
           </div>
         </div>
         <div>
-          <div class="label">Editar sueño (h)</div>
+          <div class="label">${tr('cal_editar_sueno')}</div>
           <div style="display:flex;gap:8px;">
             <input type="number" step="0.1" id="cal-sleep" value="${d.sleepHours??''}" placeholder="—" style="flex:1;min-width:0;">
-            <button class="btn btn-primary" onclick="setSleepForDay('${iso}')">Guardar</button>
+            <button class="btn btn-primary" onclick="setSleepForDay('${iso}')">${tr('cal_guardar')}</button>
           </div>
         </div>
       </div>
@@ -1307,21 +1405,21 @@ function renderDayDetail(iso){
     ${microCard(d.meals)}
     <div class="grid2">
       <div style="min-width:0;">
-        <div class="label">Comidas</div>
-        ${d.meals.length? `<div class="stack" style="gap:6px;margin-bottom:10px;">${d.meals.map(m=>rowItem(m.name, m.time, m.calories+' kcal', `removeMealForDay('${iso}','${m.id}')`)).join('')}</div>` : `<div style="color:var(--muted);font-size:12px;margin-bottom:10px;">Sin registros</div>`}
+        <div class="label">${tr('cal_comidas')}</div>
+        ${d.meals.length? `<div class="stack" style="gap:6px;margin-bottom:10px;">${d.meals.map(m=>rowItem(m.name, m.time, m.calories+' kcal', `removeMealForDay('${iso}','${m.id}')`)).join('')}</div>` : `<div style="color:var(--muted);font-size:12px;margin-bottom:10px;">${tr('cal_sin_registros')}</div>`}
         <select id="cal-meal-type" style="width:100%;margin-bottom:6px;">
-          ${MEAL_TYPES.map(mt=>`<option value="${mt.id}">${mt.label}</option>`).join('')}
+          ${MEAL_TYPES.map(mt=>`<option value="${mt.id}">${tr('meal_'+mt.id)}</option>`).join('')}
         </select>
         <div style="display:flex;gap:6px;margin-bottom:6px;">
           <div style="flex:2;min-width:0;position:relative;">
-            <input id="cal-meal-name" placeholder="Nombre" style="width:100%;" autocomplete="off" oninput="onMealNameInputForDay()" onfocus="onMealNameInputForDay()" onblur="hideMealSuggestForDay()">
+            <input id="cal-meal-name" placeholder="${tr('cal_nombre')}" style="width:100%;" autocomplete="off" oninput="onMealNameInputForDay()" onfocus="onMealNameInputForDay()" onblur="hideMealSuggestForDay()">
             <div id="cal-meal-suggest" class="suggest-list" style="display:none;"></div>
           </div>
           <input id="cal-meal-time" type="time" value="${nowHM()}" style="flex:1;min-width:0;">
         </div>
         <div style="display:flex;gap:6px;margin-bottom:6px;">
           <input id="cal-meal-cal" type="number" placeholder="kcal" style="flex:1;min-width:0;">
-          <button class="btn btn-primary" id="cal-est-btn" onclick="handleEstimateForDay()">${navIcon('sparkle',14)}Estimar</button>
+          <button class="btn btn-primary" id="cal-est-btn" onclick="handleEstimateForDay()">${navIcon('sparkle',14)}${tr('comidas_estimar')}</button>
         </div>
         <div id="cal-meal-note" style="font-size:11px;color:var(--accent3);margin-bottom:6px;"></div>
         <div style="display:flex;gap:6px;margin-bottom:6px;">
@@ -1329,37 +1427,37 @@ function renderDayDetail(iso){
           <input id="cal-meal-c" type="number" placeholder="C(g)" style="flex:1;min-width:0;">
           <input id="cal-meal-f" type="number" placeholder="G(g)" style="flex:1;min-width:0;">
         </div>
-        <button class="btn btn-ghost" style="width:100%;" onclick="addMealForDay('${iso}')">+ Agregar comida</button>
+        <button class="btn btn-ghost" style="width:100%;" onclick="addMealForDay('${iso}')">${tr('cal_agregar_comida')}</button>
       </div>
       <div style="min-width:0;">
-        <div class="label">Ejercicio</div>
-        ${d.exercises.length? `<div class="stack" style="gap:6px;margin-bottom:10px;">${d.exercises.map(e=>rowItem(e.name, e.time, e.minutes+' min', `removeExerciseForDay('${iso}','${e.id}')`)).join('')}</div>` : `<div style="color:var(--muted);font-size:12px;margin-bottom:10px;">Sin registros</div>`}
+        <div class="label">${tr('cal_ejercicio')}</div>
+        ${d.exercises.length? `<div class="stack" style="gap:6px;margin-bottom:10px;">${d.exercises.map(e=>rowItem(e.name, e.time, e.minutes+' min', `removeExerciseForDay('${iso}','${e.id}')`)).join('')}</div>` : `<div style="color:var(--muted);font-size:12px;margin-bottom:10px;">${tr('cal_sin_registros')}</div>`}
         <div style="display:flex;gap:6px;margin-bottom:6px;">
           <div style="flex:2;min-width:0;position:relative;">
-            <input id="cal-ex-name" placeholder="Actividad" style="width:100%;" autocomplete="off" oninput="onExerciseNameInputForDay()" onfocus="onExerciseNameInputForDay()" onblur="hideExerciseSuggestForDay()">
+            <input id="cal-ex-name" placeholder="${tr('cal_actividad')}" style="width:100%;" autocomplete="off" oninput="onExerciseNameInputForDay()" onfocus="onExerciseNameInputForDay()" onblur="hideExerciseSuggestForDay()">
             <div id="cal-ex-suggest" class="suggest-list" style="display:none;"></div>
           </div>
-          <input id="cal-ex-min" type="number" placeholder="min" style="flex:1;min-width:0;">
+          <input id="cal-ex-min" type="number" placeholder="${tr('ejercicio_min')}" style="flex:1;min-width:0;">
         </div>
         <div style="display:flex;gap:6px;margin-bottom:6px;">
           <input id="cal-ex-time" type="time" value="${nowHM()}" style="flex:1;min-width:0;">
-          <input id="cal-ex-cal" type="number" placeholder="kcal (opc.)" style="flex:1;min-width:0;">
+          <input id="cal-ex-cal" type="number" placeholder="${tr('cal_kcal_opc')}" style="flex:1;min-width:0;">
         </div>
-        <button class="btn btn-ghost" style="width:100%;" onclick="addExerciseForDay('${iso}')">+ Agregar ejercicio</button>
+        <button class="btn btn-ghost" style="width:100%;" onclick="addExerciseForDay('${iso}')">${tr('cal_agregar_ejercicio')}</button>
       </div>
     </div>
     <div class="grid2" style="margin-top:16px;">
       <div>
-        <div class="label">Presión arterial</div>
-        ${d.bp.length? `<div class="stack" style="gap:6px;">${d.bp.map(b=>rowItemStatic(b.systolic+'/'+b.diastolic+' mmHg', b.time, b.pulse?b.pulse+' bpm':'', bpBadge(b.systolic,b.diastolic))).join('')}</div>` : `<div style="color:var(--muted);font-size:12px;">Sin registros</div>`}
+        <div class="label">${tr('cal_presion_arterial')}</div>
+        ${d.bp.length? `<div class="stack" style="gap:6px;">${d.bp.map(b=>rowItemStatic(b.systolic+'/'+b.diastolic+' mmHg', b.time, b.pulse?b.pulse+' bpm':'', bpBadge(b.systolic,b.diastolic))).join('')}</div>` : `<div style="color:var(--muted);font-size:12px;">${tr('cal_sin_registros')}</div>`}
       </div>
       <div>
-        <div class="label">Medicamentos tomados</div>
-        ${d.medsTaken.length? `<div class="stack" style="gap:6px;">${d.medsTaken.map(t=>rowItemStatic(t.key.split(':')[0]==='' ? t.key : (state.meds.find(m=>m.id===t.key.split(':')[0])?.name || 'Medicamento'), t.time, '')).join('')}</div>` : `<div style="color:var(--muted);font-size:12px;">Sin registros</div>`}
+        <div class="label">${tr('cal_medicamentos_tomados')}</div>
+        ${d.medsTaken.length? `<div class="stack" style="gap:6px;">${d.medsTaken.map(t=>rowItemStatic(t.key.split(':')[0]==='' ? t.key : (state.meds.find(m=>m.id===t.key.split(':')[0])?.name || tr('cal_medicamento_generico')), t.time, '')).join('')}</div>` : `<div style="color:var(--muted);font-size:12px;">${tr('cal_sin_registros')}</div>`}
       </div>
     </div>
     ${d.bodyComp && d.bodyComp.length ? `<div style="margin-top:16px;">
-      <div class="label">Composición corporal</div>
+      <div class="label">${tr('cal_composicion_corporal')}</div>
       ${d.bodyComp.map(bc=>bodyCompEntryHTML(bc, null)).join('')}
     </div>` : ''}
   </div>`;
@@ -1382,8 +1480,8 @@ function weightSummaryHTML(pts){
     const offTrack = (needLoss && movingGain) || (needGain && movingLoss);
     color = onTrack ? 'var(--accent3)' : offTrack ? 'var(--danger)' : 'var(--text)';
     goalLine = Math.abs(dist)<0.05
-      ? `<div style="font-size:10px;color:var(--accent3);display:flex;align-items:center;gap:4px;">${navIcon('logrado',12)}En tu meta</div>`
-      : `<div style="font-size:10px;color:var(--muted);">${dist>0?'Faltan':'Sobran'} ${Math.abs(dist).toFixed(1)} kg para tu meta</div>`;
+      ? `<div style="font-size:10px;color:var(--accent3);display:flex;align-items:center;gap:4px;">${navIcon('logrado',12)}${tr('cal_en_meta')}</div>`
+      : `<div style="font-size:10px;color:var(--muted);">${dist>0?tr('cal_faltan'):tr('cal_sobran')} ${Math.abs(dist).toFixed(1)} ${tr('cal_para_meta')}</div>`;
   }
   return `<div style="text-align:right;">
     <div style="font-size:13px;font-weight:700;color:${color};">${sign}${change.toFixed(1)} kg</div>
