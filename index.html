@@ -143,6 +143,7 @@ const I18N = {
     micro_title:'Micronutrientes', micro_fibra:'Fibra', micro_azucar:'Azúcar', micro_sodio:'Sodio',
     micro_hierro:'Hierro', micro_calcio:'Calcio', micro_potasio:'Potasio', micro_vitc:'Vitamina C',
     hoy_agua:'Agua (L)', hoy_peso:'Peso (kg)', hoy_sueno:'Sueño (h)', hoy_ajustar_metas:'Ajustar metas diarias',
+    hoy_metas_titulo:'Tus metas diarias', hoy_ultimos_7_dias:'Últimos 7 días', hoy_cumplidos:'Cumplidos',
     comidas_tipo:'Tipo de comida', comidas_agregar_a:'Agregar a', comidas_placeholder:'Ej. "lata atún 6oz", "plátano mediano"',
     comidas_estimar:'Estimar', comidas_escanear:'Escanear código de barras',
     comidas_prot_g:'Prot(g)', comidas_carb_g:'Carb(g)', comidas_grasa_g:'Grasa(g)',
@@ -217,6 +218,7 @@ const I18N = {
     micro_title:'Micronutrients', micro_fibra:'Fiber', micro_azucar:'Sugar', micro_sodio:'Sodium',
     micro_hierro:'Iron', micro_calcio:'Calcium', micro_potasio:'Potassium', micro_vitc:'Vitamin C',
     hoy_agua:'Water (L)', hoy_peso:'Weight (kg)', hoy_sueno:'Sleep (h)', hoy_ajustar_metas:'Adjust daily goals',
+    hoy_metas_titulo:'Your daily goals', hoy_ultimos_7_dias:'Last 7 days', hoy_cumplidos:'Achieved',
     comidas_tipo:'Meal type', comidas_agregar_a:'Add to', comidas_placeholder:'E.g. "6oz tuna can", "medium banana"',
     comidas_estimar:'Estimate', comidas_escanear:'Scan barcode',
     comidas_prot_g:'Prot(g)', comidas_carb_g:'Carbs(g)', comidas_grasa_g:'Fat(g)',
@@ -816,20 +818,54 @@ function barChartSVG(points, opts){
     ${goalLine}${bars}${labels}
   </svg>`;
 }
-function dialSVG(calPct, waterPct, exPct){
+function dialSVG(calPct, waterPct, exPct, size){
+  const s = size || 168;
+  const scale = s/168;
   const rings = [
-    { r:76, pct:calPct, color:'var(--accent)' },
-    { r:60, pct:waterPct, color:'var(--accent3)' },
-    { r:44, pct:exPct, color:'var(--accent2)' },
+    { r:76*scale, pct:calPct, color:'var(--accent)' },
+    { r:60*scale, pct:waterPct, color:'var(--accent3)' },
+    { r:44*scale, pct:exPct, color:'var(--accent2)' },
   ];
-  const cx=84;
+  const cx = s/2;
+  const strokeW = Math.max(2.5, 9*scale);
   const circles = rings.map(ring=>{
     const c = 2*Math.PI*ring.r; const clamped = Math.max(0, Math.min(1, ring.pct||0));
-    return `<circle cx="${cx}" cy="${cx}" r="${ring.r}" fill="none" stroke="var(--line)" stroke-width="9"/>
-    <circle cx="${cx}" cy="${cx}" r="${ring.r}" fill="none" stroke="${ring.color}" stroke-width="9" stroke-linecap="round"
+    return `<circle cx="${cx}" cy="${cx}" r="${ring.r}" fill="none" stroke="var(--line)" stroke-width="${strokeW}"/>
+    <circle cx="${cx}" cy="${cx}" r="${ring.r}" fill="none" stroke="${ring.color}" stroke-width="${strokeW}" stroke-linecap="round"
       stroke-dasharray="${c*clamped} ${c}" transform="rotate(-90 ${cx} ${cx})"/>`;
   }).join('');
-  return `<svg width="168" height="168" viewBox="0 0 168 168">${circles}</svg>`;
+  return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">${circles}</svg>`;
+}
+function weeklyGoalsCard(){
+  const g = state.goals;
+  const n = 7;
+  const isos = Array.from({length:n}).map((_,i)=>isoDaysAgo(n-1-i));
+  const days = isos.map(iso => iso===todayISO() ? { iso, ...state.day } : { iso, ...getDay(iso) });
+  let achieved = 0;
+  const dials = days.map(d=>{
+    const calEaten = d.meals.reduce((s,m)=>s+(Number(m.calories)||0),0);
+    const exMin = d.exercises.reduce((s,e)=>s+(Number(e.minutes)||0),0);
+    const calPct = calEaten/g.calorieGoal;
+    const waterPct = (d.water||0)/g.waterGoal;
+    const exPct = exMin/g.exerciseGoal;
+    if(calPct>=1 && waterPct>=1 && exPct>=1) achieved++;
+    const isToday = d.iso===todayISO();
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+      ${dialSVG(calPct, waterPct, exPct, 34)}
+      <span style="font-size:10px;color:${isToday?'var(--accent)':'var(--muted)'};font-weight:${isToday?'700':'400'};">${dayLetter(d.iso)}</span>
+    </div>`;
+  }).join('');
+  return `<div class="card">
+    <div class="label" style="margin-bottom:2px;">${tr('hoy_metas_titulo')}</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:14px;">${tr('hoy_ultimos_7_dias')}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+      <div style="flex-shrink:0;">
+        <div class="display" style="font-size:22px;font-weight:700;color:var(--accent);">${achieved}/7</div>
+        <div style="font-size:11px;color:var(--muted);">${tr('hoy_cumplidos')}</div>
+      </div>
+      <div style="display:flex;gap:6px;">${dials}</div>
+    </div>
+  </div>`;
 }
 
 /* ================= renderers ================= */
@@ -967,6 +1003,7 @@ function renderHoy(){
         <span><span class="dot" style="background:var(--accent2);"></span>${tr('legend_ejercicio')}</span>
       </div>
     </div>
+    ${weeklyGoalsCard()}
     <div class="grid2" style="grid-template-columns:repeat(4,1fr);">
       ${statTile(navIcon('calorias',14),tr('stat_quemadas'), exCal+' kcal')}
       ${statTile(navIcon('ejercicio',14),tr('stat_ejercicio'), exMin+' min')}
