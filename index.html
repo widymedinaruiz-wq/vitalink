@@ -302,7 +302,9 @@ const state = {
   toast: null,
   alertsOn: false,
   progressRange: 7,
+  bodyCompFormOpen: false,
 };
+function toggleBodyCompForm(){ state.bodyCompFormOpen = !state.bodyCompFormOpen; render(); }
 
 function saveDay(){
   const ok = setDayData(todayISO(), state.day);
@@ -1200,13 +1202,18 @@ function renderComposicion(){
       }).join('')}
     </div>
     <div class="card">
-      <div class="label">Registrar medición de báscula</div>
-      ${groupedBodyCompFields().map((g,gi)=>`
-        <div style="font-size:11px;font-weight:700;color:var(--accent3);text-transform:uppercase;letter-spacing:.06em;margin:${gi===0?'0':'16px'} 0 8px;">${g.name}</div>
-        <div class="grid2" style="gap:10px;margin-bottom:12px;">
-          ${g.fields.map(f=>`<div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${f.label}${f.unit?' ('+f.unit+')':''}</div><input id="bc-${f.key}" type="number" step="0.1" style="width:100%;"></div>`).join('')}
-        </div>`).join('')}
-      <button class="btn btn-primary" style="width:100%;" onclick="addBodyComp()">+ Agregar medición</button>
+      <div class="label" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:${state.bodyCompFormOpen?'10px':'0'};" onclick="toggleBodyCompForm()">
+        <span>Registrar medición de báscula</span>
+        <span style="font-size:13px;color:var(--muted);">${state.bodyCompFormOpen?'▾':'▸'}</span>
+      </div>
+      ${state.bodyCompFormOpen ? `
+        ${groupedBodyCompFields().map((g,gi)=>`
+          <div style="font-size:11px;font-weight:700;color:var(--accent3);text-transform:uppercase;letter-spacing:.06em;margin:${gi===0?'0':'16px'} 0 8px;">${g.name}</div>
+          <div class="grid2" style="gap:10px;margin-bottom:12px;">
+            ${g.fields.map(f=>`<div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${f.label}${f.unit?' ('+f.unit+')':''}</div><input id="bc-${f.key}" type="number" step="0.1" style="width:100%;"></div>`).join('')}
+          </div>`).join('')}
+        <button class="btn btn-primary" style="width:100%;" onclick="addBodyComp()">+ Agregar medición</button>
+      ` : ''}
     </div>
     <div class="card">
       <div class="label">Mediciones de hoy</div>
