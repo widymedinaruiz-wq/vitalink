@@ -668,8 +668,8 @@ function renderApp(){
     { id:'composicion', label:'Composición' },
     { id:'calendario', label:'Calendario' },
     { id:'progreso', label:'Progreso' },
-    { id:'pronostico', label:'Pronóstico' },
     { id:'nutricion', label:'Análisis Nutrición' },
+    { id:'pronostico', label:'Pronóstico' },
   ];
   const navBtns = tabs.map(t=>`
     <div class="navbtn ${state.tab===t.id?'active':''}" onclick="setTab('${t.id}')">
