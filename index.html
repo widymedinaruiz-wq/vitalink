@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
+<script src="https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+<script src="https://unpkg.com/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 <style>
   :root{
     --bg:#0E2723; --surface:#153934; --raised:#1B453F; --line:#2A5049;
@@ -207,6 +209,33 @@ const I18N = {
     sync_error:'Error:', sync_nunca:'nunca', sync_cerrar_sesion:'Cerrar sesión',
     sync_sincronizando:'Sincronizando…', sync_ultima:'Última sincronización:',
     comp_sin_info:'Sin información disponible.',
+    report_boton:'Reporte PDF (30 días)', report_generando:'Generando reporte…', report_listo:'Reporte descargado',
+    report_error_lib:'No se pudo cargar el generador de PDF. Revisa tu conexión e intenta de nuevo.',
+    report_titulo:'Reporte de Salud', report_subtitulo:'Resumen de los últimos {days} días',
+    report_periodo:'Período', report_paciente:'Paciente', report_generado:'Generado el',
+    report_confidencial:'Documento confidencial — datos autorreportados por el paciente a través de la app VitaLink. No sustituye una evaluación clínica profesional.',
+    report_resumen:'Resumen ejecutivo', report_peso_inicial:'Peso inicial', report_peso_actual:'Peso actual',
+    report_cambio:'Cambio', report_imc_actual:'IMC actual', report_cal_prom_dia:'Calorías promedio/día',
+    report_pa_prom:'Presión arterial promedio', report_pulso_prom:'Pulso promedio', report_sueno_prom:'Sueño promedio',
+    report_ejercicio_total:'Ejercicio total', report_prom_semanal:'Promedio semanal', report_adherencia_meds:'Adherencia a medicamentos',
+    report_puntos_discutir:'Puntos a discutir con tu médico', report_sin_puntos:'No se detectaron valores fuera de rango en este período.',
+    report_flag_pa:'Presión arterial promedio en categoría "{cat}" — {n} de {total} lecturas.',
+    report_flag_adherencia:'Adherencia a medicamentos de {pct}%, por debajo del 80% recomendado.',
+    report_flag_grasa:'Grasa corporal ({val}%) fuera del rango de referencia saludable.',
+    report_flag_visceral:'Grasa visceral en nivel alto ({val}).',
+    report_peso_composicion:'Peso y Composición Corporal', report_ultima_medicion:'Última medición registrada',
+    report_historial_mediciones:'Historial de mediciones', report_sin_mediciones:'No hay mediciones de composición corporal en este período.',
+    report_presion_arterial:'Presión Arterial', report_distribucion:'Distribución por categoría',
+    report_lecturas:'Lecturas del período', report_sin_lecturas_pa:'No hay lecturas de presión arterial en este período.',
+    report_nutricion:'Nutrición — promedio diario', report_dias_con_registro:'Días con registro de comidas',
+    report_ejercicio_sueno:'Ejercicio y Sueño', report_dias_meta_cumplida:'Días con meta de ejercicio cumplida',
+    report_medicamentos:'Medicamentos', report_sin_medicamentos:'No hay medicamentos registrados.',
+    report_registro_diario:'Registro diario', report_pagina:'Página', report_de_pagina:'de',
+    report_col_fecha:'Fecha', report_col_hora:'Hora', report_col_peso:'Peso (kg)', report_col_calorias:'Calorías',
+    report_col_ejercicio:'Ejercicio (min)', report_col_agua:'Agua (L)', report_col_sueno:'Sueño (h)',
+    report_col_pa:'Presión', report_col_categoria:'Categoría', report_col_dias:'Días', report_col_metrica:'Métrica',
+    report_col_valor:'Valor', report_col_dosis:'Dosis', report_col_horario:'Horario',
+    report_dias_registrados:'de {days} días registrados',
   },
   en: {
     nav_hoy:'Today', nav_comidas:'Meals', nav_ejercicio:'Exercise', nav_salud:'Health',
@@ -282,6 +311,33 @@ const I18N = {
     sync_error:'Error:', sync_nunca:'never', sync_cerrar_sesion:'Sign out',
     sync_sincronizando:'Syncing…', sync_ultima:'Last synced:',
     comp_sin_info:'No information available.',
+    report_boton:'PDF Report (30 days)', report_generando:'Generating report…', report_listo:'Report downloaded',
+    report_error_lib:'Could not load the PDF generator. Check your connection and try again.',
+    report_titulo:'Health Report', report_subtitulo:'{days}-day summary',
+    report_periodo:'Period', report_paciente:'Patient', report_generado:'Generated on',
+    report_confidencial:'Confidential document — self-reported patient data via the VitaLink app. Not a substitute for professional clinical evaluation.',
+    report_resumen:'Executive summary', report_peso_inicial:'Starting weight', report_peso_actual:'Current weight',
+    report_cambio:'Change', report_imc_actual:'Current BMI', report_cal_prom_dia:'Avg. calories/day',
+    report_pa_prom:'Avg. blood pressure', report_pulso_prom:'Avg. pulse', report_sueno_prom:'Avg. sleep',
+    report_ejercicio_total:'Total exercise', report_prom_semanal:'Weekly average', report_adherencia_meds:'Medication adherence',
+    report_puntos_discutir:'Points to discuss with your doctor', report_sin_puntos:'No out-of-range values detected in this period.',
+    report_flag_pa:'Average blood pressure in the "{cat}" category — {n} of {total} readings.',
+    report_flag_adherencia:'Medication adherence at {pct}%, below the recommended 80%.',
+    report_flag_grasa:'Body fat ({val}%) outside the healthy reference range.',
+    report_flag_visceral:'Visceral fat at a high level ({val}).',
+    report_peso_composicion:'Weight & Body Composition', report_ultima_medicion:'Latest recorded measurement',
+    report_historial_mediciones:'Measurement history', report_sin_mediciones:'No body composition measurements in this period.',
+    report_presion_arterial:'Blood Pressure', report_distribucion:'Category distribution',
+    report_lecturas:'Readings this period', report_sin_lecturas_pa:'No blood pressure readings in this period.',
+    report_nutricion:'Nutrition — daily average', report_dias_con_registro:'Days with logged meals',
+    report_ejercicio_sueno:'Exercise & Sleep', report_dias_meta_cumplida:'Days exercise goal was met',
+    report_medicamentos:'Medications', report_sin_medicamentos:'No medications registered.',
+    report_registro_diario:'Daily log', report_pagina:'Page', report_de_pagina:'of',
+    report_col_fecha:'Date', report_col_hora:'Time', report_col_peso:'Weight (kg)', report_col_calorias:'Calories',
+    report_col_ejercicio:'Exercise (min)', report_col_agua:'Water (L)', report_col_sueno:'Sleep (h)',
+    report_col_pa:'Pressure', report_col_categoria:'Category', report_col_dias:'Days', report_col_metrica:'Metric',
+    report_col_valor:'Value', report_col_dosis:'Dose', report_col_horario:'Schedule',
+    report_dias_registrados:'of {days} days logged',
   },
 };
 function getLang(){ return LS.get('vl:lang') || 'es'; }
@@ -1703,8 +1759,11 @@ function renderProgreso(){
 
   return `
   <div class="stack">
-    <div style="display:flex;gap:8px;">
-      ${[7,14,30].map(r=>`<button class="btn ${state.progressRange===r?'btn-primary':'btn-ghost'}" onclick="setRange(${r})">${r} ${tr('prog_dias')}</button>`).join('')}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        ${[7,14,30].map(r=>`<button class="btn ${state.progressRange===r?'btn-primary':'btn-ghost'}" onclick="setRange(${r})">${r} ${tr('prog_dias')}</button>`).join('')}
+      </div>
+      <button class="btn btn-ghost" style="display:inline-flex;align-items:center;gap:6px;" onclick="generateHealthReportPDF(30)">${navIcon('exportar',14)}${tr('report_boton')}</button>
     </div>
     <div class="grid2">
       <div class="card">
@@ -2447,6 +2506,389 @@ function handleImportFile(input){
   reader.onerror = () => toast('No se pudo leer el archivo', true);
   reader.readAsText(file);
   input.value = '';
+}
+
+/* ================= PDF health report ================= */
+const REPORT_LOGO_PNG = 'data:image/png;base64,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';
+
+function shortDateReport(iso){
+  const [y,m,d] = iso.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  return dt.toLocaleDateString(state.lang==='en' ? 'en-US' : 'es-ES', { day:'numeric', month:'short' });
+}
+function longDateReport(iso){
+  const [y,m,d] = iso.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  return dt.toLocaleDateString(state.lang==='en' ? 'en-US' : 'es-ES', { day:'numeric', month:'short', year:'numeric' });
+}
+function round1(v){ return v==null ? null : Math.round(v*10)/10; }
+
+function buildReportData(days){
+  const isos = Array.from({length:days}).map((_,i)=>isoDaysAgo(days-1-i));
+  const rows = isos.map(iso=>{
+    const d = dayAt(iso);
+    const calEaten = d.meals.reduce((s,m)=>s+(Number(m.calories)||0),0);
+    const exMin = d.exercises.reduce((s,e)=>s+(Number(e.minutes)||0),0);
+    const exCal = d.exercises.reduce((s,e)=>s+(Number(e.calories)||0),0);
+    return { iso, weight:d.weight, calEaten, exMin, exCal, water:d.water||0, sleepHours:d.sleepHours,
+      bp:d.bp||[], meals:d.meals||[], medsTaken:d.medsTaken||[], bodyComp:d.bodyComp||[] };
+  });
+
+  const g = state.goals;
+  const cfg = getForecastConfig();
+
+  const firstEver = getFirstEverWeight();
+  const latestW = getLatestWeight();
+  const weightChange = (firstEver && latestW) ? round1(latestW.weight - firstEver.weight) : null;
+  const bmi = (latestW && cfg.heightCm) ? round1(latestW.weight/Math.pow(cfg.heightCm/100,2)) : null;
+
+  const calDays = rows.filter(r=>r.calEaten>0);
+  const avgCal = calDays.length ? Math.round(calDays.reduce((s,r)=>s+r.calEaten,0)/calDays.length) : null;
+
+  const allMeals = rows.flatMap(r=>r.meals);
+  const mealDayCount = calDays.length || 1;
+  const macroTotals = macroSums(allMeals);
+  const microTotals = microSums(allMeals);
+  const avgMacros = { protein:round1(macroTotals.protein/mealDayCount), carbs:round1(macroTotals.carbs/mealDayCount), fat:round1(macroTotals.fat/mealDayCount) };
+  const avgMicros = Object.fromEntries(Object.entries(microTotals).map(([k,v])=>[k, round1(v/mealDayCount)]));
+
+  const totalExMin = rows.reduce((s,r)=>s+r.exMin,0);
+  const totalExCal = rows.reduce((s,r)=>s+r.exCal,0);
+  const avgExPerWeek = Math.round(totalExMin/(days/7));
+  const exGoalDays = rows.filter(r=>r.exMin >= g.exerciseGoal).length;
+
+  const sleepVals = rows.map(r=>r.sleepHours).filter(v=>v!=null);
+  const avgSleep = sleepVals.length ? round1(sleepVals.reduce((a,b)=>a+b,0)/sleepVals.length) : null;
+
+  const bpReadings = rows.flatMap(r=>r.bp.map(b=>({...b, iso:r.iso})));
+  const avgSys = bpReadings.length ? Math.round(bpReadings.reduce((s,b)=>s+b.systolic,0)/bpReadings.length) : null;
+  const avgDia = bpReadings.length ? Math.round(bpReadings.reduce((s,b)=>s+b.diastolic,0)/bpReadings.length) : null;
+  const pulseVals = bpReadings.map(b=>b.pulse).filter(v=>v!=null);
+  const avgPulse = pulseVals.length ? Math.round(pulseVals.reduce((a,b)=>a+b,0)/pulseVals.length) : null;
+  const catCounts = {};
+  bpReadings.forEach(b=>{ const c = bpCategory(b.systolic,b.diastolic).label; catCounts[c] = (catCounts[c]||0)+1; });
+
+  const bcEntries = rows.flatMap(r=>r.bodyComp.map(bc=>({...bc, iso:r.iso}))).sort((a,b)=>a.iso===b.iso?0:(a.iso<b.iso?-1:1));
+  const latestBC = {};
+  BODYCOMP_FIELDS.forEach(f=>{
+    for(let i=rows.length-1;i>=0;i--){
+      const v = latestBodyCompValue(rows[i], f.key);
+      if(v!=null){ latestBC[f.key] = v; break; }
+    }
+  });
+
+  const adherence = state.meds.length>0 ? medAdherence(days) : null;
+
+  return {
+    days, isos, rows,
+    weight: { first:firstEver, latest:latestW, change:weightChange, bmi, daily: rows.map(r=>({iso:r.iso, v:r.weight})) },
+    calories: { avg:avgCal, goal:g.calorieGoal, daysLogged:calDays.length, daily: rows.map(r=>({iso:r.iso, v:r.calEaten||null})) },
+    macros: avgMacros, micros: avgMicros,
+    exercise: { totalMin:totalExMin, avgPerWeek:avgExPerWeek, totalCal:totalExCal, goal:g.exerciseGoal, goalDays:exGoalDays },
+    sleep: { avg:avgSleep, daily: rows.map(r=>({iso:r.iso, v:r.sleepHours})) },
+    bp: { readings:bpReadings, avgSys, avgDia, avgPulse, catCounts,
+      daily: rows.map(r=>{ const last=r.bp[r.bp.length-1]; return { iso:r.iso, sys: last?last.systolic:null, dia: last?last.diastolic:null }; }) },
+    bodyComp: { latest:latestBC, entries:bcEntries },
+    meds: { list:state.meds, adherence },
+    goals: g, forecastConfig: cfg,
+  };
+}
+
+function reportFlags(data){
+  const flags = [];
+  if(data.bp.readings.length){
+    const worst = Object.entries(data.bp.catCounts).sort((a,b)=>b[1]-a[1])[0];
+    if(worst && worst[0]!=='Normal') flags.push(trf('report_flag_pa', { cat:worst[0], n:worst[1], total:data.bp.readings.length }));
+  }
+  if(data.meds.adherence!=null && data.meds.adherence<80) flags.push(trf('report_flag_adherencia', { pct:data.meds.adherence }));
+  const bf = data.bodyComp.latest.bodyFatPct;
+  if(bf!=null && (bf<8 || bf>32)) flags.push(trf('report_flag_grasa', { val:bf }));
+  const vf = data.bodyComp.latest.visceralFat;
+  if(vf!=null && vf>=15) flags.push(trf('report_flag_visceral', { val:vf }));
+  return flags;
+}
+
+function pdfSectionTitle(doc, text, x, y, w){
+  doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(20,50,45);
+  doc.text(text, x, y);
+  doc.setDrawColor(242,166,90); doc.setLineWidth(1.4);
+  doc.line(x, y+6, x+w, y+6);
+  doc.setDrawColor(210,215,212);
+}
+function pdfKpiRow(doc, x, y, w, items){
+  const colW = w/items.length;
+  items.forEach((it,i)=>{
+    const cx = x + colW*i;
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(120,130,126);
+    doc.text(it.label, cx, y);
+    doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.setTextColor(20,50,45);
+    doc.text(String(it.value), cx, y+18);
+    if(it.sub){ doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(140,150,145); doc.text(it.sub, cx, y+30); }
+  });
+  return y+42;
+}
+function pdfLineChart(doc, x, y, w, h, seriesList, opts){
+  opts = opts || {};
+  const allVals = seriesList.flatMap(s=>s.values.map(p=>p.v)).filter(v=>v!=null);
+  doc.setDrawColor(225,229,226); doc.setLineWidth(0.5);
+  doc.rect(x, y, w, h);
+  if(!allVals.length){
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(150,160,155);
+    doc.text(tr('chart_no_data'), x+w/2, y+h/2, { align:'center' });
+    return;
+  }
+  const yMin = opts.yMin!=null ? opts.yMin : Math.min(...allVals)*0.95;
+  const yMax = opts.yMax!=null ? opts.yMax : Math.max(...allVals)*1.05;
+  const gridN = 4;
+  doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(140,150,145);
+  for(let i=0;i<=gridN;i++){
+    const gy = y + h - (h*i/gridN);
+    doc.setDrawColor(235,238,236); doc.setLineWidth(0.4);
+    doc.line(x, gy, x+w, gy);
+    const val = yMin + (yMax-yMin)*i/gridN;
+    doc.text(val.toFixed(0), x-5, gy+2, { align:'right' });
+  }
+  seriesList.forEach(s=>{
+    const n = s.values.length;
+    doc.setDrawColor(s.color[0], s.color[1], s.color[2]); doc.setLineWidth(1.4);
+    let prev = null;
+    s.values.forEach((p,idx)=>{
+      if(p.v==null){ prev=null; return; }
+      const px = x + w*idx/(n-1);
+      const py = y + h - h*(p.v-yMin)/(yMax-yMin);
+      if(prev) doc.line(prev.x, prev.y, px, py);
+      prev = { x:px, y:py };
+    });
+  });
+  const n = seriesList[0].values.length;
+  doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(120,130,126);
+  [0, Math.floor((n-1)/2), n-1].forEach(idx=>{
+    const iso = seriesList[0].values[idx].iso;
+    const lx = x + w*idx/(n-1);
+    const align = idx===0 ? 'left' : (idx===n-1 ? 'right' : 'center');
+    doc.text(shortDateReport(iso), lx, y+h+11, { align });
+  });
+}
+function pdfLegend(doc, x, y, items){
+  let cx = x;
+  items.forEach(it=>{
+    doc.setFillColor(it.color[0], it.color[1], it.color[2]);
+    doc.circle(cx+3, y-3, 3, 'F');
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(90,100,96);
+    doc.text(it.label, cx+10, y);
+    cx += 12 + doc.getTextWidth(it.label) + 16;
+  });
+}
+function buildHealthReportDoc(days){
+  days = days || 30;
+  if(!window.jspdf || !window.jspdf.jsPDF) return null;
+  const data = buildReportData(days);
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit:'pt', format:'a4' });
+  const PW = 595.28, PH = 841.89, MX = 48, CW = PW - MX*2;
+  const ORANGE=[242,166,90], TEAL=[127,200,176], YELLOW=[232,196,104], DARK=[20,50,45], MUTED=[120,130,126];
+  const tableTheme = { theme:'grid', margin:{left:MX,right:MX}, styles:{fontSize:8.5, textColor:[40,50,47], lineColor:[225,229,226], lineWidth:0.5},
+    headStyles:{ fillColor:[27,69,63], textColor:255, fontStyle:'bold' }, alternateRowStyles:{ fillColor:[246,248,247] } };
+
+  // ---- Cover page ----
+  doc.setFillColor(14,39,35); doc.rect(0,0,PW,PH,'F');
+  doc.addImage(REPORT_LOGO_PNG, 'PNG', PW/2-55, 130, 110, 110);
+  doc.setFont('helvetica','bold'); doc.setFontSize(28); doc.setTextColor(239,246,242);
+  doc.text('VitaLink', PW/2, 280, { align:'center' });
+  doc.setFont('helvetica','normal'); doc.setFontSize(17); doc.setTextColor(...ORANGE);
+  doc.text(tr('report_titulo'), PW/2, 308, { align:'center' });
+  doc.setFontSize(11); doc.setTextColor(...TEAL);
+  doc.text(trf('report_subtitulo', { days }), PW/2, 328, { align:'center' });
+
+  const startIso = data.isos[0], endIso = data.isos[data.isos.length-1];
+  doc.setFontSize(10.5); doc.setTextColor(210,225,220);
+  const coverLines = [
+    `${tr('report_periodo')}: ${longDateReport(startIso)} — ${longDateReport(endIso)}`,
+    `${tr('report_paciente')}: Widy Medina`,
+    `${tr('report_generado')} ${longDateReport(todayISO())}`,
+  ];
+  coverLines.forEach((line,i)=>doc.text(line, PW/2, 400+i*20, { align:'center' }));
+
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(143,178,168);
+  const confLines = doc.splitTextToSize(tr('report_confidencial'), 380);
+  doc.text(confLines, PW/2, PH-90, { align:'center' });
+
+  // ---- Executive summary ----
+  doc.addPage();
+  let y = 56;
+  doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.setTextColor(...DARK);
+  doc.text(tr('report_resumen'), MX, y); y += 26;
+
+  const kpis1 = [
+    { label: tr('report_peso_inicial'), value: data.weight.first ? `${data.weight.first.weight} kg` : '—' },
+    { label: tr('report_peso_actual'), value: data.weight.latest ? `${data.weight.latest.weight} kg` : '—' },
+    { label: tr('report_cambio'), value: data.weight.change!=null ? `${data.weight.change>0?'+':''}${data.weight.change} kg` : '—' },
+    { label: tr('report_imc_actual'), value: data.weight.bmi!=null ? data.weight.bmi : '—' },
+  ];
+  y = pdfKpiRow(doc, MX, y+6, CW, kpis1) + 16;
+
+  const kpis2 = [
+    { label: tr('report_cal_prom_dia'), value: data.calories.avg!=null?`${data.calories.avg}`:'—', sub: `${tr('hoy_de')} ${data.calories.goal} kcal` },
+    { label: tr('report_pa_prom'), value: (data.bp.avgSys!=null?`${data.bp.avgSys}/${data.bp.avgDia}`:'—') },
+    { label: tr('report_pulso_prom'), value: data.bp.avgPulse!=null?`${data.bp.avgPulse} bpm`:'—' },
+    { label: tr('report_sueno_prom'), value: data.sleep.avg!=null?`${data.sleep.avg} h`:'—' },
+  ];
+  y = pdfKpiRow(doc, MX, y+6, CW, kpis2) + 16;
+
+  const kpis3 = [
+    { label: tr('report_ejercicio_total'), value: `${data.exercise.totalMin} min`, sub: `${tr('report_prom_semanal')}: ${data.exercise.avgPerWeek} min` },
+    { label: tr('report_adherencia_meds'), value: data.meds.adherence!=null?`${data.meds.adherence}%`:'—' },
+  ];
+  y = pdfKpiRow(doc, MX, y+6, CW/2, kpis3) + 20;
+
+  doc.setDrawColor(225,229,226); doc.setLineWidth(0.7); doc.line(MX, y, MX+CW, y); y += 22;
+
+  pdfSectionTitle(doc, tr('report_puntos_discutir'), MX, y, CW); y += 20;
+  const flags = reportFlags(data);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(60,70,66);
+  if(!flags.length){
+    doc.text('• ' + tr('report_sin_puntos'), MX, y); y += 16;
+  } else {
+    flags.forEach(f=>{
+      const lines = doc.splitTextToSize('• ' + f, CW);
+      doc.text(lines, MX, y); y += lines.length*13 + 4;
+    });
+  }
+
+  // ---- Weight & body composition ----
+  doc.addPage(); y = 56;
+  pdfSectionTitle(doc, tr('report_peso_composicion'), MX, y, CW); y += 26;
+  doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...DARK);
+  doc.text(tr('hoy_peso'), MX, y); y += 8;
+  pdfLineChart(doc, MX, y, CW, 110, [{ color:TEAL, values:data.weight.daily }], {});
+  y += 148;
+
+  const bcRows = BODYCOMP_FIELDS.filter(f=>data.bodyComp.latest[f.key]!=null).map(f=>[tr('bc_'+f.key), `${data.bodyComp.latest[f.key]} ${bcUnit(f)}`.trim()]);
+  if(bcRows.length){
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...DARK);
+    doc.text(tr('report_ultima_medicion'), MX, y); y += 8;
+    doc.autoTable(Object.assign({}, tableTheme, { startY:y, head:[[tr('report_col_metrica'), tr('report_col_valor')]], body:bcRows, columnStyles:{0:{cellWidth:CW*0.65}} }));
+    y = doc.lastAutoTable.finalY + 24;
+  } else {
+    doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(...MUTED);
+    doc.text(tr('report_sin_mediciones'), MX, y); y += 20;
+  }
+
+  // ---- Blood pressure ----
+  doc.addPage(); y = 56;
+  pdfSectionTitle(doc, tr('report_presion_arterial'), MX, y, CW); y += 26;
+  if(data.bp.readings.length){
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...DARK);
+    doc.text(`${tr('report_pa_prom')}: ${data.bp.avgSys}/${data.bp.avgDia} mmHg`, MX, y); y += 10;
+    pdfLineChart(doc, MX, y, CW, 110, [
+      { color:ORANGE, values:data.bp.daily.map(d=>({iso:d.iso, v:d.sys})) },
+      { color:TEAL, values:data.bp.daily.map(d=>({iso:d.iso, v:d.dia})) },
+    ], {});
+    pdfLegend(doc, MX, y+128, [{ color:ORANGE, label:tr('salud_sistolica') }, { color:TEAL, label:tr('salud_diastolica') }]);
+    y += 150;
+
+    const catRows = Object.entries(data.bp.catCounts).map(([cat,n])=>[cat, String(n), `${Math.round(n/data.bp.readings.length*100)}%`]);
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...DARK);
+    doc.text(tr('report_distribucion'), MX, y); y += 8;
+    doc.autoTable(Object.assign({}, tableTheme, { startY:y, head:[[tr('report_col_categoria'), tr('report_col_dias'), '%']], body:catRows }));
+    y = doc.lastAutoTable.finalY + 24;
+
+    const readRows = data.bp.readings.map(b=>[longDateReport(b.iso), b.time||'—', `${b.systolic}/${b.diastolic}`, b.pulse?`${b.pulse}`:'—', bpCategory(b.systolic,b.diastolic).label]);
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...DARK);
+    doc.text(tr('report_lecturas'), MX, y); y += 8;
+    doc.autoTable(Object.assign({}, tableTheme, { startY:y, head:[[tr('report_col_fecha'), tr('report_col_hora'), 'mmHg', tr('salud_pulso'), tr('report_col_categoria')]], body:readRows }));
+  } else {
+    doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(...MUTED);
+    doc.text(tr('report_sin_lecturas_pa'), MX, y);
+  }
+
+  // ---- Nutrition ----
+  doc.addPage(); y = 56;
+  pdfSectionTitle(doc, tr('report_nutricion'), MX, y, CW); y += 26;
+  doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(...MUTED);
+  doc.text(`${tr('report_dias_con_registro')}: ${data.calories.daysLogged} ${trf('report_dias_registrados',{days})}`, MX, y); y += 16;
+
+  const macroRows = [
+    [tr('macro_proteina'), `${data.macros.protein} g`],
+    [tr('macro_carbohidratos'), `${data.macros.carbs} g`],
+    [tr('macro_grasas'), `${data.macros.fat} g`],
+    [tr('report_cal_prom_dia'), data.calories.avg!=null?`${data.calories.avg} / ${data.calories.goal} kcal`:'—'],
+  ];
+  doc.autoTable(Object.assign({}, tableTheme, { startY:y, head:[[tr('macro_title'), tr('report_col_valor')]], body:macroRows, tableWidth:CW*0.48 }));
+  const microRows = [
+    [tr('micro_fibra'), `${data.micros.fiber} g`], [tr('micro_azucar'), `${data.micros.sugar} g`],
+    [tr('micro_sodio'), `${data.micros.sodium} mg`], [tr('micro_hierro'), `${data.micros.iron} mg`],
+    [tr('micro_calcio'), `${data.micros.calcium} mg`], [tr('micro_potasio'), `${data.micros.potassium} mg`],
+    [tr('micro_vitc'), `${data.micros.vitaminC} mg`],
+  ];
+  doc.autoTable(Object.assign({}, tableTheme, { startY:y, head:[[tr('micro_title'), tr('report_col_valor')]], body:microRows, tableWidth:CW*0.48, margin:{left:MX+CW*0.52,right:MX} }));
+  y = Math.max(doc.lastAutoTable.finalY, y) + 24;
+
+  // ---- Exercise & sleep ----
+  doc.addPage(); y = 56;
+  pdfSectionTitle(doc, tr('report_ejercicio_sueno'), MX, y, CW); y += 26;
+  const exKpis = [
+    { label: tr('report_ejercicio_total'), value: `${data.exercise.totalMin} min` },
+    { label: tr('report_prom_semanal'), value: `${data.exercise.avgPerWeek} min` },
+    { label: tr('stat_quemadas'), value: `${data.exercise.totalCal} kcal` },
+    { label: tr('report_dias_meta_cumplida'), value: `${data.exercise.goalDays}/${days}` },
+  ];
+  y = pdfKpiRow(doc, MX, y+6, CW, exKpis) + 20;
+  doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...DARK);
+  doc.text(tr('hoy_sueno'), MX, y); y += 8;
+  pdfLineChart(doc, MX, y, CW, 100, [{ color:YELLOW, values:data.sleep.daily }], {});
+
+  // ---- Medications ----
+  doc.addPage(); y = 56;
+  pdfSectionTitle(doc, tr('report_medicamentos'), MX, y, CW); y += 26;
+  if(data.meds.list.length){
+    doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(...MUTED);
+    doc.text(`${tr('report_adherencia_meds')}: ${data.meds.adherence}% (${days} ${tr('report_col_dias').toLowerCase()})`, MX, y); y += 14;
+    const medRows = data.meds.list.map(m=>[m.name, m.dose||'—', (m.times||[]).join(', ')]);
+    doc.autoTable(Object.assign({}, tableTheme, { startY:y, head:[[tr('salud_nombre'), tr('report_col_dosis'), tr('report_col_horario')]], body:medRows }));
+  } else {
+    doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(...MUTED);
+    doc.text(tr('report_sin_medicamentos'), MX, y);
+  }
+
+  // ---- Daily log appendix ----
+  doc.addPage(); y = 56;
+  pdfSectionTitle(doc, tr('report_registro_diario'), MX, y, CW); y += 26;
+  const dailyRows = data.rows.map(r=>{
+    const lastBP = r.bp[r.bp.length-1];
+    return [
+      longDateReport(r.iso),
+      r.weight!=null?r.weight:'—',
+      r.calEaten||'—',
+      r.exMin||'—',
+      lastBP ? `${lastBP.systolic}/${lastBP.diastolic}` : '—',
+      r.sleepHours!=null?r.sleepHours:'—',
+      r.water||'—',
+    ];
+  });
+  doc.autoTable(Object.assign({}, tableTheme, { startY:y,
+    head:[[tr('report_col_fecha'), tr('report_col_peso'), tr('report_col_calorias'), tr('report_col_ejercicio'), tr('report_col_pa'), tr('report_col_sueno'), tr('report_col_agua')]],
+    body:dailyRows, styles:Object.assign({}, tableTheme.styles, { fontSize:7.5 }) }));
+
+  // ---- Footer on every page ----
+  const totalPages = doc.internal.getNumberOfPages();
+  for(let p=1;p<=totalPages;p++){
+    doc.setPage(p);
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(150,160,155);
+    if(p>1){
+      doc.text('VitaLink', MX, PH-28);
+      doc.text(`${tr('report_pagina')} ${p} ${tr('report_de_pagina')} ${totalPages}`, PW-MX, PH-28, { align:'right' });
+    }
+  }
+
+  return doc;
+}
+function generateHealthReportPDF(days){
+  toast(tr('report_generando'));
+  const doc = buildHealthReportDoc(days);
+  if(!doc){ toast(tr('report_error_lib'), true); return; }
+  doc.save(`vitalink-reporte-${todayISO()}.pdf`);
+  toast(tr('report_listo'));
 }
 
 /* ================= cross-tab sync ================= */
