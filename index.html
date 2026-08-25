@@ -214,6 +214,10 @@ const I18N = {
     set_apikey_label:'API key de Anthropic (opcional, para estimar calorías con IA)',
     set_apikey_note:'Se guarda solo en este navegador. Nunca la compartas si publicas este archivo.',
     set_sync_title:'Sincronización entre dispositivos', set_cancelar:'Cancelar', set_ajustes_guardados:'Ajustes guardados',
+    invite_titulo:'Invita a un amigo', invite_boton:'Compartir invitación', invite_copiado:'Enlace copiado al portapapeles',
+    invite_texto:'Estoy usando VitaLink para seguir mi salud — pruébalo:',
+    share_boton:'Compartir progreso', share_sin_datos:'Registra al menos dos pesos para poder compartir tu progreso',
+    share_texto:'Mi progreso en VitaLink', share_descargada:'Imagen descargada', share_en_dias:'en {days} días',
     set_cerrar:'Cerrar',
     scan_titulo:'Escanear código', scan_apunta:'Apunta la cámara al código de barras del producto…',
     sync_cargando:'Cargando sincronización…', sync_iniciar_sesion:'Iniciar sesión con Google',
@@ -328,6 +332,10 @@ const I18N = {
     set_apikey_label:'Anthropic API key (optional, for AI calorie estimates)',
     set_apikey_note:"Stored only in this browser. Never share it if you publish this file.",
     set_sync_title:'Cross-device sync', set_cancelar:'Cancel', set_ajustes_guardados:'Settings saved',
+    invite_titulo:'Invite a friend', invite_boton:'Share invite', invite_copiado:'Link copied to clipboard',
+    invite_texto:"I'm using VitaLink to track my health — check it out:",
+    share_boton:'Share progress', share_sin_datos:'Log at least two weights to share your progress',
+    share_texto:'My progress on VitaLink', share_descargada:'Image downloaded', share_en_dias:'in {days} days',
     set_cerrar:'Close',
     scan_titulo:'Scan code', scan_apunta:"Point the camera at the product's barcode…",
     sync_cargando:'Loading sync…', sync_iniciar_sesion:'Sign in with Google',
@@ -1879,6 +1887,7 @@ function renderProgreso(){
           ${weightSummaryHTML(weightPts)}
         </div>
         <div class="chart-box">${lineChartSVG(weightPts,{color:'var(--accent3)', gridLines:true, gridSteps:4, unit:'kg'})}</div>
+        ${weightPts.filter(p=>p.v!=null).length>=2 ? `<button class="btn btn-ghost" style="width:100%;margin-top:10px;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="shareWeightProgress()">${navIcon('exportar',14)}${tr('share_boton')}</button>` : ''}
       </div>
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
@@ -2132,6 +2141,8 @@ function modalHTML(){
         <div style="font-size:11px;color:var(--muted);margin-bottom:16px;">${tr('set_apikey_note')}</div>
         <div class="label">${tr('set_sync_title')}</div>
         <div style="margin-bottom:16px;">${syncSectionHTML()}</div>
+        <div class="label">${tr('invite_titulo')}</div>
+        <button class="btn btn-ghost" style="width:100%;margin-bottom:16px;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="shareInvite()">${navIcon('exportar',14)}${tr('invite_boton')}</button>
         <div style="display:flex;gap:8px;">
           <button class="btn btn-ghost" style="flex:1;" onclick="closeModal()">${tr('set_cancelar')}</button>
           <button class="btn btn-primary" style="flex:1;" onclick="saveSettings()">${tr('cal_guardar')}</button>
@@ -2839,6 +2850,118 @@ function handleImportFile(input){
   input.value = '';
 }
 
+/* ================= social sharing (M1) ================= */
+// Renders a branded square PNG card client-side, no backend involved. Uses the same
+// approved logo asset as the PDF report and the app's own brand colors/fonts, so a
+// shared card always reads as VitaLink regardless of which achievement triggered it.
+async function renderShareCard({ headline, headlineColor, subtitle }){
+  try{
+    await Promise.all([
+      document.fonts.load("700 150px 'Space Grotesk'"),
+      document.fonts.load("500 40px 'Inter'"),
+      document.fonts.load("700 56px 'Space Grotesk'"),
+    ]);
+  }catch(e){}
+  const S = 1080;
+  const canvas = document.createElement('canvas');
+  canvas.width = S; canvas.height = S;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#0E2723';
+  ctx.fillRect(0,0,S,S);
+
+  await new Promise(resolve=>{
+    const img = new Image();
+    img.onload = ()=>{ ctx.drawImage(img, S/2-80, 108, 160, 160); resolve(); };
+    img.onerror = resolve;
+    img.src = REPORT_LOGO_PNG;
+  });
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = headlineColor || '#EFF6F2';
+  ctx.font = "700 150px 'Space Grotesk', sans-serif";
+  ctx.fillText(headline, S/2, 560);
+
+  ctx.fillStyle = '#8FB2A8';
+  ctx.font = "500 40px 'Inter', sans-serif";
+  ctx.fillText(subtitle, S/2, 630);
+
+  ctx.font = "700 56px 'Space Grotesk', sans-serif";
+  const vitaW = ctx.measureText('Vita').width;
+  const linkW = ctx.measureText('Link').width;
+  let x = S/2 - (vitaW+linkW)/2;
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#EFF6F2';
+  ctx.fillText('Vita', x, 920);
+  x += vitaW;
+  ctx.fillStyle = '#F2A65A';
+  ctx.fillText('Link', x, 920);
+
+  return new Promise(resolve=>canvas.toBlob(resolve, 'image/png'));
+}
+async function shareOrDownloadBlob(blob, filename, shareText){
+  const file = new File([blob], filename, { type:'image/png' });
+  if(navigator.canShare && navigator.canShare({ files:[file] })){
+    try{ await navigator.share({ files:[file], title:'VitaLink', text: shareText }); return; }
+    catch(e){ if(e.name==='AbortError') return; /* fall through to download */ }
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast(tr('share_descargada'));
+}
+async function shareWeightProgress(){
+  const firstEver = getFirstEverWeight();
+  const latest = getLatestWeight();
+  if(!firstEver || !latest || firstEver.iso===latest.iso){ toast(tr('share_sin_datos'), true); return; }
+  const change = Math.round((latest.weight - firstEver.weight)*10)/10;
+  const [fy,fm,fd] = firstEver.iso.split('-').map(Number);
+  const [ly,lm,ld] = latest.iso.split('-').map(Number);
+  const days = Math.max(1, Math.round((new Date(ly,lm-1,ld) - new Date(fy,fm-1,fd))/86400000));
+  const headline = `${change>0?'+':''}${change} kg`;
+  const headlineColor = change<0 ? '#7FC8B0' : (change>0 ? '#F2A65A' : '#EFF6F2');
+  const blob = await renderShareCard({ headline, headlineColor, subtitle: trf('share_en_dias',{days}) });
+  await shareOrDownloadBlob(blob, 'vitalink-progreso.png', tr('share_texto'));
+}
+
+/* ================= invite links (M1) ================= */
+function getInviteCode(){
+  let code = LS.get('vl:invite-code');
+  if(!code){ code = uid()+uid(); LS.set('vl:invite-code', code); }
+  return code;
+}
+function inviteURL(){
+  return `${location.origin}${location.pathname}?ref=${getInviteCode()}`;
+}
+async function shareInvite(){
+  const url = inviteURL();
+  const text = tr('invite_texto');
+  if(navigator.share){
+    try{ await navigator.share({ title:'VitaLink', text, url }); return; }
+    catch(e){ if(e.name==='AbortError') return; }
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    try{ await navigator.clipboard.writeText(url); toast(tr('invite_copiado')); return; }catch(e){}
+  }
+  try{ window.prompt(tr('invite_boton'), url); }catch(e){ toast(url, true); }
+}
+// Runs once at startup: if this looks like a fresh install opened via someone else's
+// invite link, stage the code for the Firebase module script to record once it's
+// loaded (it defines window.recordInviteConversion, but loads after this classic
+// script — recordInviteConversion may not exist yet at this point), and strip the
+// param from the URL either way.
+function checkInviteParam(){
+  const params = new URLSearchParams(location.search);
+  const ref = params.get('ref');
+  if(!ref) return;
+  const isFreshInstall = !localStorage.getItem('vl:_lastChangeAt') && !localStorage.getItem('vl:invite-code');
+  if(isFreshInstall) window._pendingInviteRef = ref;
+  params.delete('ref');
+  const qs = params.toString();
+  history.replaceState(null, '', location.pathname + (qs?'?'+qs:''));
+}
+
 /* ================= PDF health report ================= */
 const REPORT_LOGO_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAANwAAADcCAYAAAAbWs+BAAALiUlEQVR4nO2dMY4jxxWGexYbOeAJDAVagHsEn8CAT6BUgaMNCR7A8AEGDBU5UOoTCPAJfAQRkAPDJ2CgSMAa3AFtihpyurveq/rfe98HLAQB0iz7VX31v66uHj5NQdh8/PB59GcAXU4//vQ0BUDyQyIXZJVQ4gMhGFQRcOgHQDSoJl73vxjJoLJ83f4yRANleonn/pcgGkTi5CzeO88fjmwQjY3z4ycXmxENMnBySDvzhEM2yMLGIe1MhUM2yMbGWDqTyEQ0qMDJoMVsTjhkgypsDNKuSThkg2psGqVbLRyyQVU2DdKtEg7ZoDqbldItFg7ZANa7sEg4ZANoc8L1aBcArBSOdANod2OWcMgGYOPIm8IhG8A85rjCPRxARx4KR7oBLOMtZ+4Kh2wA63jkDi0lQEdeFY50A2jjnkMkHEBHfvNCHen2wn/+8oemwv7+r/+cIrP7/rnp/z98uzf7LJleWi0vXKtY0UVsFWsph2Iilheut2BqAvYWrLqAp0cJl7WdVJOst3xqklWT71q61MJFEc1LvCiiZRfvVeGyyBZVMiv5okqWXb6LdGmEyybaUvGyiZZNvDTCZRftLfGyi5ZFvPDCVRPtluevv5kqcwgm3kW4LydNkC0W1WWLmOwXx54iCUeqIVrktDunXJizlMiGbBnSTj7hEA3RsqSdfMIhG7JlS7sn1XRDNmTLmHRywiEaomUWT6qlRDZky95iygiHbMhWQTqJllJVtrWn9pdej+qD7LXtmNIEV2svhwunIpv3i6D3rlNFNu/JqCLhYbB0Q4UbLduoX3dwue7Rso2afLvB8o2Ubphwo2RT+Z0ioybd6BW+eh2GCDdCNhXRRk0yNdGq1uT9lBwl0UagLtrt5xzdbqZLuF7ppiparwkVRbRqder6HA7Zck6iyNew65yo3RKuh2yqqdZrYDOIlr12MidNMsvWg6yyZbu2dxnSTV027xU604TM/mDevaX0lE1dNO+BrCBatpqGbSkjyOZJVdmiX7trwnmlWxTZvFZi6wl3O07Udz+FEw7Z9GV7NEZIt5+m6i1llEnghZVsZ9FGHxyv2l66CJdlMNeiejxpiWiM4XPthCPd2lbyzAIdAqWc+T2cx8BGks0j3VomVKXvKt+J1T5kwkUacA9GyhaNQ4CkMxWu2gAr37tZjQVj+jyVSTjSbd2KXVmSg3jKyQqHbOsnDrXbT+mFq7yqqrWT1jC2z7kTjhW6fYWmhvtJERPhWAHzptsFxvg5Z8KxMtutzNRyP6khJxxAZt4ptRoRV2TLzRKPLW3LmkZsKw+GNbUYaxIOoCMIB1BRuIjtZJQTEtR2P6UQLmJPb0nmh933YMyfcyQcQAUkhKPl8W95qPF+UkBCOIAqIBxAR9J/P1xUjn/746z/bvvnf7h/FhAQjt0qmx3KT7/8MH2aKZcK57GvfE+4+/559WOc4QlXbeDOgo2sdeWF8vDtfvijnOHCVcBTsnPrSVsZB4RLmmagCcIZg2TwCIQzAtFgDgjXCKLBEhBuJYgGa+CkieND6cxQg3WQcAtgkr1eDx5LzIeEmwmyURsLSLg3QLR5kHbzIOEegGzLoWaPQbg7MHHWQ+3uQ0sZfLKobljQYoomnNLp9WiyRai1Uk13Ar/0abVw2V6rUZoY6vz81aZ0bQ8Nvx+FllJ4Qqi2i2vgNaIXygunIlsmue5x5N292sKNlq2CZLcci0s3fNOk2s38ebJd/vSk+ubUTmDDREa4CgM+QjJljiKtfCjhsu1UepBNtKU7lNk4NP4GZ5mE69Xy9FpZlURTaidHjIVKOyklXDbZYB7HYq1lGeF6DKxSqkXiWEi6ZuGqf4f0BVXRLGsa8f5tJ/Yd7CUSznsFVZUtEsciKScnnHXKeQ6kegtpXUvv6z0aj5XSZompcBUfD3hNPMVJcjvGyouM+newyyWc5crslW7WE+4s2eXP5d/V74e9pDsajZnqwmUmnFrKRZDtWjJl7o2tunRq6SabcKo7llYTbI5oLSL2rJ1ie7kTXsRkhVOVrmeirZ04at1Gz5TbCctmLpzSQFuvvK0/r/dEsBqLOT9HMeUU20n5hGtNOauJ0PJzWu/TWv7fngugh3THhSmnnm5nnjYfP3yO0Aq2Tp61LUqrbCor7ZoxWVNz6w2P7cz6e8hmnW4hEs5K4t5tj/UEaP15Su2+tcARks1VONXBXXpSItu9yXlc5o7N2jHMUrODQ7qFSjjLVnWOeIoTx2olXyLeGnrWbhco3VyF8xpQy/tDz7OBXiuk5QS7J55ah3K801Z6yeY1dm6bJj2epXlNCuvfKhVxUlhhuYGyvRmTqHUN1VL2EFmxlczQSlnKuwt87e4J1+PEiFoLdIv3BFFOO8uU++79n6bodeyScN5CqB8B8x7IyCu+Cr0WrbAtZTTpvFGVzrJF//TLD1N0urSUvaVQbTF7SaHWYqq3lYeO9eqacL1EUE27XgOrmnaK9F6cuibcCCEU066nECppZ5Vy3xkm3IjapLmHeyS3auL1IMpb5VXu44Yk3JlREqgk3igJRiWe2n3cYVAdhgl3ZnTyjJLvct3PX38zjaT3pDuKtJUj2+yhwilIN/pZ4Wjpek7Co4Bwo+9phwunJJ2VhEuvR0U678l5HCzcaNlkhFOWrheq0llO4uNA4RRkk9qlVNnMGMX+X38f/RHS7lQeRGSTEu4M0uWWbjvgTQwl2aRayltoMeO0mIpt5UFMNMmEu4a0y512nqjKJi3cGaRDukyynXk/iXORrmqLedlMibqL2YuDuGghEu4a0o60iy5biIS7hrQj7aKKFi7hriHtSLtDQNnCJdw1P3+1+fLP3/37NFXi/4vNyz8zvXpTgbDCVRPvXqpfVnrEi0F44bKLN7d9RrwYpBHuVrzI8rXco17f25B6eqQTLnLqWW8GkXp6pBYuQur12HH1TL2ou4WjKCHcPflGCDj6kcatID3bzqPxt6NG5H3kVz0sBvAs4GuvjbQeJRstVmtCKd//bYN84Uoq4byJIowXtIo+hDxpAhAVhAPoCMJxM98FNkxeQDiAjoQWLvJuFdQc89DCWULLQ217gHAAHUE4gI6EF86yp6ettMeyptvg928phAOIBMLdQMrZQS2TCpeh1YAaY5xCOGtYmamhF2mEy7ICQu6xTSOcNaQctfMA4R6AdMuhZoWEy9R6QM4xTSWcB6zY1MqSdMJ5rIhIN6ZG22TpllI4L5CO2liQUriMK2M1tknH8N3px5+eRn+IKJBy1KSFs2spE85zhUQ6/1psk6bbmbTCnUE6P5BtHamF86Ry0lW+9la+3L9tPn74PCXGe4JkboGuoY5G93DZN068haiw4iNbGxfHaCmNyCxd5mvrzf+SLXtb2XPiZGkxqZcdJROulwgZEgHZfPjVvVuFlOstRLS0ozb2XO+R8P1wnSawungZUjkCv9mdJOV8URNvlGhbsTp4cfsEoKxwCqv6qElX9bpHgHBik6/as8JtIdlmCVct5ZQmo9XkzHY9UXntQAnCiU/SLFST7Z5wrz6Hy37U6zUqToheVKzt6Y5DpR58v0XFieENNf01D5Os2r3cNbSYbVQW7fSgQ3yYcBVbywuVJ0wrlWt3esMZWsoHVJ44a6Fmj5mVYJVbywu0mI9BtGlWRzgr4Sq3lheYUNTGwpFFIpF0L5B2L7AILQ8k7uFWwESjBmtZ3CqScrXTjsWm7XZr1b0Z0tUTD9Fs9jZWb4YgXQ3xEM12I7Fp9xHpcsqHZH679s3b/UiXRzxE839EZvJ8Deniyodk87F4Hm36QBvx9AVEsOVYHvwwP0GCdBoiIpYN1qesXI5sIR1k4ORwpNH1jCTiQUROjmeHXY92cegZonFyPqjf7S0A0g6U6RUO3V+7QTxQoncXNvQ9N+SDEYy81ZF4sRTxoAcKewrDP8BrICBkEewWuQ90DySE6QGKcr3GfwFIBIMohzv2ygAAAABJRU5ErkJggg==';
 
@@ -3237,6 +3360,7 @@ window.addEventListener('focus', resyncFromStorage);
 document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') resyncFromStorage(); });
 
 /* ================= init ================= */
+checkInviteParam();
 render();
 </script>
 
@@ -3313,6 +3437,16 @@ render();
   window.contributeSharedBarcode = async function(code, data){
     try{ await setDoc(doc(db,'barcodeFoods',code), data); }catch(e){}
   };
+
+  // Invite-conversion tracking: append-only, one doc per successful conversion, no
+  // updates ever needed — same create-only shape as the foods/barcodeFoods banks
+  // above. Requires a Firestore rule for `inviteUses` (public create, owner-only
+  // read-by-code query) that doesn't exist yet; silently no-ops until it's added.
+  window.recordInviteConversion = async function(code){
+    try{ await setDoc(doc(db,'inviteUses',uidLike()), { code, ts:Date.now() }); }catch(e){}
+  };
+  function uidLike(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+  if(window._pendingInviteRef){ window.recordInviteConversion(window._pendingInviteRef); window._pendingInviteRef = null; }
 
   function applyRemoteSnapshot(snap){
     if(!snap.exists()){ pushToCloud(); return; }
