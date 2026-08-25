@@ -154,6 +154,17 @@ const I18N = {
     comidas_estimar:'Estimar', comidas_escanear:'Escanear código de barras',
     comidas_prot_g:'Prot(g)', comidas_carb_g:'Carb(g)', comidas_grasa_g:'Grasa(g)',
     btn_agregar:'+ Agregar', comidas_hoy:'Hoy', comidas_empty:'Sin comidas registradas — agrega la primera arriba',
+    pm_titulo:'Comida Personalizada', pm_boton_crear:'Crear comida personalizada', pm_volver:'Volver a Comidas',
+    pm_guardadas:'Tus comidas personalizadas', pm_sin_guardadas:'Aún no has creado ninguna comida personalizada',
+    pm_nueva:'Nueva comida personalizada', pm_editando:'Editando',
+    pm_nombre_placeholder:'Ej. Mi ensalada de pollo', pm_componentes:'Componentes',
+    pm_sin_componentes:'Aún no has agregado componentes', pm_agregar_componente:'+ Agregar componente',
+    pm_total:'Total', pm_guardar:'Guardar comida personalizada', pm_actualizar:'Actualizar comida personalizada',
+    pm_cancelar_edicion:'Cancelar edición', pm_editar:'Editar', pm_eliminar:'Eliminar',
+    pm_local_nota:'Se guarda solo en tu cuenta — nunca se comparte con el banco público de alimentos.',
+    pm_nombre_requerido:'Ponle un nombre a la comida', pm_faltan_componentes:'Agrega al menos un componente',
+    pm_creada:'Comida personalizada guardada', pm_actualizada:'Comida personalizada actualizada', pm_eliminada:'Comida personalizada eliminada',
+    pm_badge_reconocida:'Comida personalizada', pm_componente_placeholder:'Ej. "pechuga de pollo 150g"',
     comidas_prot:'Prot', comidas_carb:'Carb', comidas_grasa:'Grasa', comidas_fibra:'Fibra', comidas_azucar:'Azúcar', comidas_sodio:'Sodio',
     ejercicio_agregar:'Agregar ejercicio', ejercicio_actividad:'Actividad', ejercicio_min:'min',
     ejercicio_kcal_opc:'kcal quemadas (opcional)', ejercicio_empty:'Sin ejercicio registrado — agrega el primero arriba',
@@ -257,6 +268,17 @@ const I18N = {
     comidas_estimar:'Estimate', comidas_escanear:'Scan barcode',
     comidas_prot_g:'Prot(g)', comidas_carb_g:'Carbs(g)', comidas_grasa_g:'Fat(g)',
     btn_agregar:'+ Add', comidas_hoy:'Today', comidas_empty:'No meals logged yet — add the first one above',
+    pm_titulo:'Personalized Meal', pm_boton_crear:'Create personalized meal', pm_volver:'Back to Meals',
+    pm_guardadas:'Your personalized meals', pm_sin_guardadas:"You haven't created any personalized meals yet",
+    pm_nueva:'New personalized meal', pm_editando:'Editing',
+    pm_nombre_placeholder:'E.g. My chicken salad', pm_componentes:'Components',
+    pm_sin_componentes:"You haven't added any components yet", pm_agregar_componente:'+ Add component',
+    pm_total:'Total', pm_guardar:'Save personalized meal', pm_actualizar:'Update personalized meal',
+    pm_cancelar_edicion:'Cancel edit', pm_editar:'Edit', pm_eliminar:'Delete',
+    pm_local_nota:"Saved only to your account — never shared with the public food bank.",
+    pm_nombre_requerido:'Give the meal a name', pm_faltan_componentes:'Add at least one component',
+    pm_creada:'Personalized meal saved', pm_actualizada:'Personalized meal updated', pm_eliminada:'Personalized meal deleted',
+    pm_badge_reconocida:'Personalized meal', pm_componente_placeholder:'E.g. "150g chicken breast"',
     comidas_prot:'Prot', comidas_carb:'Carbs', comidas_grasa:'Fat', comidas_fibra:'Fiber', comidas_azucar:'Sugar', comidas_sodio:'Sodium',
     ejercicio_agregar:'Add exercise', ejercicio_actividad:'Activity', ejercicio_min:'min',
     ejercicio_kcal_opc:'kcal burned (optional)', ejercicio_empty:'No exercise logged yet — add the first one above',
@@ -451,6 +473,23 @@ function getGoals(){ return { ...DEFAULT_GOALS, ...(LS.get('vl:goals') || {}) };
 function setGoals(g){ return LS.set('vl:goals', g); }
 function getMeds(){ return LS.get('vl:meds') || []; }
 function setMeds(m){ return LS.set('vl:meds', m); }
+// Personal meals are user-composed groups of components (e.g. "my chicken salad").
+// They're saved under their own vl: key so they sync privately across the user's
+// own devices via the existing cross-device sync — but are never sent to the
+// shared/public foods collection, unlike individual scanned or AI-estimated foods.
+function getPersonalMeals(){ return LS.get('vl:personal-meals') || []; }
+function setPersonalMeals(m){ return LS.set('vl:personal-meals', m); }
+function findPersonalMealByName(name){
+  const key = normalizeFoodKey(name);
+  if(!key) return null;
+  return getPersonalMeals().find(pm=>normalizeFoodKey(pm.name)===key) || null;
+}
+function personalMealTotals(components){
+  const sum = k => components.reduce((s,c)=>s+(Number(c[k])||0),0);
+  return { calories:sum('calories'), protein:sum('protein'), carbs:sum('carbs'), fat:sum('fat'),
+    fiber:sum('fiber'), sugar:sum('sugar'), sodium:sum('sodium'), iron:sum('iron'),
+    calcium:sum('calcium'), potassium:sum('potassium'), vitaminC:sum('vitaminC') };
+}
 function getApiKey(){ return LS.get('vl:apikey') || ''; }
 function setApiKey(k){ return LS.set('vl:apikey', k); }
 function getForecastConfig(){ return LS.get('vl:forecast-config') || { heightCm:null, targetWeightKg:null }; }
@@ -1007,7 +1046,7 @@ function renderApp(){
   <main>
     <header>
       <div>
-        <h1>${titles[state.tab]}</h1>
+        <h1>${window._pmView ? tr('pm_titulo') : titles[state.tab]}</h1>
         <div class="sub">${formatDateEs(todayISO())}</div>
       </div>
       ${langToggle}
@@ -1019,6 +1058,7 @@ function renderApp(){
   `;
 }
 function renderTab(){
+  if(window._pmView) return renderPersonalMealBuilder();
   switch(state.tab){
     case 'hoy': return renderHoy();
     case 'comidas': return renderComidas();
@@ -1216,6 +1256,7 @@ function renderComidas(){
       </div>
       <button class="btn btn-primary" style="width:100%;" onclick="addMeal()">${tr('btn_agregar')}</button>
     </div>
+    <button class="btn btn-ghost" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="openPersonalMealBuilder()">${navIcon('sparkle',14)}${tr('pm_boton_crear')}</button>
     <div class="card">
       <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
         <div class="label">${tr('comidas_hoy')}</div>
@@ -1245,6 +1286,64 @@ function renderComidas(){
             </div>
           </div>`;
         }).join('')}
+    </div>
+  </div>`;
+}
+
+function ensurePMBuilder(){
+  if(!window._pmBuilder) window._pmBuilder = { editingId:null, name:'', components:[] };
+}
+function renderPersonalMealBuilder(){
+  ensurePMBuilder();
+  const b = window._pmBuilder;
+  const saved = getPersonalMeals();
+  const totals = personalMealTotals(b.components);
+  return `
+  <div class="stack">
+    <button class="btn btn-ghost" onclick="closePersonalMealBuilder()">← ${tr('pm_volver')}</button>
+    <div class="card">
+      <div class="label">${tr('pm_guardadas')}</div>
+      ${saved.length===0 ? emptyState('sparkle', tr('pm_sin_guardadas')) :
+        `<div class="stack" style="gap:8px;">${saved.map(pm=>rowItem(
+          pm.name,
+          `P${Math.round(pm.totals.protein)}g C${Math.round(pm.totals.carbs)}g G${Math.round(pm.totals.fat)}g`,
+          pm.totals.calories+' kcal',
+          `deletePersonalMeal('${pm.id}')`,
+          `<button onclick="editPersonalMeal('${pm.id}')" class="btn btn-ghost" style="padding:4px 8px;font-size:11px;">${tr('pm_editar')}</button>`
+        )).join('')}</div>`}
+    </div>
+    <div class="card">
+      <div class="label">${b.editingId ? tr('pm_editando')+' — '+esc(b.name||'') : tr('pm_nueva')}</div>
+      <input id="pm-name" value="${esc(b.name||'')}" placeholder="${esc(tr('pm_nombre_placeholder'))}" style="width:100%;margin-bottom:14px;" onchange="window._pmBuilder.name=this.value;">
+
+      <div class="label" style="font-size:11px;">${tr('pm_componentes')}</div>
+      ${b.components.length===0 ? `<div style="color:var(--muted);font-size:12px;margin-bottom:12px;">${tr('pm_sin_componentes')}</div>` :
+        `<div class="stack" style="gap:8px;margin-bottom:12px;">${b.components.map((c,i)=>rowItem(c.name, `P${c.protein}g C${c.carbs}g G${c.fat}g`, c.calories+' kcal', `removePMComponent(${i})`)).join('')}</div>`}
+
+      <div style="position:relative;margin-bottom:8px;">
+        <input id="pmc-name" placeholder="${esc(tr('pm_componente_placeholder'))}" style="width:100%;" autocomplete="off" oninput="onPMComponentNameInput()" onfocus="onPMComponentNameInput()" onblur="hidePMComponentSuggest()">
+        <div id="pmc-suggest" class="suggest-list" style="display:none;"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:6px;">
+        <input id="pmc-cal" type="number" placeholder="kcal" style="flex:1;min-width:0;">
+        <button class="btn btn-primary" id="pmc-est-btn" onclick="handlePMEstimate()">${navIcon('sparkle',14)}${tr('comidas_estimar')}</button>
+      </div>
+      <div id="pmc-note" style="font-size:11px;color:var(--accent3);margin-bottom:8px;"></div>
+      <div class="grid4" style="margin-bottom:10px;">
+        <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('comidas_prot_g')}</div><input id="pmc-p" type="number" placeholder="0" style="width:100%;"></div>
+        <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('comidas_carb_g')}</div><input id="pmc-c" type="number" placeholder="0" style="width:100%;"></div>
+        <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('comidas_grasa_g')}</div><input id="pmc-f" type="number" placeholder="0" style="width:100%;"></div>
+      </div>
+      <button class="btn btn-ghost" style="width:100%;margin-bottom:16px;" onclick="addPMComponent()">${tr('pm_agregar_componente')}</button>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;background:var(--raised);border-radius:10px;padding:10px 14px;margin-bottom:14px;">
+        <span style="font-size:12px;color:var(--muted);">${tr('pm_total')}</span>
+        <span class="display" style="font-weight:700;">${totals.calories} kcal · P${Math.round(totals.protein)}g C${Math.round(totals.carbs)}g G${Math.round(totals.fat)}g</span>
+      </div>
+
+      <button class="btn btn-primary" style="width:100%;margin-bottom:8px;" onclick="savePersonalMeal()">${b.editingId ? tr('pm_actualizar') : tr('pm_guardar')}</button>
+      ${b.editingId ? `<button class="btn btn-ghost" style="width:100%;margin-bottom:8px;" onclick="cancelPMEdit()">${tr('pm_cancelar_edicion')}</button>` : ''}
+      <div style="font-size:10px;color:var(--muted);text-align:center;">${tr('pm_local_nota')}</div>
     </div>
   </div>`;
 }
@@ -2014,6 +2113,7 @@ function syncSectionHTML(){
 }
 /* ================= modal (settings) ================= */
 window._modal = null;
+window._pmView = false;
 function modalHTML(){
   if(!window._modal) return '';
   if(window._modal==='settings'){
@@ -2082,7 +2182,7 @@ function saveSettings(){
 
 /* ================= actions ================= */
 function render(){ document.getElementById('app').innerHTML = renderApp(); }
-function setTab(t){ state.tab=t; render(); }
+function setTab(t){ state.tab=t; window._pmView=false; render(); }
 function setMealType(t){ window._mealType=t; render(); }
 function setRange(r){ state.progressRange=r; render(); }
 
@@ -2095,6 +2195,16 @@ function checkCacheHint(){
   if(!nameEl) return;
   const name = nameEl.value.trim();
   const noteEl = document.getElementById('meal-note');
+  const pm = findPersonalMealByName(name);
+  if(pm){
+    document.getElementById('meal-cal').value = pm.totals.calories;
+    document.getElementById('meal-p').value = pm.totals.protein;
+    document.getElementById('meal-c').value = pm.totals.carbs;
+    document.getElementById('meal-f').value = pm.totals.fat;
+    window._pendingMicros = { key: normalizeFoodKey(name), data: pm.totals };
+    noteEl.textContent = '✓ ' + tr('pm_badge_reconocida');
+    return;
+  }
   const cache = getNutritionCache();
   const hit = cache[normalizeFoodKey(name)];
   if(hit){
@@ -2114,19 +2224,30 @@ function mealSuggestions(query){
   if(!q) return cache.slice(0,8);
   return cache.filter(e=>normalizeFoodKey(e.label).includes(q)).slice(0,8);
 }
+// Used only where a user is logging a meal they'll eat (Comidas / Calendario day),
+// never inside the personalized-meal builder itself — personal meals are made of
+// plain food components, so they must not be able to reference each other.
+function mealOrPersonalSuggestions(query){
+  const personal = getPersonalMeals().map(pm=>({ label:pm.name, ts:pm.updatedAt||pm.createdAt, isPersonal:true }));
+  const cache = Object.values(getNutritionCache());
+  const all = personal.concat(cache).sort((a,b)=>b.ts-a.ts);
+  const q = normalizeFoodKey(query);
+  const filtered = q ? all.filter(e=>normalizeFoodKey(e.label).includes(q)) : all;
+  return filtered.slice(0,8);
+}
 function onMealNameInput(){
   checkCacheHint();
   const box = document.getElementById('meal-suggest');
   const nameEl = document.getElementById('meal-name');
   if(!box || !nameEl) return;
-  const items = mealSuggestions(nameEl.value);
+  const items = mealOrPersonalSuggestions(nameEl.value);
   if(!items.length){ box.style.display='none'; box.innerHTML=''; return; }
-  box.innerHTML = items.map(e=>`<div class="suggest-item" onmousedown="pickMealSuggest(this)">${esc(e.label)}</div>`).join('');
+  box.innerHTML = items.map(e=>`<div class="suggest-item" data-label="${esc(e.label)}" onmousedown="pickMealSuggest(this)">${esc(e.label)}${e.isPersonal?` <span style="color:var(--accent2);">★</span>`:''}</div>`).join('');
   box.style.display = 'block';
 }
 function pickMealSuggest(el){
   const nameEl = document.getElementById('meal-name');
-  nameEl.value = el.textContent;
+  nameEl.value = el.dataset.label;
   checkCacheHint();
   hideMealSuggest();
 }
@@ -2139,6 +2260,16 @@ function checkCacheHintForDay(){
   if(!nameEl) return;
   const name = nameEl.value.trim();
   const noteEl = document.getElementById('cal-meal-note');
+  const pm = findPersonalMealByName(name);
+  if(pm){
+    document.getElementById('cal-meal-cal').value = pm.totals.calories;
+    document.getElementById('cal-meal-p').value = pm.totals.protein;
+    document.getElementById('cal-meal-c').value = pm.totals.carbs;
+    document.getElementById('cal-meal-f').value = pm.totals.fat;
+    window._pendingMicros = { key: normalizeFoodKey(name), data: pm.totals };
+    noteEl.textContent = '✓ ' + tr('pm_badge_reconocida');
+    return;
+  }
   const cache = getNutritionCache();
   const hit = cache[normalizeFoodKey(name)];
   if(hit){
@@ -2157,14 +2288,14 @@ function onMealNameInputForDay(){
   const box = document.getElementById('cal-meal-suggest');
   const nameEl = document.getElementById('cal-meal-name');
   if(!box || !nameEl) return;
-  const items = mealSuggestions(nameEl.value);
+  const items = mealOrPersonalSuggestions(nameEl.value);
   if(!items.length){ box.style.display='none'; box.innerHTML=''; return; }
-  box.innerHTML = items.map(e=>`<div class="suggest-item" onmousedown="pickMealSuggestForDay(this)">${esc(e.label)}</div>`).join('');
+  box.innerHTML = items.map(e=>`<div class="suggest-item" data-label="${esc(e.label)}" onmousedown="pickMealSuggestForDay(this)">${esc(e.label)}${e.isPersonal?` <span style="color:var(--accent2);">★</span>`:''}</div>`).join('');
   box.style.display = 'block';
 }
 function pickMealSuggestForDay(el){
   const nameEl = document.getElementById('cal-meal-name');
-  nameEl.value = el.textContent;
+  nameEl.value = el.dataset.label;
   checkCacheHintForDay();
   hideMealSuggestForDay();
 }
@@ -2175,6 +2306,16 @@ function hideMealSuggestForDay(){
 async function handleEstimate(){
   const name = document.getElementById('meal-name').value.trim();
   if(!name) return;
+  const pm = findPersonalMealByName(name);
+  if(pm){
+    document.getElementById('meal-cal').value = pm.totals.calories;
+    document.getElementById('meal-p').value = pm.totals.protein;
+    document.getElementById('meal-c').value = pm.totals.carbs;
+    document.getElementById('meal-f').value = pm.totals.fat;
+    window._pendingMicros = { key: normalizeFoodKey(name), data: pm.totals };
+    document.getElementById('meal-note').textContent = '✓ ' + tr('pm_badge_reconocida');
+    return;
+  }
   const cache = getNutritionCache();
   const hit = cache[normalizeFoodKey(name)];
   if(hit){
@@ -2233,11 +2374,164 @@ function addMeal(){
     time: nowHM(),
   };
   state.day.meals.push(meal);
-  if(meal.calories>0) rememberNutrition(name, meal);
+  if(meal.calories>0 && !findPersonalMealByName(name)) rememberNutrition(name, meal);
   window._pendingMicros = null;
   saveDay(); render();
 }
 function removeMeal(id){ state.day.meals = state.day.meals.filter(m=>m.id!==id); saveDay(); render(); }
+
+/* ================= personalized meals (local, private-sync only) ================= */
+function openPersonalMealBuilder(){
+  ensurePMBuilder();
+  window._pmView = true;
+  render();
+}
+function closePersonalMealBuilder(){
+  window._pmView = false;
+  render();
+}
+function checkPMComponentHint(){
+  const nameEl = document.getElementById('pmc-name');
+  if(!nameEl) return;
+  const name = nameEl.value.trim();
+  const noteEl = document.getElementById('pmc-note');
+  const cache = getNutritionCache();
+  const hit = cache[normalizeFoodKey(name)];
+  if(hit){
+    document.getElementById('pmc-cal').value = hit.calories;
+    document.getElementById('pmc-p').value = hit.protein;
+    document.getElementById('pmc-c').value = hit.carbs;
+    document.getElementById('pmc-f').value = hit.fat;
+    window._pmPendingMicros = { key: normalizeFoodKey(name), data: hit };
+    noteEl.textContent = '✓ Reconocido de tu historial — sin usar API';
+  } else {
+    noteEl.textContent = '';
+  }
+}
+function onPMComponentNameInput(){
+  checkPMComponentHint();
+  const box = document.getElementById('pmc-suggest');
+  const nameEl = document.getElementById('pmc-name');
+  if(!box || !nameEl) return;
+  const items = mealSuggestions(nameEl.value);
+  if(!items.length){ box.style.display='none'; box.innerHTML=''; return; }
+  box.innerHTML = items.map(e=>`<div class="suggest-item" data-label="${esc(e.label)}" onmousedown="pickPMComponentSuggest(this)">${esc(e.label)}</div>`).join('');
+  box.style.display = 'block';
+}
+function pickPMComponentSuggest(el){
+  const nameEl = document.getElementById('pmc-name');
+  nameEl.value = el.dataset.label;
+  checkPMComponentHint();
+  hidePMComponentSuggest();
+}
+function hidePMComponentSuggest(){
+  const box = document.getElementById('pmc-suggest');
+  if(box) box.style.display = 'none';
+}
+async function handlePMEstimate(){
+  const name = document.getElementById('pmc-name').value.trim();
+  if(!name) return;
+  const cache = getNutritionCache();
+  const hit = cache[normalizeFoodKey(name)];
+  if(hit){
+    document.getElementById('pmc-cal').value = hit.calories;
+    document.getElementById('pmc-p').value = hit.protein;
+    document.getElementById('pmc-c').value = hit.carbs;
+    document.getElementById('pmc-f').value = hit.fat;
+    window._pmPendingMicros = { key: normalizeFoodKey(name), data: hit };
+    document.getElementById('pmc-note').textContent = '✓ Desde tu historial (sin usar API)' + (hit.note?' — '+hit.note:'');
+    return;
+  }
+  const btn = document.getElementById('pmc-est-btn');
+  btn.disabled = true; btn.textContent = 'Calculando…';
+  window._estimateBusy = true;
+  try{
+    const shared = await lookupSharedFoodSafe(normalizeFoodKey(name));
+    if(shared){
+      document.getElementById('pmc-cal').value = shared.calories;
+      document.getElementById('pmc-p').value = shared.protein ?? 0;
+      document.getElementById('pmc-c').value = shared.carbs ?? 0;
+      document.getElementById('pmc-f').value = shared.fat ?? 0;
+      window._pmPendingMicros = { key: normalizeFoodKey(name), data: shared };
+      document.getElementById('pmc-note').textContent = '✓ ' + (shared.note||'') + ' — desde el banco compartido';
+      rememberNutrition(name, shared);
+      return;
+    }
+    const r = await estimateNutrition(name);
+    document.getElementById('pmc-cal').value = r.calories;
+    document.getElementById('pmc-p').value = r.protein ?? 0;
+    document.getElementById('pmc-c').value = r.carbs ?? 0;
+    document.getElementById('pmc-f').value = r.fat ?? 0;
+    window._pmPendingMicros = { key: normalizeFoodKey(name), data: r };
+    document.getElementById('pmc-note').textContent = '✓ ' + (r.note||'') + ' — ajusta si no coincide';
+    rememberNutrition(name, r);
+    contributeSharedFoodSafe(normalizeFoodKey(name), name, r);
+  }catch(e){
+    toast(e.message || 'No se pudo estimar', true);
+  }finally{
+    btn.disabled=false; btn.innerHTML=navIcon('sparkle',14)+tr('comidas_estimar');
+    window._estimateBusy = false;
+  }
+}
+function addPMComponent(){
+  if(window._estimateBusy){ toast('Espera a que termine de estimar antes de agregar', true); return; }
+  ensurePMBuilder();
+  const name = document.getElementById('pmc-name').value.trim();
+  if(!name) return;
+  const pending = window._pmPendingMicros && window._pmPendingMicros.key===normalizeFoodKey(name) ? window._pmPendingMicros.data : null;
+  window._pmBuilder.components.push({
+    name,
+    calories: Number(document.getElementById('pmc-cal').value)||0,
+    protein: Number(document.getElementById('pmc-p').value)||0,
+    carbs: Number(document.getElementById('pmc-c').value)||0,
+    fat: Number(document.getElementById('pmc-f').value)||0,
+    fiber: pending?.fiber||0, sugar: pending?.sugar||0, sodium: pending?.sodium||0,
+    iron: pending?.iron||0, calcium: pending?.calcium||0, potassium: pending?.potassium||0, vitaminC: pending?.vitaminC||0,
+  });
+  window._pmPendingMicros = null;
+  render();
+}
+function removePMComponent(idx){
+  ensurePMBuilder();
+  window._pmBuilder.components.splice(idx,1);
+  render();
+}
+function savePersonalMeal(){
+  ensurePMBuilder();
+  const b = window._pmBuilder;
+  const name = (document.getElementById('pm-name').value||'').trim();
+  if(!name){ toast(tr('pm_nombre_requerido'), true); return; }
+  if(!b.components.length){ toast(tr('pm_faltan_componentes'), true); return; }
+  const totals = personalMealTotals(b.components);
+  const meals = getPersonalMeals();
+  if(b.editingId){
+    const idx = meals.findIndex(m=>m.id===b.editingId);
+    if(idx>=0) meals[idx] = { ...meals[idx], name, components:b.components, totals, updatedAt:Date.now() };
+    toast(tr('pm_actualizada'));
+  } else {
+    meals.push({ id:uid(), name, components:b.components, totals, createdAt:Date.now() });
+    toast(tr('pm_creada'));
+  }
+  setPersonalMeals(meals);
+  window._pmBuilder = { editingId:null, name:'', components:[] };
+  render();
+}
+function editPersonalMeal(id){
+  const pm = getPersonalMeals().find(m=>m.id===id);
+  if(!pm) return;
+  window._pmBuilder = { editingId:id, name:pm.name, components: pm.components.map(c=>({...c})) };
+  render();
+}
+function cancelPMEdit(){
+  window._pmBuilder = { editingId:null, name:'', components:[] };
+  render();
+}
+function deletePersonalMeal(id){
+  setPersonalMeals(getPersonalMeals().filter(m=>m.id!==id));
+  if(window._pmBuilder && window._pmBuilder.editingId===id) window._pmBuilder = { editingId:null, name:'', components:[] };
+  toast(tr('pm_eliminada'));
+  render();
+}
 
 function checkExerciseHint(){
   const nameEl = document.getElementById('ex-name');
@@ -2374,6 +2668,16 @@ function mutateDay(iso, fn){
 async function handleEstimateForDay(){
   const name = document.getElementById('cal-meal-name').value.trim();
   if(!name) return;
+  const pm = findPersonalMealByName(name);
+  if(pm){
+    document.getElementById('cal-meal-cal').value = pm.totals.calories;
+    document.getElementById('cal-meal-p').value = pm.totals.protein;
+    document.getElementById('cal-meal-c').value = pm.totals.carbs;
+    document.getElementById('cal-meal-f').value = pm.totals.fat;
+    window._pendingMicros = { key: normalizeFoodKey(name), data: pm.totals };
+    document.getElementById('cal-meal-note').textContent = '✓ ' + tr('pm_badge_reconocida');
+    return;
+  }
   const cache = getNutritionCache();
   const hit = cache[normalizeFoodKey(name)];
   if(hit){
@@ -2433,7 +2737,7 @@ function addMealForDay(iso){
     fiber: pending?.fiber||0, sugar: pending?.sugar||0, sodium: pending?.sodium||0,
     iron: pending?.iron||0, calcium: pending?.calcium||0, potassium: pending?.potassium||0, vitaminC: pending?.vitaminC||0,
   };
-  if(meal.calories>0) rememberNutrition(name, meal);
+  if(meal.calories>0 && !findPersonalMealByName(name)) rememberNutrition(name, meal);
   window._pendingMicros = null;
   mutateDay(iso, day=>day.meals.push(meal));
 }
