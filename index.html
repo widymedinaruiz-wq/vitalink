@@ -865,7 +865,7 @@ function lineChartSVG(points, opts){
   if(vals.length < 2) return `<div style="color:var(--muted);font-size:12px;padding:20px;text-align:center;">${opts.emptyMsg||tr('chart_no_data')}</div>`;
   let min = Math.min(...vals), max = Math.max(...vals);
   if(opts.targetValue!=null){ min = Math.min(min, opts.targetValue); max = Math.max(max, opts.targetValue); }
-  if(opts.maValues){ min = Math.min(min, ...opts.maValues); max = Math.max(max, ...opts.maValues); }
+  if(opts.maValues){ const maVals = opts.maValues.filter(v=>v!=null); if(maVals.length){ min = Math.min(min, ...maVals); max = Math.max(max, ...maVals); } }
   const range = (max-min)||1;
   const stepX = (w-pad*2)/(points.length-1);
   const xy = points.map((p,i)=> p.v==null ? null : [pad+i*stepX, h-pad-((p.v-min)/range)*(h-pad*2)]);
@@ -877,7 +877,7 @@ function lineChartSVG(points, opts){
   const targetY = opts.targetValue!=null ? h-pad-((opts.targetValue-min)/range)*(h-pad*2) : null;
   const targetLine = targetY!=null ? `<line x1="${pad}" y1="${targetY}" x2="${w-pad}" y2="${targetY}" stroke="${targetColor}" stroke-width="2" stroke-dasharray="6,3"/>
     <text x="${w-pad-2}" y="${targetY-4}" font-size="9" fill="${targetColor}" text-anchor="end">Meta ${opts.targetValue}${opts.unit?' '+opts.unit:''}</text>` : '';
-  const maPath = opts.maValues ? `<path d="${svgPathThroughValid(opts.maValues.map((v,i)=>[pad+i*stepX, h-pad-((v-min)/range)*(h-pad*2)]))}" fill="none" stroke="${opts.maColor||opts.color}" stroke-width="1.6" stroke-dasharray="5,4" opacity="0.8"/>` : '';
+  const maPath = opts.maValues ? `<path d="${svgPathThroughValid(opts.maValues.map((v,i)=> v==null ? null : [pad+i*stepX, h-pad-((v-min)/range)*(h-pad*2)]))}" fill="none" stroke="${opts.maColor||opts.color}" stroke-width="1.6" stroke-dasharray="5,4" opacity="0.8"/>` : '';
   return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:${h}px;">
     ${grid}
     <line x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="var(--line)"/>
@@ -900,7 +900,7 @@ function multiLineChartSVG(points, series, opts){
     const xy = points.map((p,i)=> p[s.key]==null ? null : [pad+i*stepX, h-pad-((p[s.key]-min)/range)*(h-pad*2)]);
     const d = svgPathThroughValid(xy);
     const dots = xy.map(pt=> pt?`<circle cx="${pt[0]}" cy="${pt[1]}" r="3" fill="${s.color}"/>`:'').join('');
-    const maPath = s.ma ? `<path d="${svgPathThroughValid(s.ma.map((v,i)=>[pad+i*stepX, h-pad-((v-min)/range)*(h-pad*2)]))}" fill="none" stroke="${s.color}" stroke-width="1.6" stroke-dasharray="5,4" opacity="0.8"/>` : '';
+    const maPath = s.ma ? `<path d="${svgPathThroughValid(s.ma.map((v,i)=> v==null ? null : [pad+i*stepX, h-pad-((v-min)/range)*(h-pad*2)]))}" fill="none" stroke="${s.color}" stroke-width="1.6" stroke-dasharray="5,4" opacity="0.8"/>` : '';
     return `${maPath}<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.5"/>${dots}`;
   }).join('');
   const labels = points.map((p,i)=>`<text x="${pad+i*stepX}" y="${h-6}" font-size="10" fill="var(--muted)" text-anchor="middle">${p.label}</text>`).join('');
@@ -1645,17 +1645,35 @@ function renderComposicion(){
 }
 function renderComposicionCharts(){
   const n = 30;
+  const maWindow = 30;
+  // Body composition is measured occasionally, not daily, so unlike the Nutrition
+  // charts a trailing window can easily contain zero readings — the average there
+  // must be over whatever samples exist in the window, not over 30 zero-padded days.
+  const lookbackDays = n - 1 + maWindow;
+  const bodyCompByDaysAgo = Array.from({length:lookbackDays}).map((_,daysAgo)=>dayAt(isoDaysAgo(daysAgo)).bodyComp || []);
+  function valueAt(daysAgo, key){ return latestBodyCompValue({ bodyComp: bodyCompByDaysAgo[daysAgo] }, key); }
+  function ma30(key){
+    return Array.from({length:n}).map((_,i)=>{
+      const daysAgo = n-1-i;
+      let sum=0, count=0;
+      for(let k=daysAgo; k<daysAgo+maWindow; k++){
+        const v = valueAt(k, key);
+        if(v!=null){ sum+=v; count++; }
+      }
+      return count>0 ? sum/count : null;
+    });
+  }
   const isos = Array.from({length:n}).map((_,i)=>isoDaysAgo(n-1-i));
-  const days = isos.map(iso => iso===todayISO() ? { iso, ...state.day } : { iso, ...getDay(iso) });
   const colors = ['var(--accent)','var(--accent2)','var(--accent3)','var(--danger)'];
   const charts = BODYCOMP_FIELDS.map((f,i)=>{
-    const pts = days.map(day=>({ label:dayLetter(day.iso), v: latestBodyCompValue(day, f.key) }));
+    const pts = isos.map((iso,idx)=>({ label:dayLetter(iso), v: valueAt(n-1-idx, f.key) }));
+    const ma = ma30(f.key);
     return `<div class="card"><div class="label" style="display:flex;align-items:center;gap:6px;justify-content:space-between;">
         <span>${tr('bc_'+f.key)}${f.unit?' ('+bcUnit(f)+')':''}</span>
         <button class="info-btn" onclick="openBodyCompInfo('${f.key}')" title="${esc(tr('comp_info_title'))}">ⓘ</button>
-      </div><div class="chart-box">${lineChartSVG(pts,{color:colors[i%colors.length], gridLines:true, gridSteps:4, unit:bcUnit(f)})}</div></div>`;
+      </div><div class="chart-box">${lineChartSVG(pts,{color:colors[i%colors.length], gridLines:true, gridSteps:4, unit:bcUnit(f), maValues:ma})}</div></div>`;
   }).join('');
-  return `<div style="font-size:12px;color:var(--muted);">${tr('comp_tendencia')}</div><div class="grid2">${charts}</div>`;
+  return `<div style="font-size:12px;color:var(--muted);">${tr('comp_tendencia')} · ${tr('nutr_ma30_nota')}</div><div class="grid2">${charts}</div>`;
 }
 
 function renderCalendario(){
