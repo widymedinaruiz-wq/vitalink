@@ -181,6 +181,7 @@ const I18N = {
     prog_dias:'días', prog_promedio_7dias:'Promedio 7 días', prog_calorias_meta:'Calorías (meta {goal})',
     prog_ejercicio_min_meta:'Ejercicio min (meta {goal})',
     nutr_ultimos_30_dias:'Últimos 30 días', nutr_macro_g:'Macronutrientes (g)',
+    nutr_ma30_nota:'Línea punteada: promedio móvil de 30 días',
     pron_tus_datos:'Tus datos', pron_altura:'Altura (cm)', pron_peso_meta:'Peso meta (kg)',
     pron_ej_170:'Ej. 170', pron_ej_68:'Ej. 68', pron_datos_guardados:'Datos guardados',
     pron_ingresa_datos:'Ingresa tu altura y peso meta arriba para generar tu pronóstico',
@@ -283,6 +284,7 @@ const I18N = {
     prog_dias:'days', prog_promedio_7dias:'7-day average', prog_calorias_meta:'Calories (goal {goal})',
     prog_ejercicio_min_meta:'Exercise min (goal {goal})',
     nutr_ultimos_30_dias:'Last 30 days', nutr_macro_g:'Macronutrients (g)',
+    nutr_ma30_nota:'Dashed line: 30-day moving average',
     pron_tus_datos:'Your info', pron_altura:'Height (cm)', pron_peso_meta:'Target weight (kg)',
     pron_ej_170:'E.g. 170', pron_ej_68:'E.g. 68', pron_datos_guardados:'Data saved',
     pron_ingresa_datos:'Enter your height and target weight above to generate your forecast',
@@ -816,6 +818,7 @@ function lineChartSVG(points, opts){
   if(vals.length < 2) return `<div style="color:var(--muted);font-size:12px;padding:20px;text-align:center;">${opts.emptyMsg||tr('chart_no_data')}</div>`;
   let min = Math.min(...vals), max = Math.max(...vals);
   if(opts.targetValue!=null){ min = Math.min(min, opts.targetValue); max = Math.max(max, opts.targetValue); }
+  if(opts.maValues){ min = Math.min(min, ...opts.maValues); max = Math.max(max, ...opts.maValues); }
   const range = (max-min)||1;
   const stepX = (w-pad*2)/(points.length-1);
   const xy = points.map((p,i)=> p.v==null ? null : [pad+i*stepX, h-pad-((p.v-min)/range)*(h-pad*2)]);
@@ -827,10 +830,12 @@ function lineChartSVG(points, opts){
   const targetY = opts.targetValue!=null ? h-pad-((opts.targetValue-min)/range)*(h-pad*2) : null;
   const targetLine = targetY!=null ? `<line x1="${pad}" y1="${targetY}" x2="${w-pad}" y2="${targetY}" stroke="${targetColor}" stroke-width="2" stroke-dasharray="6,3"/>
     <text x="${w-pad-2}" y="${targetY-4}" font-size="9" fill="${targetColor}" text-anchor="end">Meta ${opts.targetValue}${opts.unit?' '+opts.unit:''}</text>` : '';
+  const maPath = opts.maValues ? `<path d="${svgPathThroughValid(opts.maValues.map((v,i)=>[pad+i*stepX, h-pad-((v-min)/range)*(h-pad*2)]))}" fill="none" stroke="${opts.maColor||opts.color}" stroke-width="1.6" stroke-dasharray="5,4" opacity="0.8"/>` : '';
   return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:${h}px;">
     ${grid}
     <line x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="var(--line)"/>
     ${targetLine}
+    ${maPath}
     <path d="${validPts}" fill="none" stroke="${opts.color}" stroke-width="2.5" stroke-linejoin="round"/>
     ${dots}${labels}
   </svg>`;
@@ -838,15 +843,18 @@ function lineChartSVG(points, opts){
 function multiLineChartSVG(points, series, opts){
   const w = opts.w||520, h = opts.h||150, pad=28;
   const allVals = points.flatMap(p=>series.map(s=>p[s.key])).filter(v=>v!=null);
+  const maVals = series.flatMap(s=>s.ma||[]).filter(v=>v!=null);
   if(allVals.length < 2) return `<div style="color:var(--muted);font-size:12px;padding:20px;text-align:center;">${opts.emptyMsg||tr('chart_no_data')}</div>`;
-  const min = Math.min(...allVals), max = Math.max(...allVals);
+  const combined = allVals.concat(maVals);
+  const min = Math.min(...combined), max = Math.max(...combined);
   const range = (max-min)||1;
   const stepX = (w-pad*2)/(points.length-1);
   const paths = series.map(s=>{
     const xy = points.map((p,i)=> p[s.key]==null ? null : [pad+i*stepX, h-pad-((p[s.key]-min)/range)*(h-pad*2)]);
     const d = svgPathThroughValid(xy);
     const dots = xy.map(pt=> pt?`<circle cx="${pt[0]}" cy="${pt[1]}" r="3" fill="${s.color}"/>`:'').join('');
-    return `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.5"/>${dots}`;
+    const maPath = s.ma ? `<path d="${svgPathThroughValid(s.ma.map((v,i)=>[pad+i*stepX, h-pad-((v-min)/range)*(h-pad*2)]))}" fill="none" stroke="${s.color}" stroke-width="1.6" stroke-dasharray="5,4" opacity="0.8"/>` : '';
+    return `${maPath}<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.5"/>${dots}`;
   }).join('');
   const labels = points.map((p,i)=>`<text x="${pad+i*stepX}" y="${h-6}" font-size="10" fill="var(--muted)" text-anchor="middle">${p.label}</text>`).join('');
   const grid = opts.gridLines ? refGridSVG(min, range, w, h, pad, opts.gridSteps||4, opts.unit) : '';
@@ -1809,12 +1817,27 @@ function renderProgreso(){
 
 function renderNutricion(){
   const n = 30;
-  const isos = Array.from({length:n}).map((_,i)=>isoDaysAgo(n-1-i));
-  const days = isos.map(iso => iso===todayISO() ? { iso, ...state.day } : { iso, ...getDay(iso) });
-  const macroPts = days.map(d=>{
-    const s = macroSums(d.meals);
-    return { label:dayLetter(d.iso), protein:s.protein, carbs:s.carbs, fat:s.fat };
+  const maWindow = 30;
+  const lookbackDays = n - 1 + maWindow; // extra days behind the visible range so the oldest point still gets a full 30-day trailing average
+  const rawByDaysAgo = Array.from({length:lookbackDays}).map((_,daysAgo)=>{
+    const d = dayAt(isoDaysAgo(daysAgo));
+    return { ...macroSums(d.meals), ...microSums(d.meals) };
   });
+  function ma30(key){
+    return Array.from({length:n}).map((_,i)=>{
+      const daysAgo = n-1-i;
+      let sum = 0;
+      for(let k=daysAgo; k<daysAgo+maWindow; k++) sum += rawByDaysAgo[k][key];
+      return sum/maWindow;
+    });
+  }
+  const isos = Array.from({length:n}).map((_,i)=>isoDaysAgo(n-1-i));
+  const macroPts = isos.map((iso,i)=>{
+    const r = rawByDaysAgo[n-1-i];
+    return { label:dayLetter(iso), protein:r.protein, carbs:r.carbs, fat:r.fat };
+  });
+  const macroMA = { protein: ma30('protein'), carbs: ma30('carbs'), fat: ma30('fat') };
+
   const microDefs = [
     { key:'fiber', label:tr('micro_fibra')+' (g)', color:'var(--accent3)', unit:'g' },
     { key:'sugar', label:tr('micro_azucar')+' (g)', color:'var(--accent2)', unit:'g' },
@@ -1825,17 +1848,21 @@ function renderNutricion(){
     { key:'vitaminC', label:tr('micro_vitc')+' (mg)', color:'var(--accent)', unit:'mg' },
   ];
   const microCharts = microDefs.map(mk=>{
-    const pts = days.map(d=>({ label:dayLetter(d.iso), v: microSums(d.meals)[mk.key] }));
-    return `<div class="card"><div class="label">${mk.label}</div><div class="chart-box">${lineChartSVG(pts,{color:mk.color, gridLines:true, gridSteps:4, unit:mk.unit})}</div></div>`;
+    const pts = isos.map((iso,i)=>({ label:dayLetter(iso), v: rawByDaysAgo[n-1-i][mk.key] }));
+    return `<div class="card"><div class="label">${mk.label}</div><div class="chart-box">${lineChartSVG(pts,{color:mk.color, gridLines:true, gridSteps:4, unit:mk.unit, maValues:ma30(mk.key)})}</div></div>`;
   }).join('');
 
   return `
   <div class="stack">
-    <div style="font-size:12px;color:var(--muted);">${tr('nutr_ultimos_30_dias')}</div>
+    <div style="font-size:12px;color:var(--muted);">${tr('nutr_ultimos_30_dias')} · ${tr('nutr_ma30_nota')}</div>
     <div class="grid2">
       <div class="card">
         <div class="label">${tr('nutr_macro_g')}</div>
-        <div class="chart-box">${multiLineChartSVG(macroPts,[{key:'protein',color:'var(--accent)'},{key:'carbs',color:'var(--accent2)'},{key:'fat',color:'var(--accent3)'}],{gridLines:true, gridSteps:4, unit:'g'})}</div>
+        <div class="chart-box">${multiLineChartSVG(macroPts,[
+          {key:'protein',color:'var(--accent)', ma:macroMA.protein},
+          {key:'carbs',color:'var(--accent2)', ma:macroMA.carbs},
+          {key:'fat',color:'var(--accent3)', ma:macroMA.fat},
+        ],{gridLines:true, gridSteps:4, unit:'g'})}</div>
         <div class="legend" style="margin-top:10px;">
           <span><span class="dot" style="background:var(--accent);"></span>${tr('macro_proteina')}</span>
           <span><span class="dot" style="background:var(--accent2);"></span>${tr('macro_carbohidratos')}</span>
