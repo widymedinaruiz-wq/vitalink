@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>VitaLink</title>
+<title>VitaLinks</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' rx='26' fill='%230E2723'/%3E%3Cdefs%3E%3Cmask id='t' maskUnits='userSpaceOnUse' x='0' y='0' width='120' height='120'%3E%3Crect width='120' height='120' fill='white'/%3E%3Ccircle cx='60' cy='80' r='34.641' fill='none' stroke='black' stroke-width='16'/%3E%3C/mask%3E%3Cmask id='o' maskUnits='userSpaceOnUse' x='0' y='0' width='120' height='120'%3E%3Crect width='120' height='120' fill='white'/%3E%3Ccircle cx='77.32' cy='50' r='34.641' fill='none' stroke='black' stroke-width='16'/%3E%3C/mask%3E%3Cmask id='y' maskUnits='userSpaceOnUse' x='0' y='0' width='120' height='120'%3E%3Crect width='120' height='120' fill='white'/%3E%3Ccircle cx='42.68' cy='50' r='34.641' fill='none' stroke='black' stroke-width='16'/%3E%3C/mask%3E%3C/defs%3E%3Ccircle cx='77.32' cy='50' r='34.641' fill='none' stroke='%237FC8B0' stroke-width='10' mask='url(%23t)'/%3E%3Ccircle cx='42.68' cy='50' r='34.641' fill='none' stroke='%23F2A65A' stroke-width='10' mask='url(%23o)'/%3E%3Ccircle cx='60' cy='80' r='34.641' fill='none' stroke='%23E8C468' stroke-width='10' mask='url(%23y)'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -215,9 +215,9 @@ const I18N = {
     set_apikey_note:'Se guarda solo en este navegador. Nunca la compartas si publicas este archivo.',
     set_sync_title:'Sincronización entre dispositivos', set_cancelar:'Cancelar', set_ajustes_guardados:'Ajustes guardados',
     invite_titulo:'Invita a un amigo', invite_boton:'Compartir invitación', invite_copiado:'Enlace copiado al portapapeles',
-    invite_texto:'Estoy usando VitaLink para seguir mi salud — pruébalo:',
+    invite_texto:'Estoy usando VitaLinks para seguir mi salud — pruébalo:',
     share_boton:'Compartir progreso', share_sin_datos:'Registra al menos dos pesos para poder compartir tu progreso',
-    share_texto:'Mi progreso en VitaLink', share_descargada:'Imagen descargada', share_en_dias:'en {days} días',
+    share_texto:'Mi progreso en VitaLinks', share_descargada:'Imagen descargada', share_en_dias:'en {days} días',
     set_cerrar:'Cerrar',
     scan_titulo:'Escanear código', scan_apunta:'Apunta la cámara al código de barras del producto…',
     sync_cargando:'Cargando sincronización…', sync_iniciar_sesion:'Iniciar sesión con Google',
@@ -229,7 +229,7 @@ const I18N = {
     report_error_lib:'No se pudo cargar el generador de PDF. Revisa tu conexión e intenta de nuevo.',
     report_titulo:'Reporte de Salud', report_subtitulo:'Resumen de los últimos {days} días',
     report_periodo:'Período', report_paciente:'Paciente', report_generado:'Generado el',
-    report_confidencial:'Documento confidencial — datos autorreportados por el paciente a través de la app VitaLink. No sustituye una evaluación clínica profesional.',
+    report_confidencial:'Documento confidencial — datos autorreportados por el paciente a través de la app VitaLinks. No sustituye una evaluación clínica profesional.',
     report_resumen:'Resumen ejecutivo', report_peso_inicial:'Peso inicial', report_peso_actual:'Peso actual',
     report_cambio:'Cambio', report_imc_actual:'IMC actual', report_cal_prom_dia:'Calorías promedio/día',
     report_pa_prom:'Presión arterial promedio', report_pulso_prom:'Pulso promedio', report_sueno_prom:'Sueño promedio',
@@ -333,9 +333,9 @@ const I18N = {
     set_apikey_note:"Stored only in this browser. Never share it if you publish this file.",
     set_sync_title:'Cross-device sync', set_cancelar:'Cancel', set_ajustes_guardados:'Settings saved',
     invite_titulo:'Invite a friend', invite_boton:'Share invite', invite_copiado:'Link copied to clipboard',
-    invite_texto:"I'm using VitaLink to track my health — check it out:",
+    invite_texto:"I'm using VitaLinks to track my health — check it out:",
     share_boton:'Share progress', share_sin_datos:'Log at least two weights to share your progress',
-    share_texto:'My progress on VitaLink', share_descargada:'Image downloaded', share_en_dias:'in {days} days',
+    share_texto:'My progress on VitaLinks', share_descargada:'Image downloaded', share_en_dias:'in {days} days',
     set_cerrar:'Close',
     scan_titulo:'Scan code', scan_apunta:"Point the camera at the product's barcode…",
     sync_cargando:'Loading sync…', sync_iniciar_sesion:'Sign in with Google',
@@ -347,7 +347,7 @@ const I18N = {
     report_error_lib:'Could not load the PDF generator. Check your connection and try again.',
     report_titulo:'Health Report', report_subtitulo:'{days}-day summary',
     report_periodo:'Period', report_paciente:'Patient', report_generado:'Generated on',
-    report_confidencial:'Confidential document — self-reported patient data via the VitaLink app. Not a substitute for professional clinical evaluation.',
+    report_confidencial:'Confidential document — self-reported patient data via the VitaLinks app. Not a substitute for professional clinical evaluation.',
     report_resumen:'Executive summary', report_peso_inicial:'Starting weight', report_peso_actual:'Current weight',
     report_cambio:'Change', report_imc_actual:'Current BMI', report_cal_prom_dia:'Avg. calories/day',
     report_pa_prom:'Avg. blood pressure', report_pulso_prom:'Avg. pulse', report_sueno_prom:'Avg. sleep',
@@ -409,8 +409,8 @@ const BODYCOMP_FIELDS = [
     infoEn:`This is the percentage of your weight that's water — present in blood, muscles, organs, and skin. Muscle holds far more water than fat, so this number tends to rise when you gain muscle or lose fat.<br><br>It's inversely related to your <b>Body fat %</b>: when one rises, the other usually falls, even though both change for the same reason (more or less fat).<br><br><b>Approximate reference ranges:</b><br>Men: 50–65%<br>Women: 45–60%` },
   { key:'skeletalMusclePct', label:'Músculo esquelético', unit:'%', info:'Es el porcentaje de tu peso que corresponde a músculo esquelético (el que mueves voluntariamente, sin contar músculo liso ni cardíaco).<br><br>Se relaciona directamente con tu <b>Masa muscular (kg)</b> y <b>Masa esquelética (kg)</b> (son la versión en kilos de este mismo dato), y con tu <b>Metabolismo basal</b>: más músculo significa que tu cuerpo quema más calorías en reposo.<br><br><b>Rangos de referencia aproximados:</b><br>Hombres: 33–39%<br>Mujeres: 24–30%<br><br>Mantenerlo o aumentarlo con el tiempo es especialmente importante después de los 40 años, cuando el cuerpo pierde músculo de forma natural (sarcopenia).',
     infoEn:`This is the percentage of your weight that's skeletal muscle (the kind you move voluntarily, not counting smooth or cardiac muscle).<br><br>It's directly related to your <b>Muscle mass (kg)</b> and <b>Skeletal mass (kg)</b> (the kilogram version of this same data), and to your <b>Basal metabolism</b>: more muscle means your body burns more calories at rest.<br><br><b>Approximate reference ranges:</b><br>Men: 33–39%<br>Women: 24–30%<br><br>Maintaining or increasing it over time is especially important after age 40, when the body naturally loses muscle (sarcopenia).` },
-  { key:'bmr', label:'Metabolismo basal (MMR)', unit:'kcal', info:'Es la energía (en kcal) que tu cuerpo necesita solo para mantenerse vivo en reposo absoluto — respirar, mantener la temperatura, el corazón latiendo — sin contar ninguna actividad.<br><br>Depende directamente de tu <b>Músculo esquelético %</b> y <b>Masa muscular</b>: más músculo eleva tu metabolismo basal, porque el tejido muscular consume más energía en reposo que la grasa. VitaLink usa este valor junto con tu ejercicio y comidas en la pestaña <b>Pronóstico</b> para estimar tu balance calórico.<br><br>No hay un "número meta" único — depende de tu edad, sexo, peso y composición — pero aumentarlo indirectamente (ganando músculo) ayuda a quemar más calorías incluso en descanso.',
-    infoEn:`This is the energy (in kcal) your body needs just to stay alive at complete rest — breathing, maintaining temperature, your heart beating — without counting any activity.<br><br>It depends directly on your <b>Skeletal muscle %</b> and <b>Muscle mass</b>: more muscle raises your basal metabolism, because muscle tissue burns more energy at rest than fat. VitaLink uses this value along with your exercise and meals in the <b>Forecast</b> tab to estimate your calorie balance.<br><br>There's no single "target number" — it depends on your age, sex, weight, and composition — but raising it indirectly (by gaining muscle) helps you burn more calories even at rest.` },
+  { key:'bmr', label:'Metabolismo basal (MMR)', unit:'kcal', info:'Es la energía (en kcal) que tu cuerpo necesita solo para mantenerse vivo en reposo absoluto — respirar, mantener la temperatura, el corazón latiendo — sin contar ninguna actividad.<br><br>Depende directamente de tu <b>Músculo esquelético %</b> y <b>Masa muscular</b>: más músculo eleva tu metabolismo basal, porque el tejido muscular consume más energía en reposo que la grasa. VitaLinks usa este valor junto con tu ejercicio y comidas en la pestaña <b>Pronóstico</b> para estimar tu balance calórico.<br><br>No hay un "número meta" único — depende de tu edad, sexo, peso y composición — pero aumentarlo indirectamente (ganando músculo) ayuda a quemar más calorías incluso en descanso.',
+    infoEn:`This is the energy (in kcal) your body needs just to stay alive at complete rest — breathing, maintaining temperature, your heart beating — without counting any activity.<br><br>It depends directly on your <b>Skeletal muscle %</b> and <b>Muscle mass</b>: more muscle raises your basal metabolism, because muscle tissue burns more energy at rest than fat. VitaLinks uses this value along with your exercise and meals in the <b>Forecast</b> tab to estimate your calorie balance.<br><br>There's no single "target number" — it depends on your age, sex, weight, and composition — but raising it indirectly (by gaining muscle) helps you burn more calories even at rest.` },
   { key:'fatLossKg', label:'Pérdida de grasa', unit:'kg', info:'Es el cambio estimado en tu grasa corporal (en kg) que calcula la báscula, comparando con una medición de referencia anterior.<br><br>Se relaciona con tu <b>Grasa corporal %</b> y <b>Grasa visceral</b> — si estos bajan con el tiempo, este valor debería reflejar una pérdida de grasa acumulada.<br><br>Un ritmo saludable de pérdida de grasa es de aproximadamente <b>0.5% a 1% de tu peso corporal por semana</b> — perder más rápido suele significar pérdida de músculo y agua, no solo grasa.',
     infoEn:`This is the estimated change in your body fat (in kg) that the scale calculates, compared against an earlier reference measurement.<br><br>It's related to your <b>Body fat %</b> and <b>Visceral fat</b> — if those drop over time, this value should reflect accumulated fat loss.<br><br>A healthy rate of fat loss is roughly <b>0.5% to 1% of your body weight per week</b> — losing faster usually means losing muscle and water, not just fat.` },
   { key:'subcutaneousFatPct', label:'Grasa subcutánea', unit:'%', info:'Es la grasa que está justo debajo de la piel — la que puedes pellizcar — y representa la mayor parte de tu grasa corporal total. Es distinta de la grasa visceral, que rodea tus órganos internos.<br><br>Junto con tu <b>Grasa visceral</b>, forma aproximadamente tu <b>Grasa corporal %</b> total. Es menos riesgosa para la salud metabólica que la grasa visceral, pero en exceso también refleja sobrepeso general.<br><br>No tiene un rango universal estandarizado como otros parámetros — lo más útil es ver su tendencia junto con tu Grasa corporal % general: si uno baja, el otro normalmente también.',
@@ -1030,7 +1030,7 @@ function renderApp(){
   return `
   <nav class="side">
     <div class="brand">
-      <div>VitaLink<div class="owner">Widy Medina</div></div>
+      <div>VitaLinks<div class="owner">Widy Medina</div></div>
       <svg class="brand-logo" viewBox="0 0 120 120">
         <rect width="120" height="120" rx="26" fill="var(--raised)"/>
         <defs>
@@ -2665,7 +2665,7 @@ setInterval(()=>{
       const key = med.id+':'+t;
       if(t===hm && !takenIds.has(key)){
         if('Notification' in window && Notification.permission==='granted'){
-          new Notification('VitaLink — Medicamento', { body: `Es hora de tomar ${med.name}${med.dose?' ('+med.dose+')':''}` });
+          new Notification('VitaLinks — Medicamento', { body: `Es hora de tomar ${med.name}${med.dose?' ('+med.dose+')':''}` });
         }
         try{ new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoAAAAAAAAAAAA=').play().catch(()=>{}); }catch(e){}
       }
@@ -2841,7 +2841,7 @@ function exportBackup(){
   const blob = new Blob([JSON.stringify(all,null,2)], { type:'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = `vitalink-backup-${todayISO()}.json`;
+  a.href = url; a.download = `vitalinks-backup-${todayISO()}.json`;
   a.click();
   URL.revokeObjectURL(url);
   toast('Respaldo descargado');
@@ -2858,7 +2858,7 @@ function handleImportFile(input){
     try{ data = JSON.parse(e.target.result); }
     catch(err){ toast('El archivo no es un JSON válido', true); return; }
     const keys = Object.keys(data).filter(k=>k.startsWith('vl:'));
-    if(!keys.length){ toast('El archivo no contiene datos de VitaLink (vl:...)', true); return; }
+    if(!keys.length){ toast('El archivo no contiene datos de VitaLinks (vl:...)', true); return; }
     keys.forEach(k=>localStorage.setItem(k, data[k]));
     toast(`Se importaron ${keys.length} registros. Recargando…`);
     setTimeout(()=>location.reload(), 1200);
@@ -2871,7 +2871,7 @@ function handleImportFile(input){
 /* ================= social sharing (M1) ================= */
 // Renders a branded square PNG card client-side, no backend involved. Uses the same
 // approved logo asset as the PDF report and the app's own brand colors/fonts, so a
-// shared card always reads as VitaLink regardless of which achievement triggered it.
+// shared card always reads as VitaLinks regardless of which achievement triggered it.
 async function renderShareCard({ headline, headlineColor, subtitle }){
   try{
     await Promise.all([
@@ -2905,21 +2905,21 @@ async function renderShareCard({ headline, headlineColor, subtitle }){
 
   ctx.font = "700 56px 'Space Grotesk', sans-serif";
   const vitaW = ctx.measureText('Vita').width;
-  const linkW = ctx.measureText('Link').width;
-  let x = S/2 - (vitaW+linkW)/2;
+  const linksW = ctx.measureText('Links').width;
+  let x = S/2 - (vitaW+linksW)/2;
   ctx.textAlign = 'left';
   ctx.fillStyle = '#EFF6F2';
   ctx.fillText('Vita', x, 920);
   x += vitaW;
   ctx.fillStyle = '#F2A65A';
-  ctx.fillText('Link', x, 920);
+  ctx.fillText('Links', x, 920);
 
   return new Promise(resolve=>canvas.toBlob(resolve, 'image/png'));
 }
 async function shareOrDownloadBlob(blob, filename, shareText){
   const file = new File([blob], filename, { type:'image/png' });
   if(navigator.canShare && navigator.canShare({ files:[file] })){
-    try{ await navigator.share({ files:[file], title:'VitaLink', text: shareText }); return; }
+    try{ await navigator.share({ files:[file], title:'VitaLinks', text: shareText }); return; }
     catch(e){ if(e.name==='AbortError') return; /* fall through to download */ }
   }
   const url = URL.createObjectURL(blob);
@@ -2940,7 +2940,7 @@ async function shareWeightProgress(){
   const headline = `${change>0?'+':''}${change} kg`;
   const headlineColor = change<0 ? '#7FC8B0' : (change>0 ? '#F2A65A' : '#EFF6F2');
   const blob = await renderShareCard({ headline, headlineColor, subtitle: trf('share_en_dias',{days}) });
-  await shareOrDownloadBlob(blob, 'vitalink-progreso.png', tr('share_texto'));
+  await shareOrDownloadBlob(blob, 'vitalinks-progreso.png', tr('share_texto'));
 }
 
 /* ================= invite links (M1) ================= */
@@ -2956,7 +2956,7 @@ async function shareInvite(){
   const url = inviteURL();
   const text = tr('invite_texto');
   if(navigator.share){
-    try{ await navigator.share({ title:'VitaLink', text, url }); return; }
+    try{ await navigator.share({ title:'VitaLinks', text, url }); return; }
     catch(e){ if(e.name==='AbortError') return; }
   }
   if(navigator.clipboard && navigator.clipboard.writeText){
@@ -3166,7 +3166,7 @@ function buildHealthReportDoc(days){
   doc.setFillColor(14,39,35); doc.rect(0,0,PW,PH,'F');
   doc.addImage(REPORT_LOGO_PNG, 'PNG', PW/2-55, 130, 110, 110);
   doc.setFont('helvetica','bold'); doc.setFontSize(28); doc.setTextColor(239,246,242);
-  doc.text('VitaLink', PW/2, 280, { align:'center' });
+  doc.text('VitaLinks', PW/2, 280, { align:'center' });
   doc.setFont('helvetica','normal'); doc.setFontSize(17); doc.setTextColor(...ORANGE);
   doc.text(tr('report_titulo'), PW/2, 308, { align:'center' });
   doc.setFontSize(11); doc.setTextColor(...TEAL);
@@ -3348,7 +3348,7 @@ function buildHealthReportDoc(days){
     doc.setPage(p);
     doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(150,160,155);
     if(p>1){
-      doc.text('VitaLink', MX, PH-28);
+      doc.text('VitaLinks', MX, PH-28);
       doc.text(`${tr('report_pagina')} ${p} ${tr('report_de_pagina')} ${totalPages}`, PW-MX, PH-28, { align:'right' });
     }
   }
@@ -3359,7 +3359,7 @@ function generateHealthReportPDF(days){
   toast(tr('report_generando'));
   const doc = buildHealthReportDoc(days);
   if(!doc){ toast(tr('report_error_lib'), true); return; }
-  doc.save(`vitalink-reporte-${todayISO()}.pdf`);
+  doc.save(`vitalinks-reporte-${todayISO()}.pdf`);
   toast(tr('report_listo'));
 }
 
