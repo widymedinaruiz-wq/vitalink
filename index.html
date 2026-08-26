@@ -116,9 +116,12 @@ const LS = {
   set(k,v){
     try{
       localStorage.setItem(k, JSON.stringify(v));
-      if(k!=='vl:_lastChangeAt'){
+      // vl:apikey is device-local by design (never synced) — it must not bump the
+      // change timestamp either, or a device with no real data but a freshly-typed
+      // key can look "newer" than the cloud and overwrite it with near-empty state.
+      if(k!=='vl:_lastChangeAt' && k!=='vl:apikey'){
         localStorage.setItem('vl:_lastChangeAt', String(Date.now()));
-        if(k!=='vl:apikey' && typeof window._scheduleCloudPush==='function') window._scheduleCloudPush();
+        if(typeof window._scheduleCloudPush==='function') window._scheduleCloudPush();
       }
       return true;
     }catch(e){ console.error('storage error', e); return false; }
