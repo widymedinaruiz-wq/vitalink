@@ -2957,7 +2957,11 @@ function inviteURL(){
 }
 async function shareInvite(){
   const url = inviteURL();
-  const text = tr('invite_texto');
+  // The URL is embedded directly in the text, not left to the separate `url` field —
+  // some share targets (several email apps in particular) only use `text` for the
+  // message body and silently drop `url`, which would ship an invite with no link.
+  // Both languages are included since the recipient's language isn't known.
+  const text = `${I18N.es.invite_texto}\n${I18N.en.invite_texto}\n${url}`;
   if(navigator.share){
     try{ await navigator.share({ title:'VitaLinks', text, url }); return; }
     catch(e){ if(e.name==='AbortError') return; }
