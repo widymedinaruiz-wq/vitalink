@@ -917,7 +917,8 @@ function multiLineChartSVG(points, series, opts){
 function barChartSVG(points, opts){
   const w = opts.w||520, h = opts.h||150, pad=28;
   const vals = points.map(p=>p.v||0);
-  const max = Math.max(...vals, opts.goal||0, 1);
+  const maVals = opts.maValues ? opts.maValues.filter(v=>v!=null) : [];
+  const max = Math.max(...vals, ...maVals, opts.goal||0, 1);
   const stepX = (w-pad*2)/points.length;
   const barW = stepX*0.55;
   const bars = points.map((p,i)=>{
@@ -928,12 +929,15 @@ function barChartSVG(points, opts){
   }).join('');
   const goalY = opts.goal ? h-pad-(opts.goal/max)*(h-pad*2) : null;
   const goalLine = goalY!=null ? `<line x1="${pad}" y1="${goalY}" x2="${w-pad}" y2="${goalY}" stroke="var(--muted)" stroke-dasharray="4,4"/>` : '';
+  // Bars are solid fills, so the MA overlay defaults to a neutral color rather than
+  // matching the bar (a same-color dashed line on a same-color bar has poor contrast).
+  const maPath = opts.maValues ? `<path d="${svgPathThroughValid(opts.maValues.map((v,i)=> v==null ? null : [pad+i*stepX+stepX/2, h-pad-(v/max)*(h-pad*2)]))}" fill="none" stroke="${opts.maColor||'var(--text)'}" stroke-width="1.6" stroke-dasharray="5,4" opacity="0.85"/>` : '';
   const labels = points.map((p,i)=>`<text x="${pad+i*stepX+stepX/2}" y="${h-6}" font-size="10" fill="var(--muted)" text-anchor="middle">${p.label}</text>`).join('');
   const grid = opts.gridLines ? refGridSVG(0, max, w, h, pad, opts.gridSteps||4, opts.unit) : '';
   return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:${h}px;">
     ${grid}
     <line x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="var(--line)"/>
-    ${goalLine}${bars}${labels}
+    ${goalLine}${bars}${maPath}${labels}
   </svg>`;
 }
 function dialSVG(calPct, waterPct, exPct, size, responsive){
@@ -1877,21 +1881,49 @@ function sleepAvgSummaryHTML(){
 }
 function renderProgreso(){
   const n = state.progressRange;
+  const maWindow = 30;
+  // The MA window is always 30 days regardless of the selected display range (7/14/30),
+  // so even a 7-day view's oldest point needs a full trailing window behind it.
+  const lookbackDays = n - 1 + maWindow;
+  const rawByDaysAgo = Array.from({length:lookbackDays}).map((_,daysAgo)=>{
+    const d = dayAt(isoDaysAgo(daysAgo));
+    const lastBP = d.bp[d.bp.length-1];
+    return {
+      weight: d.weight,
+      sys: lastBP ? lastBP.systolic : null,
+      dia: lastBP ? lastBP.diastolic : null,
+      pulse: lastBP ? lastBP.pulse : null,
+      calories: d.meals.reduce((s,m)=>s+(Number(m.calories)||0),0),
+      exercise: d.exercises.reduce((s,e)=>s+(Number(e.minutes)||0),0),
+      water: d.water||0,
+      sleep: d.sleepHours,
+    };
+  });
+  // Averages only over samples that actually exist in each trailing window — correct
+  // for both always-populated series (calories, exercise, water default to 0) and
+  // genuinely sparse ones (weight, BP, pulse, sleep aren't logged every day).
+  function ma30(key){
+    return Array.from({length:n}).map((_,i)=>{
+      const daysAgo = n-1-i;
+      let sum=0, count=0;
+      for(let k=daysAgo; k<daysAgo+maWindow; k++){
+        const v = rawByDaysAgo[k][key];
+        if(v!=null){ sum+=v; count++; }
+      }
+      return count>0 ? sum/count : null;
+    });
+  }
   const isos = Array.from({length:n}).map((_,i)=>isoDaysAgo(n-1-i));
-  const days = isos.map(iso => iso===todayISO() ? { iso, ...state.day } : { iso, ...getDay(iso) });
-  const weightPts = days.map(d=>({ label:dayLetter(d.iso), v:d.weight }));
-  const calPts = days.map(d=>({ label:dayLetter(d.iso), v:d.meals.reduce((s,m)=>s+(Number(m.calories)||0),0) }));
-  const exPts = days.map(d=>({ label:dayLetter(d.iso), v:d.exercises.reduce((s,e)=>s+(Number(e.minutes)||0),0) }));
-  const waterPts = days.map(d=>({ label:dayLetter(d.iso), v:d.water }));
-  const sleepPts = days.map(d=>({ label:dayLetter(d.iso), v:d.sleepHours }));
-  const bpPts = days.map(d=>{
-    const last = d.bp[d.bp.length-1];
-    return { label:dayLetter(d.iso), sys: last?last.systolic:null, dia: last?last.diastolic:null };
-  });
-  const pulsePts = days.map(d=>{
-    const last = d.bp[d.bp.length-1];
-    return { label:dayLetter(d.iso), v: last?last.pulse:null };
-  });
+  const rawAt = i => rawByDaysAgo[n-1-i];
+  const weightPts = isos.map((iso,i)=>({ label:dayLetter(iso), v: rawAt(i).weight }));
+  const calPts = isos.map((iso,i)=>({ label:dayLetter(iso), v: rawAt(i).calories }));
+  const exPts = isos.map((iso,i)=>({ label:dayLetter(iso), v: rawAt(i).exercise }));
+  const waterPts = isos.map((iso,i)=>({ label:dayLetter(iso), v: rawAt(i).water }));
+  const sleepPts = isos.map((iso,i)=>({ label:dayLetter(iso), v: rawAt(i).sleep }));
+  const bpPts = isos.map((iso,i)=>({ label:dayLetter(iso), sys: rawAt(i).sys, dia: rawAt(i).dia }));
+  const pulsePts = isos.map((iso,i)=>({ label:dayLetter(iso), v: rawAt(i).pulse }));
+  const weightMA = ma30('weight'), sysMA = ma30('sys'), diaMA = ma30('dia'), pulseMA = ma30('pulse');
+  const calMA = ma30('calories'), exMA = ma30('exercise'), waterMA = ma30('water'), sleepMA = ma30('sleep');
 
   return `
   <div class="stack">
@@ -1901,13 +1933,14 @@ function renderProgreso(){
       </div>
       <button class="btn btn-ghost" style="display:inline-flex;align-items:center;gap:6px;" onclick="generateHealthReportPDF(30)">${navIcon('exportar',14)}${tr('report_boton')}</button>
     </div>
+    <div style="font-size:12px;color:var(--muted);">${tr('nutr_ma30_nota')}</div>
     <div class="grid2">
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
           <div class="label" style="margin:0;">${tr('hoy_peso')}</div>
           ${weightSummaryHTML(weightPts)}
         </div>
-        <div class="chart-box">${lineChartSVG(weightPts,{color:'var(--accent3)', gridLines:true, gridSteps:4, unit:'kg'})}</div>
+        <div class="chart-box">${lineChartSVG(weightPts,{color:'var(--accent3)', gridLines:true, gridSteps:4, unit:'kg', maValues:weightMA})}</div>
         ${weightPts.filter(p=>p.v!=null).length>=2 ? `<button class="btn btn-ghost" style="width:100%;margin-top:10px;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="shareWeightProgress()">${navIcon('exportar',14)}${tr('share_boton')}</button>` : ''}
       </div>
       <div class="card">
@@ -1915,30 +1948,30 @@ function renderProgreso(){
           <div class="label" style="margin:0;">${tr('salud_presion')}</div>
           ${bpSummaryHTML()}
         </div>
-        <div class="chart-box">${multiLineChartSVG(bpPts,[{key:'sys',color:'var(--accent)'},{key:'dia',color:'var(--accent3)'}],{gridLines:true, gridSteps:4, unit:'mmHg'})}</div>
+        <div class="chart-box">${multiLineChartSVG(bpPts,[{key:'sys',color:'var(--accent)', ma:sysMA},{key:'dia',color:'var(--accent3)', ma:diaMA}],{gridLines:true, gridSteps:4, unit:'mmHg'})}</div>
       </div>
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
           <div class="label" style="margin:0;">${tr('salud_pulso')}</div>
           ${pulseSummaryHTML()}
         </div>
-        <div class="chart-box">${lineChartSVG(pulsePts,{color:'var(--danger)', gridLines:true, gridSteps:4, unit:'bpm'})}</div>
+        <div class="chart-box">${lineChartSVG(pulsePts,{color:'var(--danger)', gridLines:true, gridSteps:4, unit:'bpm', maValues:pulseMA})}</div>
       </div>
-      <div class="card"><div class="label">${trf('prog_calorias_meta',{goal:state.goals.calorieGoal})}</div><div class="chart-box">${barChartSVG(calPts,{color:'var(--accent)',goal:state.goals.calorieGoal, gridLines:true, gridSteps:4, unit:'kcal'})}</div></div>
+      <div class="card"><div class="label">${trf('prog_calorias_meta',{goal:state.goals.calorieGoal})}</div><div class="chart-box">${barChartSVG(calPts,{color:'var(--accent)',goal:state.goals.calorieGoal, gridLines:true, gridSteps:4, unit:'kcal', maValues:calMA})}</div></div>
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
           <div class="label" style="margin:0;">${trf('prog_ejercicio_min_meta',{goal:state.goals.exerciseGoal})}</div>
           ${exerciseAvgSummaryHTML()}
         </div>
-        <div class="chart-box">${barChartSVG(exPts,{color:'var(--accent2)',goal:state.goals.exerciseGoal, gridLines:true, gridSteps:4, unit:'min'})}</div>
+        <div class="chart-box">${barChartSVG(exPts,{color:'var(--accent2)',goal:state.goals.exerciseGoal, gridLines:true, gridSteps:4, unit:'min', maValues:exMA})}</div>
       </div>
-      <div class="card"><div class="label">${tr('hoy_agua')}</div><div class="chart-box">${barChartSVG(waterPts,{color:'var(--accent3)',goal:state.goals.waterGoal, gridLines:true, gridSteps:4, unit:'L'})}</div></div>
+      <div class="card"><div class="label">${tr('hoy_agua')}</div><div class="chart-box">${barChartSVG(waterPts,{color:'var(--accent3)',goal:state.goals.waterGoal, gridLines:true, gridSteps:4, unit:'L', maValues:waterMA})}</div></div>
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
           <div class="label" style="margin:0;">${tr('hoy_sueno')}</div>
           ${sleepAvgSummaryHTML()}
         </div>
-        <div class="chart-box">${barChartSVG(sleepPts,{color:'var(--accent2)', gridLines:true, gridSteps:4, unit:'h'})}</div>
+        <div class="chart-box">${barChartSVG(sleepPts,{color:'var(--accent2)', gridLines:true, gridSteps:4, unit:'h', maValues:sleepMA})}</div>
       </div>
     </div>
   </div>`;
