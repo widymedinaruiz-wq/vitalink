@@ -218,6 +218,7 @@ const I18N = {
     set_apikey_note:'Se guarda solo en este navegador. Nunca la compartas si publicas este archivo.',
     set_sync_title:'Sincronización entre dispositivos', set_cancelar:'Cancelar', set_ajustes_guardados:'Ajustes guardados',
     invite_titulo:'Invita a un amigo', invite_boton:'Compartir invitación', invite_copiado:'Enlace copiado al portapapeles',
+    invite_asunto:'Invitación a VitaLinks',
     invite_texto:'Estoy usando VitaLinks para seguir mi salud — pruébalo:',
     share_boton:'Compartir progreso', share_sin_datos:'Registra al menos dos pesos para poder compartir tu progreso',
     share_texto:'Mi progreso en VitaLinks', share_descargada:'Imagen descargada', share_en_dias:'en {days} días',
@@ -336,6 +337,7 @@ const I18N = {
     set_apikey_note:"Stored only in this browser. Never share it if you publish this file.",
     set_sync_title:'Cross-device sync', set_cancelar:'Cancel', set_ajustes_guardados:'Settings saved',
     invite_titulo:'Invite a friend', invite_boton:'Share invite', invite_copiado:'Link copied to clipboard',
+    invite_asunto:'Invitation to VitaLinks',
     invite_texto:"I'm using VitaLinks to track my health — check it out:",
     share_boton:'Share progress', share_sin_datos:'Log at least two weights to share your progress',
     share_texto:'My progress on VitaLinks', share_descargada:'Image downloaded', share_en_dias:'in {days} days',
@@ -2995,8 +2997,12 @@ async function shareInvite(){
   // message body and silently drop `url`, which would ship an invite with no link.
   // Both languages are included since the recipient's language isn't known.
   const text = `${I18N.es.invite_texto}\n${I18N.en.invite_texto}\n${url}`;
+  // `title` becomes the email subject for share targets that route to a mail app —
+  // a bare "VitaLinks" reads as spam-shaped to most filters. Bilingual for the same
+  // reason as the body: the recipient's language isn't known ahead of time.
+  const subject = `${I18N.es.invite_asunto} / ${I18N.en.invite_asunto}`;
   if(navigator.share){
-    try{ await navigator.share({ title:'VitaLinks', text, url }); return; }
+    try{ await navigator.share({ title:subject, text, url }); return; }
     catch(e){ if(e.name==='AbortError') return; }
   }
   if(navigator.clipboard && navigator.clipboard.writeText){
