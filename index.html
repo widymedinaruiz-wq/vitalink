@@ -42,7 +42,8 @@
   .pill.active{border-color:var(--accent);background:rgba(242,166,90,.12);color:var(--accent);font-weight:700;}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
-  .grid2>*,.grid4>*{min-width:0;}
+  .grid-icons{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:6px;}
+  .grid2>*,.grid4>*,.grid-icons>*{min-width:0;}
   .stack{display:flex;flex-direction:column;gap:16px;}
 
   #app{display:flex;min-height:100vh;max-width:1180px;margin:0 auto;}
@@ -144,6 +145,8 @@ const I18N = {
     nav_nutricion:'Análisis Nutrición', nav_pronostico:'Pronóstico',
     nav_ajustes:'Ajustes', nav_exportar:'Exportar', nav_importar:'Importar',
     meal_desayuno:'Desayuno', meal_merienda:'Merienda', meal_almuerzo:'Almuerzo', meal_cena:'Cena',
+    ejtipo_correr:'Correr', ejtipo_bici:'Bici', ejtipo_nadar:'Nadar', ejtipo_eliptica:'Elíptica', ejtipo_andar:'Andar',
+    ejtipo_senderismo:'Senderismo', ejtipo_golf:'Golf', ejtipo_biciEstatica:'Bici estática', ejtipo_yoga:'Yoga', ejtipo_pilates:'Pilates',
     hoy_vitality:'Vitalidad de hoy', hoy_vitality_sub:'Combina comida, agua, ejercicio, sueño, presión y medicamentos de hoy',
     hoy_insight:'Insight de hoy', hoy_regenerar:'Regenerar', hoy_generar_insight:'Generar insight',
     hoy_de:'de', legend_comida:'Comida', legend_agua:'Agua', legend_ejercicio:'Ejercicio',
@@ -263,6 +266,8 @@ const I18N = {
     nav_nutricion:'Nutrition Analysis', nav_pronostico:'Forecast',
     nav_ajustes:'Settings', nav_exportar:'Export', nav_importar:'Import',
     meal_desayuno:'Breakfast', meal_merienda:'Snack', meal_almuerzo:'Lunch', meal_cena:'Dinner',
+    ejtipo_correr:'Running', ejtipo_bici:'Cycling', ejtipo_nadar:'Swimming', ejtipo_eliptica:'Elliptical', ejtipo_andar:'Walking',
+    ejtipo_senderismo:'Hiking', ejtipo_golf:'Golf', ejtipo_biciEstatica:'Stationary Bike', ejtipo_yoga:'Yoga', ejtipo_pilates:'Pilates',
     hoy_vitality:"Today's vitality", hoy_vitality_sub:"Combines today's food, water, exercise, sleep, blood pressure and medications",
     hoy_insight:"Today's insight", hoy_regenerar:'Regenerate', hoy_generar_insight:'Generate insight',
     hoy_de:'of', legend_comida:'Food', legend_agua:'Water', legend_ejercicio:'Exercise',
@@ -404,6 +409,18 @@ const MEAL_TYPES = [
   { id:'merienda', label:'Merienda', ic:'merienda' },
   { id:'almuerzo', label:'Almuerzo', ic:'almuerzo' },
   { id:'cena', label:'Cena', ic:'cena' },
+];
+const EXERCISE_TYPES = [
+  { id:'correr', ic:'ej_correr' },
+  { id:'bici', ic:'ej_bici' },
+  { id:'nadar', ic:'ej_nadar' },
+  { id:'eliptica', ic:'ej_eliptica' },
+  { id:'andar', ic:'ej_andar' },
+  { id:'senderismo', ic:'ej_senderismo' },
+  { id:'golf', ic:'ej_golf' },
+  { id:'biciEstatica', ic:'ej_biciEstatica' },
+  { id:'yoga', ic:'ej_yoga' },
+  { id:'pilates', ic:'ej_pilates' },
 ];
 const BODYCOMP_FIELDS = [
   { key:'bmi', label:'IMC', unit:'', info:'El IMC es tu peso dividido entre tu estatura al cuadrado (kg/m²). Es un indicador rápido de si tu peso está en un rango saludable para tu altura, pero no distingue entre grasa y músculo — una persona muy musculosa puede tener un IMC alto sin exceso de grasa real.<br><br>Se relaciona directamente con tu <b>Grasa corporal %</b>: cuando el IMC está alto por exceso de grasa (no de músculo), ambos suben juntos.<br><br><b>Rangos de referencia:</b><br>Bajo peso: menos de 18.5<br>Normal: 18.5 – 24.9<br>Sobrepeso: 25 – 29.9<br>Obesidad: 30 o más',
@@ -1020,6 +1037,16 @@ const NAV_ICONS = {
   login: '<path d="M12 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6"/><path d="M15 8l4 4-4 4M19 12H9"/>',
   medicamento: '<circle cx="12" cy="12" r="7"/><path d="M5 12h14"/>',
   logrado: '<circle cx="12" cy="12" r="8"/><path d="M8 12.5l2.7 2.7L16.5 9"/>',
+  ej_correr: '<circle class="fill" cx="15" cy="4.3" r="1.7"/><path d="M12.5 7.8l2 2.3-1 3.4 3.7 2.3"/><path d="M14.3 9.9l-3.6 1.4-2.3 4"/><path d="M11 12.6l3.4 1.6 1.6 3.8"/>',
+  ej_bici: '<circle cx="6" cy="17" r="3.3"/><circle cx="18" cy="17" r="3.3"/><path d="M6 17l6-8h3"/><path d="M12 17l3-8"/><path d="M9 17h8"/>',
+  ej_nadar: '<path d="M3 17.5q2-2 4 0t4 0t4 0t4 0t4 0" opacity=".55"/><circle class="fill" cx="8.5" cy="9" r="1.7"/><path d="M10.5 10.3l3.2 1.4-1 3.4 4 1.5"/><path d="M9.7 13l-3 1.5"/>',
+  ej_eliptica: '<ellipse cx="12" cy="15.5" rx="7.3" ry="3.2"/><path d="M6 12l6-8 4 3"/><circle class="fill" cx="16" cy="7" r="1.3"/><path d="M9 15l3-5.5 3 5.5"/>',
+  ej_andar: '<circle class="fill" cx="13" cy="4.3" r="1.7"/><path d="M13 7.5v5l-2.5 6.7"/><path d="M13 12.5l3 1.5 1 4.2"/><path d="M11 9.3l4 1"/>',
+  ej_senderismo: '<path d="M3 19l6-11 3 5 2-3 7 9z"/><circle class="fill" cx="8" cy="6" r="1.5"/>',
+  ej_golf: '<path d="M7 21V3l9 4-9 4"/><circle class="fill" cx="16.5" cy="19.5" r="1.6"/>',
+  ej_biciEstatica: '<circle cx="6.5" cy="12" r="4"/><path d="M6.5 12l7 2"/><path d="M13.5 14v5"/><path d="M11 19h5"/><path d="M13.5 14l4-7"/><path d="M15.5 7h2.5"/>',
+  ej_yoga: '<circle class="fill" cx="12" cy="5" r="1.7"/><path d="M12 7.3v3.7"/><path d="M6 15.8l6-4.8 6 4.8"/><path d="M8 20c0-2.5 1.8-4.5 4-4.5s4 2 4 4.5"/>',
+  ej_pilates: '<circle class="fill" cx="4.5" cy="17" r="1.7"/><path d="M6.2 17h6.3"/><path d="M12.5 17l5-1.5"/><path d="M12.5 17l4 5"/>',
 };
 function navIcon(key, size){ return `<svg class="ic-svg" style="${size?`width:${size}px;height:${size}px;`:''}" viewBox="0 0 24 24">${NAV_ICONS[key]||''}</svg>`; }
 function renderApp(){
@@ -1372,9 +1399,13 @@ function renderEjercicio(){
   <div class="stack">
     <div class="card">
       <div class="label">${tr('ejercicio_agregar')}</div>
+      <div class="grid-icons" style="margin-bottom:14px;">
+        ${EXERCISE_TYPES.map(et=>`<div class="meal-type-btn ${window._exerciseType===et.id?'active':''}" onclick="pickExerciseType('${et.id}')">
+          ${navIcon(et.ic,20)}<span>${tr('ejtipo_'+et.id)}</span></div>`).join('')}
+      </div>
       <div style="display:flex;gap:8px;margin-bottom:8px;">
         <div style="flex:2;min-width:0;position:relative;">
-          <input id="ex-name" placeholder="${tr('ejercicio_actividad')}" style="width:100%;" autocomplete="off" oninput="onExerciseNameInput()" onfocus="onExerciseNameInput()" onblur="hideExerciseSuggest()">
+          <input id="ex-name" placeholder="${tr('ejercicio_actividad')}" value="${window._exerciseType?esc(tr('ejtipo_'+window._exerciseType)):''}" style="width:100%;" autocomplete="off" oninput="onExerciseNameInput()" onfocus="onExerciseNameInput()" onblur="hideExerciseSuggest()">
           <div id="ex-suggest" class="suggest-list" style="display:none;"></div>
         </div>
         <input id="ex-min" type="number" placeholder="${tr('ejercicio_min')}" style="flex:1;min-width:0;">
@@ -2610,9 +2641,16 @@ function checkExerciseHint(){
   }
 }
 function onExerciseNameInput(){
+  const nameEl = document.getElementById('ex-name');
+  if(nameEl && window._exerciseType){
+    const activeLabel = tr('ejtipo_'+window._exerciseType);
+    if(nameEl.value.trim() !== activeLabel){
+      window._exerciseType = null;
+      document.querySelectorAll('.grid-icons .meal-type-btn.active').forEach(el=>el.classList.remove('active'));
+    }
+  }
   checkExerciseHint();
   const box = document.getElementById('ex-suggest');
-  const nameEl = document.getElementById('ex-name');
   if(!box || !nameEl) return;
   const items = exerciseSuggestions(nameEl.value);
   if(!items.length){ box.style.display='none'; box.innerHTML=''; return; }
@@ -2629,13 +2667,19 @@ function hideExerciseSuggest(){
   const box = document.getElementById('ex-suggest');
   if(box) box.style.display = 'none';
 }
+function pickExerciseType(id){
+  window._exerciseType = id;
+  render();
+  checkExerciseHint();
+}
 function addExercise(){
   const name = document.getElementById('ex-name').value.trim();
   if(!name) return;
   const minutes = Number(document.getElementById('ex-min').value)||0;
   const calories = Number(document.getElementById('ex-cal').value)||0;
-  state.day.exercises.push({ id: uid(), name, minutes, calories, time: nowHM() });
+  state.day.exercises.push({ id: uid(), name, minutes, calories, time: nowHM(), type: window._exerciseType || null });
   rememberExercise(name, minutes, calories);
+  window._exerciseType = null;
   saveDay(); render();
 }
 function removeExercise(id){ state.day.exercises = state.day.exercises.filter(e=>e.id!==id); saveDay(); render(); }
