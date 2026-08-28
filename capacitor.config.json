@@ -1,5 +1,11 @@
 {
   "appId": "com.widymedina.vitalinks",
   "appName": "VitaLinks",
-  "webDir": "www"
+  "webDir": "www",
+  "plugins": {
+    "FirebaseAuthentication": {
+      "skipNativeAuth": false,
+      "providers": ["google.com"]
+    }
+  }
 }

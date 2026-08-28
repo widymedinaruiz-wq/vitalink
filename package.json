@@ -24,9 +24,11 @@
   },
   "homepage": "https://github.com/widymedinaruiz-wq/vitalink#readme",
   "dependencies": {
+    "@capacitor-firebase/authentication": "^8.4.0",
     "@capacitor/android": "^8.5.0",
     "@capacitor/cli": "^8.5.0",
-    "@capacitor/core": "^8.5.0"
+    "@capacitor/core": "^8.5.0",
+    "firebase": "^12.18.0"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5"

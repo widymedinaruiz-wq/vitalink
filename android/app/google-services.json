@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "830173192907",
+    "project_id": "vitalink-widy",
+    "storage_bucket": "vitalink-widy.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:830173192907:android:f2e309a39e149d0899f14e",
+        "android_client_info": {
+          "package_name": "com.widymedina.vitalinks"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "830173192907-n8lkq0nravnubrnc35nou75feldptjlo.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.widymedina.vitalinks",
+            "certificate_hash": "0d06003387065111b27817daf979dadada3191be"
+          }
+        },
+        {
+          "client_id": "830173192907-igeq0ufvqobb2q5iq2ekmq83sl696at5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDGsCm3uEz0V-ZuZb7zERC5FtN9ylg7Puo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "830173192907-igeq0ufvqobb2q5iq2ekmq83sl696at5.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
