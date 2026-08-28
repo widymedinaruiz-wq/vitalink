@@ -1,0 +1,31 @@
+{
+  "name": "vitalinks",
+  "version": "1.0.0",
+  "description": "VitaLinks — personal health tracking (nutrition, exercise, blood pressure, medications, body composition, weight forecasting), and its native app wrapper.",
+  "main": "index.html",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "build": "node -e \"require('fs').mkdirSync('www',{recursive:true});require('fs').copyFileSync('index.html','www/index.html')\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/widymedinaruiz-wq/vitalink.git"
+  },
+  "keywords": [],
+  "author": "Widy Medina",
+  "license": "UNLICENSED",
+  "private": true,
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/widymedinaruiz-wq/vitalink/issues"
+  },
+  "homepage": "https://github.com/widymedinaruiz-wq/vitalink#readme",
+  "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/cli": "^8.5.0",
+    "@capacitor/core": "^8.5.0"
+  }
+}
