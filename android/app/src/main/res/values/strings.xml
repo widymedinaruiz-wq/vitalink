@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">VitaLinks</string>
+    <string name="title_activity_main">VitaLinks</string>
+    <string name="package_name">com.widymedina.vitalinks</string>
+    <string name="custom_url_scheme">com.widymedina.vitalinks</string>
+</resources>
