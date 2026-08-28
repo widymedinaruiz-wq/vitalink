@@ -3430,7 +3430,7 @@ render();
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithCredential, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -3531,11 +3531,28 @@ render();
   }
 
   window.firebaseSignIn = async function(){
-    try{ await signInWithPopup(auth, provider); }
+    try{
+      if(window.Capacitor && window.Capacitor.isNativePlatform()){
+        // Firebase Auth's signInWithPopup needs a real browser window/tab, which the
+        // app's embedded WebView doesn't provide — it opens and vanishes instantly
+        // (auth/popup-closed-by-user). Native Google Sign-In (via the platform account
+        // picker) gets a real credential instead, which we hand to the same JS SDK.
+        const result = await window.Capacitor.Plugins.FirebaseAuthentication.signInWithGoogle();
+        const idToken = result.credential && result.credential.idToken;
+        if(!idToken) throw new Error('No ID token returned from native Google sign-in');
+        const credential = GoogleAuthProvider.credential(idToken);
+        await signInWithCredential(auth, credential);
+      } else {
+        await signInWithPopup(auth, provider);
+      }
+    }
     catch(e){ window._syncState.error = e.message; safeRender(); }
   };
   window.firebaseSignOut = async function(){
     if(unsubscribeSnapshot){ unsubscribeSnapshot(); unsubscribeSnapshot=null; }
+    if(window.Capacitor && window.Capacitor.isNativePlatform()){
+      try{ await window.Capacitor.Plugins.FirebaseAuthentication.signOut(); }catch(e){}
+    }
     await signOut(auth);
   };
 
