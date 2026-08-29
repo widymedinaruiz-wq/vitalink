@@ -1416,7 +1416,7 @@ function renderEjercicio(){
       <div class="label">${tr('ejercicio_agregar')}</div>
       <div class="grid-icons" style="margin-bottom:14px;">
         ${EXERCISE_TYPES.map(et=>`<div class="meal-type-btn ${window._exerciseType===et.id?'active':''}" onclick="pickExerciseType('${et.id}')">
-          ${navIcon(et.ic,20)}<span>${tr('ejtipo_'+et.id)}</span></div>`).join('')}
+          ${navIcon(et.ic,24)}<span>${tr('ejtipo_'+et.id)}</span></div>`).join('')}
       </div>
       <div style="display:flex;gap:8px;margin-bottom:8px;">
         <div style="flex:2;min-width:0;position:relative;">
