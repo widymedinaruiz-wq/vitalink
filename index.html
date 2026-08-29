@@ -213,6 +213,7 @@ const I18N = {
     pron_ej_170:'Ej. 170', pron_ej_68:'Ej. 68', pron_datos_guardados:'Datos guardados',
     pron_fecha_nacimiento:'Fecha de nacimiento', pron_genero:'Género',
     pron_hombre:'Hombre', pron_mujer:'Mujer', pron_otro:'Otro', pron_edad:'Edad: {n} años',
+    pron_guardado:'Guardado',
     pron_ingresa_datos:'Ingresa tu altura y peso meta arriba para generar tu pronóstico',
     pron_no_peso:'Aún no tienes ningún peso registrado — agrega uno en Hoy o en el Calendario',
     pron_en_meta_msg:'¡Ya estás en tu peso meta! Peso actual: {w} kg',
@@ -337,6 +338,7 @@ const I18N = {
     pron_ej_170:'E.g. 170', pron_ej_68:'E.g. 68', pron_datos_guardados:'Data saved',
     pron_fecha_nacimiento:'Date of birth', pron_genero:'Gender',
     pron_hombre:'Male', pron_mujer:'Female', pron_otro:'Other', pron_edad:'Age: {n}',
+    pron_guardado:'Saved',
     pron_ingresa_datos:'Enter your height and target weight above to generate your forecast',
     pron_no_peso:"You don't have any weight logged yet — add one in Today or Calendar",
     pron_en_meta_msg:"You're already at your target weight! Current weight: {w} kg",
@@ -660,6 +662,17 @@ function genderPillsHTML(){
   return `<div class="grid2" style="grid-template-columns:repeat(3,1fr);gap:8px;">
     ${options.map(([g,key])=>`<div class="meal-type-btn ${window._genderSelected===g?'active':''}" style="padding:10px 4px;" onclick="pickGender('${g}')"><span>${tr(key)}</span></div>`).join('')}
   </div>`;
+}
+function savedProfileSummaryHTML(){
+  const cfg = getForecastConfig();
+  if(!cfg.birthDate && !cfg.gender) return '';
+  const bits = [];
+  if(cfg.birthDate){
+    const [y,m,d] = cfg.birthDate.split('-').map(Number);
+    bits.push(`${d} ${monthLabels()[m-1].slice(0,3)} ${y} — ${trf('pron_edad',{n:ageFromBirthDate(cfg.birthDate)})}`);
+  }
+  if(cfg.gender) bits.push(tr(cfg.gender==='m'?'pron_hombre':cfg.gender==='f'?'pron_mujer':'pron_otro'));
+  return `<div style="font-size:11px;color:var(--accent3);margin:-6px 0 14px;display:flex;align-items:center;gap:6px;">${navIcon('logrado',13)}<span>${tr('pron_guardado')}: ${bits.join(' · ')}</span></div>`;
 }
 function normalizeFoodKey(s){ return String(s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' '); }
 function rekeyByLabel(raw, getLabel){
@@ -2248,6 +2261,7 @@ function renderPronostico(){
   const configCard = `
   <div class="card">
     <div class="label">${tr('pron_tus_datos')}</div>
+    ${savedProfileSummaryHTML()}
     <div class="grid2" style="margin-bottom:14px;">
       <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('pron_altura')}</div><input id="fc-height" type="number" value="${cfg.heightCm??''}" placeholder="${tr('pron_ej_170')}" style="width:100%;"></div>
       <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('pron_peso_meta')}</div><input id="fc-target" type="number" step="0.1" value="${cfg.targetWeightKg??''}" placeholder="${tr('pron_ej_68')}" style="width:100%;"></div>
