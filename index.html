@@ -214,6 +214,9 @@ const I18N = {
     pron_fecha_nacimiento:'Fecha de nacimiento', pron_genero:'Género',
     pron_hombre:'Hombre', pron_mujer:'Mujer', pron_otro:'Otro', pron_edad:'Edad: {n} años',
     pron_guardado:'Guardado',
+    pron_meta_calorica_rec:'Meta calórica recomendada',
+    pron_meta_calorica_nota:'Basado en tu edad, género, altura, peso actual y tu actividad de los últimos 7 días (fórmula Mifflin-St Jeor).',
+    pron_usar_meta:'Usar esta meta', pron_meta_aplicada:'Meta calórica actualizada', pron_kcal_dia:'kcal/día',
     pron_ingresa_datos:'Ingresa tu altura y peso meta arriba para generar tu pronóstico',
     pron_no_peso:'Aún no tienes ningún peso registrado — agrega uno en Hoy o en el Calendario',
     pron_en_meta_msg:'¡Ya estás en tu peso meta! Peso actual: {w} kg',
@@ -339,6 +342,9 @@ const I18N = {
     pron_fecha_nacimiento:'Date of birth', pron_genero:'Gender',
     pron_hombre:'Male', pron_mujer:'Female', pron_otro:'Other', pron_edad:'Age: {n}',
     pron_guardado:'Saved',
+    pron_meta_calorica_rec:'Recommended calorie goal',
+    pron_meta_calorica_nota:'Based on your age, gender, height, current weight, and your activity over the last 7 days (Mifflin-St Jeor formula).',
+    pron_usar_meta:'Use this goal', pron_meta_aplicada:'Calorie goal updated', pron_kcal_dia:'kcal/day',
     pron_ingresa_datos:'Enter your height and target weight above to generate your forecast',
     pron_no_peso:"You don't have any weight logged yet — add one in Today or Calendar",
     pron_en_meta_msg:"You're already at your target weight! Current weight: {w} kg",
@@ -2071,6 +2077,39 @@ function sleepAvgSummaryHTML(){
   if(!vals.length) return '';
   return avgSummaryHTML(vals.reduce((a,b)=>a+b,0)/vals.length, 'h', 1);
 }
+// Mifflin-St Jeor BMR — the standard formula used across fitness apps for a
+// physiology-based calorie estimate (vs. a flat user-picked number).
+function computeBMR(weightKg, heightCm, age, gender){
+  const base = 10*weightKg + 6.25*heightCm - 5*age;
+  if(gender==='m') return base + 5;
+  if(gender==='f') return base - 161;
+  return base - 78; // average of the male/female offsets when gender is 'o' or unset
+}
+// Derives an activity multiplier from what the user actually logged this week,
+// instead of asking them to self-report an activity level we'd have no way to verify.
+function activityMultiplierFromHistory(){
+  const avgMin = Array.from({length:7}).map((_,i)=>dayAt(isoDaysAgo(i)).exercises.reduce((s,e)=>s+(Number(e.minutes)||0),0)).reduce((a,b)=>a+b,0)/7;
+  if(avgMin < 15) return 1.2;
+  if(avgMin < 30) return 1.375;
+  if(avgMin < 60) return 1.55;
+  return 1.725;
+}
+function recommendedCalorieGoal(){
+  const cfg = getForecastConfig();
+  const latest = getLatestWeight();
+  if(!cfg.heightCm || !cfg.birthDate || !latest) return null;
+  const age = ageFromBirthDate(cfg.birthDate);
+  const bmr = computeBMR(latest.weight, cfg.heightCm, age, cfg.gender);
+  return Math.round(bmr * activityMultiplierFromHistory());
+}
+function applyRecommendedCalorieGoal(){
+  const rec = recommendedCalorieGoal();
+  if(!rec) return;
+  state.goals = { ...state.goals, calorieGoal: rec };
+  setGoals(state.goals);
+  toast(tr('pron_meta_aplicada'));
+  render();
+}
 function renderProgreso(){
   const n = state.progressRange;
   const maWindow = 30;
@@ -2273,6 +2312,18 @@ function renderPronostico(){
     <button class="btn btn-primary" style="width:100%;" onclick="saveForecastConfig()">${tr('cal_guardar')}</button>
   </div>`;
 
+  const recCalories = recommendedCalorieGoal();
+  const calorieRecCard = recCalories ? `
+  <div class="card">
+    <div class="label">${tr('pron_meta_calorica_rec')}</div>
+    <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:10px;">
+      <span class="display" style="font-size:28px;font-weight:700;color:var(--accent);">${recCalories}</span>
+      <span style="font-size:12px;color:var(--muted);">${tr('pron_kcal_dia')}</span>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">${tr('pron_meta_calorica_nota')}</div>
+    <button class="btn btn-ghost" style="width:100%;" onclick="applyRecommendedCalorieGoal()">${tr('pron_usar_meta')}</button>
+  </div>` : '';
+
   let resultCard = '';
   switch(forecast.status){
     case 'missing-config':
@@ -2336,7 +2387,7 @@ function renderPronostico(){
     )}</div>
   </div>` : '';
 
-  return `<div class="stack">${configCard}${resultCard}${chartCard}</div>`;
+  return `<div class="stack">${configCard}${calorieRecCard}${resultCard}${chartCard}</div>`;
 }
 function saveForecastConfig(){
   const height = Number(document.getElementById('fc-height').value)||null;
