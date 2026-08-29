@@ -44,6 +44,8 @@
   .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
   .grid-icons{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:6px;}
   .grid2>*,.grid4>*,.grid-icons>*{min-width:0;}
+  .expand-card{cursor:pointer;}
+  .expand-card.expanded{grid-column:1/-1;}
   .stack{display:flex;flex-direction:column;gap:16px;}
 
   #app{display:flex;min-height:100vh;max-width:1180px;margin:0 auto;}
@@ -1965,6 +1967,8 @@ function renderProgreso(){
   const pulsePts = isos.map((iso,i)=>({ label:dayLetter(iso), v: rawAt(i).pulse }));
   const weightMA = ma30('weight'), sysMA = ma30('sys'), diaMA = ma30('dia'), pulseMA = ma30('pulse');
   const calMA = ma30('calories'), exMA = ma30('exercise'), waterMA = ma30('water'), sleepMA = ma30('sleep');
+  const isExp = key => window._expandedProgresoChart===key;
+  const pexp = key => isExp(key) ? 'expanded' : '';
 
   return `
   <div class="stack">
@@ -1976,43 +1980,43 @@ function renderProgreso(){
     </div>
     <div style="font-size:12px;color:var(--muted);">${tr('nutr_ma30_nota')}</div>
     <div class="grid2">
-      <div class="card">
+      <div class="card expand-card ${pexp('weight')}" onclick="toggleChartExpand('progreso','weight')">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
           <div class="label" style="margin:0;">${tr('hoy_peso')}</div>
           ${weightSummaryHTML(weightPts)}
         </div>
-        <div class="chart-box">${lineChartSVG(weightPts,{color:'var(--accent3)', gridLines:true, gridSteps:4, unit:'kg', maValues:weightMA})}</div>
-        ${weightPts.filter(p=>p.v!=null).length>=2 ? `<button class="btn btn-ghost" style="width:100%;margin-top:10px;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="shareWeightProgress()">${navIcon('exportar',14)}${tr('share_boton')}</button>` : ''}
+        <div class="chart-box">${lineChartSVG(weightPts,{color:'var(--accent3)', gridLines:true, gridSteps:isExp('weight')?5:4, unit:'kg', maValues:weightMA, h:isExp('weight')?320:150})}</div>
+        ${weightPts.filter(p=>p.v!=null).length>=2 ? `<button class="btn btn-ghost" style="width:100%;margin-top:10px;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="event.stopPropagation();shareWeightProgress()">${navIcon('exportar',14)}${tr('share_boton')}</button>` : ''}
       </div>
-      <div class="card">
+      <div class="card expand-card ${pexp('bp')}" onclick="toggleChartExpand('progreso','bp')">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
           <div class="label" style="margin:0;">${tr('salud_presion')}</div>
           ${bpSummaryHTML()}
         </div>
-        <div class="chart-box">${multiLineChartSVG(bpPts,[{key:'sys',color:'var(--accent)', ma:sysMA},{key:'dia',color:'var(--accent3)', ma:diaMA}],{gridLines:true, gridSteps:4, unit:'mmHg'})}</div>
+        <div class="chart-box">${multiLineChartSVG(bpPts,[{key:'sys',color:'var(--accent)', ma:sysMA},{key:'dia',color:'var(--accent3)', ma:diaMA}],{gridLines:true, gridSteps:isExp('bp')?5:4, unit:'mmHg', h:isExp('bp')?320:150})}</div>
       </div>
-      <div class="card">
+      <div class="card expand-card ${pexp('pulse')}" onclick="toggleChartExpand('progreso','pulse')">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
           <div class="label" style="margin:0;">${tr('salud_pulso')}</div>
           ${pulseSummaryHTML()}
         </div>
-        <div class="chart-box">${lineChartSVG(pulsePts,{color:'var(--danger)', gridLines:true, gridSteps:4, unit:'bpm', maValues:pulseMA})}</div>
+        <div class="chart-box">${lineChartSVG(pulsePts,{color:'var(--danger)', gridLines:true, gridSteps:isExp('pulse')?5:4, unit:'bpm', maValues:pulseMA, h:isExp('pulse')?320:150})}</div>
       </div>
-      <div class="card"><div class="label">${trf('prog_calorias_meta',{goal:state.goals.calorieGoal})}</div><div class="chart-box">${barChartSVG(calPts,{color:'var(--accent)',goal:state.goals.calorieGoal, gridLines:true, gridSteps:4, unit:'kcal', maValues:calMA})}</div></div>
-      <div class="card">
+      <div class="card expand-card ${pexp('calories')}" onclick="toggleChartExpand('progreso','calories')"><div class="label">${trf('prog_calorias_meta',{goal:state.goals.calorieGoal})}</div><div class="chart-box">${barChartSVG(calPts,{color:'var(--accent)',goal:state.goals.calorieGoal, gridLines:true, gridSteps:isExp('calories')?5:4, unit:'kcal', maValues:calMA, h:isExp('calories')?320:150})}</div></div>
+      <div class="card expand-card ${pexp('exercise')}" onclick="toggleChartExpand('progreso','exercise')">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
           <div class="label" style="margin:0;">${trf('prog_ejercicio_min_meta',{goal:state.goals.exerciseGoal})}</div>
           ${exerciseAvgSummaryHTML()}
         </div>
-        <div class="chart-box">${barChartSVG(exPts,{color:'var(--accent2)',goal:state.goals.exerciseGoal, gridLines:true, gridSteps:4, unit:'min', maValues:exMA})}</div>
+        <div class="chart-box">${barChartSVG(exPts,{color:'var(--accent2)',goal:state.goals.exerciseGoal, gridLines:true, gridSteps:isExp('exercise')?5:4, unit:'min', maValues:exMA, h:isExp('exercise')?320:150})}</div>
       </div>
-      <div class="card"><div class="label">${tr('hoy_agua')}</div><div class="chart-box">${barChartSVG(waterPts,{color:'var(--accent3)',goal:state.goals.waterGoal, gridLines:true, gridSteps:4, unit:'L', maValues:waterMA})}</div></div>
-      <div class="card">
+      <div class="card expand-card ${pexp('water')}" onclick="toggleChartExpand('progreso','water')"><div class="label">${tr('hoy_agua')}</div><div class="chart-box">${barChartSVG(waterPts,{color:'var(--accent3)',goal:state.goals.waterGoal, gridLines:true, gridSteps:isExp('water')?5:4, unit:'L', maValues:waterMA, h:isExp('water')?320:150})}</div></div>
+      <div class="card expand-card ${pexp('sleep')}" onclick="toggleChartExpand('progreso','sleep')">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
           <div class="label" style="margin:0;">${tr('hoy_sueno')}</div>
           ${sleepAvgSummaryHTML()}
         </div>
-        <div class="chart-box">${barChartSVG(sleepPts,{color:'var(--accent2)', gridLines:true, gridSteps:4, unit:'h', maValues:sleepMA})}</div>
+        <div class="chart-box">${barChartSVG(sleepPts,{color:'var(--accent2)', gridLines:true, gridSteps:isExp('sleep')?5:4, unit:'h', maValues:sleepMA, h:isExp('sleep')?320:150})}</div>
       </div>
     </div>
   </div>`;
@@ -2068,18 +2072,21 @@ function macroChartHTML(macroPts, macroMA, opts){
 }
 function renderNutricion(){
   const { macroPts, macroMA, microDefs, microData } = nutricionChartData();
+  const exp = window._expandedNutriChart;
+  const macroExpanded = exp==='macros';
   const microCharts = microDefs.map(mk=>{
     const d = microData[mk.key];
-    return `<div class="card" style="cursor:pointer;" onclick="openChartExpand('${mk.key}')"><div class="label">${d.label}</div><div class="chart-box">${lineChartSVG(d.pts,{color:d.color, gridLines:true, gridSteps:4, unit:d.unit, maValues:d.ma})}</div></div>`;
+    const isExp = exp===mk.key;
+    return `<div class="card expand-card ${isExp?'expanded':''}" onclick="toggleChartExpand('nutri','${mk.key}')"><div class="label">${d.label}</div><div class="chart-box">${lineChartSVG(d.pts,{color:d.color, gridLines:true, gridSteps:isExp?5:4, unit:d.unit, maValues:d.ma, h:isExp?320:150})}</div></div>`;
   }).join('');
 
   return `
   <div class="stack">
     <div style="font-size:12px;color:var(--muted);">${tr('nutr_ultimos_30_dias')} · ${tr('nutr_ma30_nota')}</div>
     <div class="grid2">
-      <div class="card" style="cursor:pointer;" onclick="openChartExpand('macros')">
+      <div class="card expand-card ${macroExpanded?'expanded':''}" onclick="toggleChartExpand('nutri','macros')">
         <div class="label">${tr('nutr_macro_g')}</div>
-        <div class="chart-box">${macroChartHTML(macroPts, macroMA)}</div>
+        <div class="chart-box">${macroChartHTML(macroPts, macroMA, macroExpanded?{gridSteps:5, h:320}:{})}</div>
         <div class="legend" style="margin-top:10px;">
           <span><span class="dot" style="background:var(--accent);"></span>${tr('macro_proteina')}</span>
           <span><span class="dot" style="background:var(--accent2);"></span>${tr('macro_carbohidratos')}</span>
@@ -2090,7 +2097,11 @@ function renderNutricion(){
     </div>
   </div>`;
 }
-function openChartExpand(key){ window._modal='chart-expand'; window._expandChartKey=key; render(); }
+function toggleChartExpand(scope, key){
+  const prop = scope==='nutri' ? '_expandedNutriChart' : '_expandedProgresoChart';
+  window[prop] = window[prop]===key ? null : key;
+  render();
+}
 
 function renderPronostico(){
   const cfg = getForecastConfig();
@@ -2270,33 +2281,6 @@ function modalHTML(){
         </div>
         <div id="scanner-status" style="font-size:12px;color:var(--muted);margin:12px 0;text-align:center;">${tr('scan_apunta')}</div>
         <button class="btn btn-ghost" style="width:100%;" onclick="closeScanner()">${tr('set_cancelar')}</button>
-      </div>
-    </div>`;
-  }
-  if(window._modal==='chart-expand'){
-    const key = window._expandChartKey;
-    const { macroPts, macroMA, microData } = nutricionChartData();
-    let title, chartHTML, legend = '';
-    if(key==='macros'){
-      title = tr('nutr_macro_g');
-      chartHTML = macroChartHTML(macroPts, macroMA, {gridSteps:5, h:340, w:760});
-      legend = `<div class="legend" style="margin-top:10px;">
-        <span><span class="dot" style="background:var(--accent);"></span>${tr('macro_proteina')}</span>
-        <span><span class="dot" style="background:var(--accent2);"></span>${tr('macro_carbohidratos')}</span>
-        <span><span class="dot" style="background:var(--accent3);"></span>${tr('macro_grasas')}</span>
-      </div>`;
-    } else {
-      const d = microData[key];
-      if(!d) return '';
-      title = d.label;
-      chartHTML = lineChartSVG(d.pts,{color:d.color, gridLines:true, gridSteps:5, unit:d.unit, maValues:d.ma, h:340, w:760});
-    }
-    return `<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;" onclick="closeModal(event)">
-      <div class="card" style="width:760px;max-width:96vw;" onclick="event.stopPropagation()">
-        <div class="display" style="font-weight:700;font-size:17px;margin-bottom:14px;">${title}</div>
-        <div class="chart-box">${chartHTML}</div>
-        ${legend}
-        <button class="btn btn-ghost" style="width:100%;margin-top:16px;" onclick="closeModal()">${tr('set_cerrar')}</button>
       </div>
     </div>`;
   }
