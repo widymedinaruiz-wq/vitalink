@@ -1730,10 +1730,8 @@ function vitalityScore(){
     parts.push(bpScores[bpCategory(lastBP.systolic, lastBP.diastolic).label] ?? 50);
   }
 
-  if(state.meds.length>0){
-    const adh = medAdherence(7);
-    if(adh!=null) parts.push(adh);
-  }
+  const dosesPerDay = state.meds.reduce((s,m)=>s+m.times.length,0);
+  if(dosesPerDay>0 && d.medsTaken.length>0) parts.push(clamp((d.medsTaken.length/dosesPerDay)*100, 0, 100));
 
   if(!parts.length) return null;
   return Math.round(parts.reduce((a,b)=>a+b,0)/parts.length);
