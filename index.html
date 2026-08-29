@@ -877,13 +877,18 @@ function svgPathThroughValid(xy){
   }).join(' ');
 }
 function refGridSVG(min, range, w, h, pad, steps, unit){
+  // When the gap between gridlines is small, rounding every value to an integer can
+  // make neighboring gridlines collapse to the same displayed label (e.g. two "141 kg"
+  // lines in a row) — so scale decimal precision to how fine the steps actually are.
+  const stepSize = range/(steps-1 || 1);
+  const decimals = stepSize===0 ? 0 : stepSize < 0.1 ? 2 : stepSize < 1 ? 1 : 0;
   const lines = [];
   for(let i=0;i<steps;i++){
     const frac = i/(steps-1);
     const val = min + frac*range;
     const y = h-pad-frac*(h-pad*2);
     lines.push(`<line x1="${pad}" y1="${y}" x2="${w-pad}" y2="${y}" stroke="var(--line)" stroke-dasharray="3,3"/>
-      <text x="2" y="${y+3}" font-size="9" fill="var(--muted)">${Math.round(val)}${unit?' '+unit:''}</text>`);
+      <text x="2" y="${y+3}" font-size="9" fill="var(--muted)">${val.toFixed(decimals)}${unit?' '+unit:''}</text>`);
   }
   return lines.join('');
 }
