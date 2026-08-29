@@ -2018,7 +2018,7 @@ function renderProgreso(){
   </div>`;
 }
 
-function renderNutricion(){
+function nutricionChartData(){
   const n = 30;
   const maWindow = 30;
   const lookbackDays = n - 1 + maWindow; // extra days behind the visible range so the oldest point still gets a full 30-day trailing average
@@ -2050,22 +2050,36 @@ function renderNutricion(){
     { key:'potassium', label:tr('micro_potasio')+' (mg)', color:'var(--accent2)', unit:'mg' },
     { key:'vitaminC', label:tr('micro_vitc')+' (mg)', color:'var(--accent)', unit:'mg' },
   ];
+  const microData = {};
+  microDefs.forEach(mk=>{
+    microData[mk.key] = {
+      pts: isos.map((iso,i)=>({ label:dayLetter(iso), v: rawByDaysAgo[n-1-i][mk.key] })),
+      ma: ma30(mk.key), color: mk.color, unit: mk.unit, label: mk.label,
+    };
+  });
+  return { macroPts, macroMA, microDefs, microData };
+}
+function macroChartHTML(macroPts, macroMA, opts){
+  return multiLineChartSVG(macroPts,[
+    {key:'protein',color:'var(--accent)', ma:macroMA.protein},
+    {key:'carbs',color:'var(--accent2)', ma:macroMA.carbs},
+    {key:'fat',color:'var(--accent3)', ma:macroMA.fat},
+  ],{gridLines:true, gridSteps:4, unit:'g', ...opts});
+}
+function renderNutricion(){
+  const { macroPts, macroMA, microDefs, microData } = nutricionChartData();
   const microCharts = microDefs.map(mk=>{
-    const pts = isos.map((iso,i)=>({ label:dayLetter(iso), v: rawByDaysAgo[n-1-i][mk.key] }));
-    return `<div class="card"><div class="label">${mk.label}</div><div class="chart-box">${lineChartSVG(pts,{color:mk.color, gridLines:true, gridSteps:4, unit:mk.unit, maValues:ma30(mk.key)})}</div></div>`;
+    const d = microData[mk.key];
+    return `<div class="card" style="cursor:pointer;" onclick="openChartExpand('${mk.key}')"><div class="label">${d.label}</div><div class="chart-box">${lineChartSVG(d.pts,{color:d.color, gridLines:true, gridSteps:4, unit:d.unit, maValues:d.ma})}</div></div>`;
   }).join('');
 
   return `
   <div class="stack">
     <div style="font-size:12px;color:var(--muted);">${tr('nutr_ultimos_30_dias')} · ${tr('nutr_ma30_nota')}</div>
     <div class="grid2">
-      <div class="card">
+      <div class="card" style="cursor:pointer;" onclick="openChartExpand('macros')">
         <div class="label">${tr('nutr_macro_g')}</div>
-        <div class="chart-box">${multiLineChartSVG(macroPts,[
-          {key:'protein',color:'var(--accent)', ma:macroMA.protein},
-          {key:'carbs',color:'var(--accent2)', ma:macroMA.carbs},
-          {key:'fat',color:'var(--accent3)', ma:macroMA.fat},
-        ],{gridLines:true, gridSteps:4, unit:'g'})}</div>
+        <div class="chart-box">${macroChartHTML(macroPts, macroMA)}</div>
         <div class="legend" style="margin-top:10px;">
           <span><span class="dot" style="background:var(--accent);"></span>${tr('macro_proteina')}</span>
           <span><span class="dot" style="background:var(--accent2);"></span>${tr('macro_carbohidratos')}</span>
@@ -2076,6 +2090,7 @@ function renderNutricion(){
     </div>
   </div>`;
 }
+function openChartExpand(key){ window._modal='chart-expand'; window._expandChartKey=key; render(); }
 
 function renderPronostico(){
   const cfg = getForecastConfig();
@@ -2255,6 +2270,33 @@ function modalHTML(){
         </div>
         <div id="scanner-status" style="font-size:12px;color:var(--muted);margin:12px 0;text-align:center;">${tr('scan_apunta')}</div>
         <button class="btn btn-ghost" style="width:100%;" onclick="closeScanner()">${tr('set_cancelar')}</button>
+      </div>
+    </div>`;
+  }
+  if(window._modal==='chart-expand'){
+    const key = window._expandChartKey;
+    const { macroPts, macroMA, microData } = nutricionChartData();
+    let title, chartHTML, legend = '';
+    if(key==='macros'){
+      title = tr('nutr_macro_g');
+      chartHTML = macroChartHTML(macroPts, macroMA, {gridSteps:5, h:340, w:760});
+      legend = `<div class="legend" style="margin-top:10px;">
+        <span><span class="dot" style="background:var(--accent);"></span>${tr('macro_proteina')}</span>
+        <span><span class="dot" style="background:var(--accent2);"></span>${tr('macro_carbohidratos')}</span>
+        <span><span class="dot" style="background:var(--accent3);"></span>${tr('macro_grasas')}</span>
+      </div>`;
+    } else {
+      const d = microData[key];
+      if(!d) return '';
+      title = d.label;
+      chartHTML = lineChartSVG(d.pts,{color:d.color, gridLines:true, gridSteps:5, unit:d.unit, maValues:d.ma, h:340, w:760});
+    }
+    return `<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;" onclick="closeModal(event)">
+      <div class="card" style="width:760px;max-width:96vw;" onclick="event.stopPropagation()">
+        <div class="display" style="font-weight:700;font-size:17px;margin-bottom:14px;">${title}</div>
+        <div class="chart-box">${chartHTML}</div>
+        ${legend}
+        <button class="btn btn-ghost" style="width:100%;margin-top:16px;" onclick="closeModal()">${tr('set_cerrar')}</button>
       </div>
     </div>`;
   }
