@@ -167,7 +167,7 @@ const I18N = {
     micro_title:'Micronutrientes', micro_fibra:'Fibra', micro_azucar:'Azúcar', micro_sodio:'Sodio',
     micro_hierro:'Hierro', micro_calcio:'Calcio', micro_potasio:'Potasio', micro_vitc:'Vitamina C',
     hoy_agua:'Agua (L)', hoy_peso:'Peso (kg)', hoy_sueno:'Sueño (h)', hoy_ajustar_metas:'Ajustar metas diarias',
-    hoy_metas_titulo:'Tus metas diarias', hoy_ultimos_7_dias:'Últimos 7 días', hoy_cumplidos:'Cumplidos',
+    hoy_metas_titulo:'Tus metas diarias', hoy_ultimos_7_dias:'Últimos 7 días',
     comidas_tipo:'Tipo de comida', comidas_agregar_a:'Agregar a', comidas_placeholder:'Ej. "lata atún 6oz", "plátano mediano"',
     comidas_estimar:'Estimar', comidas_escanear:'Escanear código de barras',
     comidas_prot_g:'Prot(g)', comidas_carb_g:'Carb(g)', comidas_grasa_g:'Grasa(g)',
@@ -306,7 +306,7 @@ const I18N = {
     micro_title:'Micronutrients', micro_fibra:'Fiber', micro_azucar:'Sugar', micro_sodio:'Sodium',
     micro_hierro:'Iron', micro_calcio:'Calcium', micro_potasio:'Potassium', micro_vitc:'Vitamin C',
     hoy_agua:'Water (L)', hoy_peso:'Weight (kg)', hoy_sueno:'Sleep (h)', hoy_ajustar_metas:'Adjust daily goals',
-    hoy_metas_titulo:'Your daily goals', hoy_ultimos_7_dias:'Last 7 days', hoy_cumplidos:'Achieved',
+    hoy_metas_titulo:'Your daily goals', hoy_ultimos_7_dias:'Last 7 days',
     comidas_tipo:'Meal type', comidas_agregar_a:'Add to', comidas_placeholder:'E.g. "6oz tuna can", "medium banana"',
     comidas_estimar:'Estimate', comidas_escanear:'Scan barcode',
     comidas_prot_g:'Prot(g)', comidas_carb_g:'Carbs(g)', comidas_grasa_g:'Fat(g)',
@@ -1169,27 +1169,33 @@ function weeklyGoalsCard(){
   const n = 7;
   const isos = Array.from({length:n}).map((_,i)=>isoDaysAgo(n-1-i));
   const days = isos.map(iso => iso===todayISO() ? { iso, ...state.day } : { iso, ...getDay(iso) });
-  let achieved = 0;
+  let calSum = 0, waterSum = 0, exSum = 0;
   const dials = days.map(d=>{
     const calEaten = d.meals.reduce((s,m)=>s+(Number(m.calories)||0),0);
     const exMin = d.exercises.reduce((s,e)=>s+(Number(e.minutes)||0),0);
     const calPct = calEaten/g.calorieGoal;
     const waterPct = (d.water||0)/g.waterGoal;
     const exPct = exMin/g.exerciseGoal;
-    if(calPct>=1 && waterPct>=1 && exPct>=1) achieved++;
+    calSum += clamp(calPct,0,1); waterSum += clamp(waterPct,0,1); exSum += clamp(exPct,0,1);
     const isToday = d.iso===todayISO();
     return `<div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1 1 auto;max-width:56px;min-width:0;">
       ${dialSVG(calPct, waterPct, exPct, 44, true)}
       <span style="font-size:11px;color:${isToday?'var(--accent)':'var(--muted)'};font-weight:${isToday?'700':'400'};">${dayLetter(d.iso)}</span>
     </div>`;
   }).join('');
+  const avgStat = (color,label,pct)=>`<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;">
+    <span class="display" style="font-size:17px;font-weight:700;color:${color};">${Math.round(pct/n*100)}%</span>
+    <span style="font-size:10.5px;color:var(--muted);">${label}</span>
+  </div>`;
   return `<div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;">
-      <div class="label" style="margin:0;">${tr('hoy_metas_titulo')}</div>
-      <span style="font-size:13px;font-weight:700;color:var(--accent);">${achieved}/7 ${tr('hoy_cumplidos')}</span>
-    </div>
+    <div class="label" style="margin-bottom:2px;">${tr('hoy_metas_titulo')}</div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:18px;">${tr('hoy_ultimos_7_dias')}</div>
     <div style="display:flex;justify-content:space-between;align-items:flex-start;">${dials}</div>
+    <div style="display:flex;justify-content:space-between;gap:6px;margin-top:18px;padding-top:14px;border-top:1px solid var(--line);">
+      ${avgStat('var(--accent3)', tr('legend_agua'), waterSum)}
+      ${avgStat('var(--accent2)', tr('legend_ejercicio'), exSum)}
+      ${avgStat('var(--accent)', tr('legend_comida'), calSum)}
+    </div>
   </div>`;
 }
 
