@@ -2760,9 +2760,9 @@ function addMed(){
   const times = document.getElementById('med-times').value.split(',').map(s=>s.trim()).filter(Boolean);
   if(!name || times.length===0) return;
   state.meds.push({ id:uid(), name, dose, times });
-  setMeds(state.meds); render();
+  setMeds(state.meds); syncNativeMedAlerts(); render();
 }
-function removeMed(id){ state.meds = state.meds.filter(m=>m.id!==id); setMeds(state.meds); render(); }
+function removeMed(id){ state.meds = state.meds.filter(m=>m.id!==id); setMeds(state.meds); syncNativeMedAlerts(); render(); }
 function toggleMedTaken(key){
   const exists = state.day.medsTaken.find(t=>t.key===key);
   if(exists) state.day.medsTaken = state.day.medsTaken.filter(t=>t.key!==key);
@@ -2775,7 +2775,50 @@ function toggleAlerts(){
   if(state.alertsOn && 'Notification' in window && Notification.permission!=='granted'){
     Notification.requestPermission();
   }
+  syncNativeMedAlerts();
   render();
+}
+// Android's WebView has no Web Notification API at all (confirmed: 'Notification' in
+// window is false there), so the branch above never fires on the native app — medication
+// alerts need real OS-level scheduled notifications instead, via the LocalNotifications
+// Capacitor plugin (auto-registered on window.Capacitor.Plugins, no bundler/import needed).
+// The web build keeps using the JS interval + Notification API above, untouched.
+function medNotifId(medId, time){
+  const s = medId+':'+time;
+  let h = 0;
+  for(let i=0;i<s.length;i++){ h = (h*31 + s.charCodeAt(i))|0; }
+  return Math.abs(h) % 2147483647 || 1;
+}
+async function syncNativeMedAlerts(){
+  if(!(window.Capacitor && window.Capacitor.isNativePlatform())) return;
+  const LN = window.Capacitor.Plugins.LocalNotifications;
+  if(!LN) return;
+  try{
+    const pending = await LN.getPending();
+    if(pending.notifications && pending.notifications.length){
+      await LN.cancel({ notifications: pending.notifications.map(n=>({id:n.id})) });
+    }
+  }catch(e){}
+  if(!state.alertsOn) return;
+  try{
+    let perm = await LN.checkPermissions();
+    if(perm.display!=='granted') perm = await LN.requestPermissions();
+    if(perm.display!=='granted') return;
+    const notifications = [];
+    state.meds.forEach(med=>{
+      med.times.forEach(t=>{
+        const [hour,minute] = t.split(':').map(Number);
+        if(Number.isNaN(hour) || Number.isNaN(minute)) return;
+        notifications.push({
+          id: medNotifId(med.id, t),
+          title: 'VitaLinks — Medicamento',
+          body: `Es hora de tomar ${med.name}${med.dose?' ('+med.dose+')':''}`,
+          schedule: { on:{ hour, minute }, allowWhileIdle:true },
+        });
+      });
+    });
+    if(notifications.length) await LN.schedule({ notifications });
+  }catch(e){ console.error('local notif schedule error', e); }
 }
 setInterval(()=>{
   if(!state.alertsOn) return;
@@ -3509,6 +3552,7 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
 /* ================= init ================= */
 checkInviteParam();
 render();
+syncNativeMedAlerts();
 </script>
 
 <script type="module">
