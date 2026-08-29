@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Static resting frame of the splash icon: same three-ring composition as the
+     app's locked brand-logo SVG (index.html <svg class="brand-logo">). Android's
+     SplashScreen always clips windowSplashScreenAnimatedIcon to its own icon mask
+     (a circle on stock/Pixel/this emulator) and, empirically, does not reliably
+     paint windowSplashScreenIconBackgroundColor behind a custom AnimatedVectorDrawable
+     the way it does for a plain adaptive icon — so the backdrop is baked in here as
+     a circle (not the logo's usual rounded square) to match that mask exactly and
+     avoid a mismatched double edge. Each ring keeps a clip-path "hole" standing in
+     for the SVG's <mask> elements so the weave still reads correctly once every
+     ring is fully drawn. Do not restyle the rings themselves; this file only needs
+     to match the locked logo so splash_icon_animated.xml can trim each ring's
+     stroke on and settle here. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+
+    <path
+        android:name="badge_bg"
+        android:pathData="M0,60A60,60 0 1 1 120,60A60,60 0 1 1 0,60Z"
+        android:fillColor="#1B453F" />
+
+    <group android:name="teal_group">
+        <clip-path
+            android:pathData="M0,0L120,0L120,120L0,120Z M17.359,80A42.641,42.641 0 1 1 102.641,80A42.641,42.641 0 1 1 17.359,80Z M33.359,80A26.641,26.641 0 1 1 86.641,80A26.641,26.641 0 1 1 33.359,80Z"
+            android:fillType="evenOdd" />
+        <path
+            android:name="teal_ring"
+            android:pathData="M77.32,15.359A34.641,34.641 0 1 1 77.32,84.641A34.641,34.641 0 1 1 77.32,15.359"
+            android:strokeColor="#7FC8B0"
+            android:strokeWidth="10"
+            android:strokeLineCap="butt"
+            android:fillColor="#00000000"
+            android:trimPathStart="0"
+            android:trimPathEnd="1" />
+    </group>
+
+    <group android:name="orange_group">
+        <clip-path
+            android:pathData="M0,0L120,0L120,120L0,120Z M34.679,50A42.641,42.641 0 1 1 119.961,50A42.641,42.641 0 1 1 34.679,50Z M50.679,50A26.641,26.641 0 1 1 103.961,50A26.641,26.641 0 1 1 50.679,50Z"
+            android:fillType="evenOdd" />
+        <path
+            android:name="orange_ring"
+            android:pathData="M42.68,15.359A34.641,34.641 0 1 1 42.68,84.641A34.641,34.641 0 1 1 42.68,15.359"
+            android:strokeColor="#F2A65A"
+            android:strokeWidth="10"
+            android:strokeLineCap="butt"
+            android:fillColor="#00000000"
+            android:trimPathStart="0"
+            android:trimPathEnd="1" />
+    </group>
+
+    <group android:name="yellow_group">
+        <clip-path
+            android:pathData="M0,0L120,0L120,120L0,120Z M0.039,50A42.641,42.641 0 1 1 85.321,50A42.641,42.641 0 1 1 0.039,50Z M16.039,50A26.641,26.641 0 1 1 69.321,50A26.641,26.641 0 1 1 16.039,50Z"
+            android:fillType="evenOdd" />
+        <path
+            android:name="yellow_ring"
+            android:pathData="M60,45.359A34.641,34.641 0 1 1 60,114.641A34.641,34.641 0 1 1 60,45.359"
+            android:strokeColor="#E8C468"
+            android:strokeWidth="10"
+            android:strokeLineCap="butt"
+            android:fillColor="#00000000"
+            android:trimPathStart="0"
+            android:trimPathEnd="1" />
+    </group>
+</vector>
