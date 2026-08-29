@@ -70,6 +70,8 @@
 
   .dial-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;padding:14px 0;}
   .legend{display:flex;gap:16px;}
+  .ring-fill-animate{transition:stroke-dashoffset 1000ms cubic-bezier(.16,1,.3,1);}
+  @media (prefers-reduced-motion:reduce){ .ring-fill-animate{transition:none;} }
   .legend span{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);}
   .dot{width:8px;height:8px;border-radius:99px;display:inline-block;}
 
@@ -1128,7 +1130,7 @@ function barChartSVG(points, opts){
     ${goalLine}${bars}${maPath}${labels}
   </svg>`;
 }
-function dialSVG(calPct, waterPct, exPct, size, responsive){
+function dialSVG(calPct, waterPct, exPct, size, responsive, animate){
   const s = size || 168;
   const scale = s/168;
   const rings = [
@@ -1140,9 +1142,10 @@ function dialSVG(calPct, waterPct, exPct, size, responsive){
   const strokeW = Math.max(2.5, 9*scale);
   const circles = rings.map(ring=>{
     const c = 2*Math.PI*ring.r; const clamped = Math.max(0, Math.min(1, ring.pct||0));
+    const targetOffset = c*(1-clamped);
     return `<circle cx="${cx}" cy="${cx}" r="${ring.r}" fill="none" stroke="var(--line)" stroke-width="${strokeW}"/>
-    <circle cx="${cx}" cy="${cx}" r="${ring.r}" fill="none" stroke="${ring.color}" stroke-width="${strokeW}" stroke-linecap="round"
-      stroke-dasharray="${c*clamped} ${c}" transform="rotate(-90 ${cx} ${cx})"/>`;
+    <circle class="${animate?'ring-fill-animate':''}" data-target-offset="${targetOffset}" cx="${cx}" cy="${cx}" r="${ring.r}" fill="none" stroke="${ring.color}" stroke-width="${strokeW}" stroke-linecap="round"
+      stroke-dasharray="${c} ${c}" stroke-dashoffset="${animate?c:targetOffset}" transform="rotate(-90 ${cx} ${cx})"/>`;
   }).join('');
   const styleAttr = responsive ? ' style="width:100%;height:auto;display:block;"' : '';
   return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}"${styleAttr}>${circles}</svg>`;
@@ -1298,6 +1301,13 @@ function renderHoy(){
   const lastBP = d.bp[d.bp.length-1];
   const vScore = vitalityScore();
   const todayInsight = getDailyInsightCache()[todayISO()];
+  // Plays once when the tab is switched into (flag set by setTab/init), not on every
+  // re-render while already on Hoy — otherwise logging a glass of water would replay
+  // the whole entrance animation instead of just updating the ring instantly.
+  const animateHoy = !!window._hoyAnimate;
+  window._hoyAnimate = false;
+  if(animateHoy) window._hoyAnimateTargets = { vitality: vScore, calories: calEaten };
+  const vCirc = 2*Math.PI*52, vTargetOffset = vCirc*(1-clamp(vScore,0,100)/100);
   return `
   <div class="stack">
     ${vScore!=null ? `<div class="card" style="text-align:center;padding:22px;">
@@ -1305,11 +1315,11 @@ function renderHoy(){
       <div style="position:relative;width:120px;height:120px;margin:0 auto;">
         <svg width="120" height="120" viewBox="0 0 120 120">
           <circle cx="60" cy="60" r="52" fill="none" stroke="var(--line)" stroke-width="10"/>
-          <circle cx="60" cy="60" r="52" fill="none" stroke="${vScore>=75?'var(--accent3)':vScore>=50?'var(--accent2)':'var(--danger)'}" stroke-width="10"
-            stroke-dasharray="${2*Math.PI*52*clamp(vScore,0,100)/100} ${2*Math.PI*52}" stroke-linecap="round" transform="rotate(-90 60 60)"/>
+          <circle class="${animateHoy?'ring-fill-animate':''}" data-target-offset="${vTargetOffset}" cx="60" cy="60" r="52" fill="none" stroke="${vScore>=75?'var(--accent3)':vScore>=50?'var(--accent2)':'var(--danger)'}" stroke-width="10"
+            stroke-dasharray="${vCirc} ${vCirc}" stroke-dashoffset="${animateHoy?vCirc:vTargetOffset}" stroke-linecap="round" transform="rotate(-90 60 60)"/>
         </svg>
         <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
-          <span class="display" style="font-size:34px;font-weight:700;">${vScore}</span>
+          <span class="display" id="vitality-num" style="font-size:34px;font-weight:700;">${animateHoy?0:vScore}</span>
         </div>
       </div>
       <div style="font-size:11px;color:var(--muted);margin-top:10px;">${tr('hoy_vitality_sub')}</div>
@@ -1327,9 +1337,9 @@ function renderHoy(){
     </div>` : ''}
     <div class="card dial-wrap">
       <div style="position:relative;width:168px;height:168px;display:flex;align-items:center;justify-content:center;">
-        ${dialSVG(calEaten/g.calorieGoal, d.water/g.waterGoal, exMin/g.exerciseGoal)}
+        ${dialSVG(calEaten/g.calorieGoal, d.water/g.waterGoal, exMin/g.exerciseGoal, undefined, undefined, animateHoy)}
         <div style="position:absolute;text-align:center;">
-          <div class="display" style="font-size:30px;font-weight:700;">${calEaten}</div>
+          <div class="display" id="dial-cal-num" style="font-size:30px;font-weight:700;">${animateHoy?0:calEaten}</div>
         </div>
       </div>
       <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;">${tr('hoy_de')} ${g.calorieGoal} kcal</div>
@@ -2541,8 +2551,38 @@ function saveSettings(){
 }
 
 /* ================= actions ================= */
-function render(){ document.getElementById('app').innerHTML = renderApp(); restoreWheelScroll(); }
-function setTab(t){ state.tab=t; window._pmView=false; render(); }
+function render(){ document.getElementById('app').innerHTML = renderApp(); restoreWheelScroll(); runHoyEntranceAnimation(); }
+function setTab(t){
+  if(t==='hoy' && state.tab!=='hoy') window._hoyAnimate = true;
+  state.tab=t; window._pmView=false; render();
+}
+function animateCountUp(el, target, duration){
+  if(!el) return;
+  const startTime = performance.now();
+  function step(now){
+    const t = Math.min(1, (now-startTime)/duration);
+    const eased = 1 - Math.pow(1-t, 3);
+    el.textContent = Math.round(target*eased);
+    if(t < 1) requestAnimationFrame(step); else el.textContent = target;
+  }
+  requestAnimationFrame(step);
+}
+function runHoyEntranceAnimation(){
+  const ringEls = document.querySelectorAll('.ring-fill-animate');
+  const targets = window._hoyAnimateTargets;
+  window._hoyAnimateTargets = null;
+  if(!ringEls.length && !targets) return;
+  // Two rAFs so the browser has actually painted the "empty" starting state before we
+  // change to the target — changing both in the same tick gives the CSS transition
+  // nothing to animate from.
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    ringEls.forEach(el=>{ el.style.strokeDashoffset = el.dataset.targetOffset; });
+  }));
+  if(targets){
+    if(targets.vitality!=null) animateCountUp(document.getElementById('vitality-num'), targets.vitality, 900);
+    if(targets.calories!=null) animateCountUp(document.getElementById('dial-cal-num'), targets.calories, 900);
+  }
+}
 function setMealType(t){ window._mealType=t; render(); }
 function setRange(r){ state.progressRange=r; render(); }
 
@@ -3774,6 +3814,7 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
 
 /* ================= init ================= */
 checkInviteParam();
+if(state.tab==='hoy') window._hoyAnimate = true;
 render();
 syncNativeMedAlerts();
 </script>
