@@ -1908,13 +1908,15 @@ function renderComposicionCharts(){
   }
   const isos = Array.from({length:n}).map((_,i)=>isoDaysAgo(n-1-i));
   const colors = ['var(--accent)','var(--accent2)','var(--accent3)','var(--danger)'];
+  const exp = window._expandedCompChart;
   const charts = BODYCOMP_FIELDS.map((f,i)=>{
     const pts = isos.map((iso,idx)=>({ label:dayLetter(iso), v: valueAt(n-1-idx, f.key) }));
     const ma = ma30(f.key);
-    return `<div class="card"><div class="label" style="display:flex;align-items:center;gap:6px;justify-content:space-between;">
+    const isExp = exp===f.key;
+    return `<div class="card expand-card ${isExp?'expanded':''}" onclick="toggleChartExpand('comp','${f.key}')"><div class="label" style="display:flex;align-items:center;gap:6px;justify-content:space-between;">
         <span>${tr('bc_'+f.key)}${f.unit?' ('+bcUnit(f)+')':''}</span>
-        <button class="info-btn" onclick="openBodyCompInfo('${f.key}')" title="${esc(tr('comp_info_title'))}">ⓘ</button>
-      </div><div class="chart-box">${lineChartSVG(pts,{color:colors[i%colors.length], gridLines:true, gridSteps:4, unit:bcUnit(f), maValues:ma})}</div></div>`;
+        <button class="info-btn" onclick="event.stopPropagation();openBodyCompInfo('${f.key}')" title="${esc(tr('comp_info_title'))}">ⓘ</button>
+      </div><div class="chart-box">${lineChartSVG(pts,{color:colors[i%colors.length], gridLines:true, gridSteps:isExp?5:4, unit:bcUnit(f), maValues:ma, h:isExp?320:150})}</div></div>`;
   }).join('');
   return `<div style="font-size:12px;color:var(--muted);">${tr('comp_tendencia')} · ${tr('nutr_ma30_nota')}</div><div class="grid2">${charts}</div>`;
 }
@@ -2337,7 +2339,7 @@ function renderNutricion(){
   </div>`;
 }
 function toggleChartExpand(scope, key){
-  const prop = scope==='nutri' ? '_expandedNutriChart' : '_expandedProgresoChart';
+  const prop = scope==='nutri' ? '_expandedNutriChart' : scope==='comp' ? '_expandedCompChart' : '_expandedProgresoChart';
   window[prop] = window[prop]===key ? null : key;
   render();
 }
