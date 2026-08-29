@@ -187,6 +187,13 @@ const I18N = {
     ejercicio_agregar:'Agregar ejercicio', ejercicio_actividad:'Actividad', ejercicio_min:'min',
     ejercicio_kcal_opc:'kcal quemadas (opcional)', ejercicio_empty:'Sin ejercicio registrado — agrega el primero arriba',
     salud_presion:'Presión arterial', salud_sistolica:'Sistólica', salud_diastolica:'Diastólica', salud_pulso:'Pulso (bpm)',
+    bp_info_titulo:'Categorías de presión arterial', bp_info_fuente:'Según la Asociación Americana del Corazón (AHA)',
+    bp_info_normal:'Normal', bp_info_normal_rango:'Sistólica menor a 120 y diastólica menor a 80',
+    bp_info_elevada:'Elevada', bp_info_elevada_rango:'Sistólica 120–129 y diastólica menor a 80',
+    bp_info_etapa1:'Hipertensión etapa 1', bp_info_etapa1_rango:'Sistólica 130–139 o diastólica 80–89',
+    bp_info_etapa2:'Hipertensión etapa 2', bp_info_etapa2_rango:'Sistólica 140 o más, o diastólica 90 o más',
+    bp_info_crisis:'Crisis hipertensiva', bp_info_crisis_rango:'Sistólica mayor a 180 o diastólica mayor a 120 — consulta a un médico de inmediato',
+    bp_info_nota:'Esto es solo información educativa, no reemplaza el diagnóstico de un profesional de salud.',
     salud_sin_lecturas:'Sin lecturas hoy', salud_medicamentos_hoy:'Medicamentos de hoy', salud_alertas:'Alertas',
     salud_alertas_sub:'Las alertas solo suenan mientras esta pestaña esté abierta.', salud_adherencia:'Adherencia últimos 7 días',
     salud_empty_meds:'Agrega un medicamento abajo para ver su horario aquí', salud_pendiente:'pendiente',
@@ -319,6 +326,13 @@ const I18N = {
     ejercicio_agregar:'Add exercise', ejercicio_actividad:'Activity', ejercicio_min:'min',
     ejercicio_kcal_opc:'kcal burned (optional)', ejercicio_empty:'No exercise logged yet — add the first one above',
     salud_presion:'Blood pressure', salud_sistolica:'Systolic', salud_diastolica:'Diastolic', salud_pulso:'Pulse (bpm)',
+    bp_info_titulo:'Blood pressure categories', bp_info_fuente:'Based on American Heart Association (AHA) guidelines',
+    bp_info_normal:'Normal', bp_info_normal_rango:'Systolic under 120 and diastolic under 80',
+    bp_info_elevada:'Elevated', bp_info_elevada_rango:'Systolic 120–129 and diastolic under 80',
+    bp_info_etapa1:'Hypertension stage 1', bp_info_etapa1_rango:'Systolic 130–139 or diastolic 80–89',
+    bp_info_etapa2:'Hypertension stage 2', bp_info_etapa2_rango:'Systolic 140 or higher, or diastolic 90 or higher',
+    bp_info_crisis:'Hypertensive crisis', bp_info_crisis_rango:'Systolic over 180 or diastolic over 120 — see a doctor immediately',
+    bp_info_nota:'This is educational information only, not a substitute for a healthcare professional\'s diagnosis.',
     salud_sin_lecturas:'No readings today', salud_medicamentos_hoy:"Today's medications", salud_alertas:'Alerts',
     salud_alertas_sub:'Alerts only sound while this tab is open.', salud_adherencia:'7-day adherence',
     salud_empty_meds:'Add a medication below to see its schedule here', salud_pendiente:'due',
@@ -2522,6 +2536,29 @@ function modalHTML(){
       </div>
     </div>`;
   }
+  if(window._modal==='bp-info'){
+    const rows = [
+      { key:'normal', color:'var(--accent3)' },
+      { key:'elevada', color:'var(--accent2)' },
+      { key:'etapa1', color:'var(--accent2)' },
+      { key:'etapa2', color:'var(--danger)' },
+      { key:'crisis', color:'var(--danger)' },
+    ];
+    return `<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;" onclick="closeModal(event)">
+      <div class="card" style="width:440px;max-width:100%;max-height:80vh;overflow-y:auto;" onclick="event.stopPropagation()">
+        <div class="display" style="font-weight:700;font-size:16px;margin-bottom:6px;">${tr('bp_info_titulo')}</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">${tr('bp_info_fuente')}</div>
+        <div class="stack" style="gap:10px;">
+          ${rows.map(r=>`<div style="border-left:3px solid ${r.color};padding:2px 0 2px 10px;">
+            <div style="font-size:13px;font-weight:700;color:${r.color};">${tr('bp_info_'+r.key)}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px;">${tr('bp_info_'+r.key+'_rango')}</div>
+          </div>`).join('')}
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:16px;">${tr('bp_info_nota')}</div>
+        <button class="btn btn-ghost" style="width:100%;margin-top:16px;" onclick="closeModal()">${tr('set_cerrar')}</button>
+      </div>
+    </div>`;
+  }
   if(window._modal==='bodycomp-info'){
     const f = BODYCOMP_FIELDS.find(x=>x.key===window._infoKey);
     if(!f) return '';
@@ -2995,8 +3032,9 @@ function bpCategory(sys, dia){
 }
 function bpBadge(sys, dia){
   const cat = bpCategory(sys, dia);
-  return `<span style="font-size:10px;font-weight:700;color:${cat.color};border:1px solid ${cat.color};border-radius:10px;padding:2px 8px;display:inline-block;">${cat.label}</span>`;
+  return `<span onclick="event.stopPropagation();openBPInfo();" style="cursor:pointer;font-size:10px;font-weight:700;color:${cat.color};border:1px solid ${cat.color};border-radius:10px;padding:2px 8px;display:inline-block;">${cat.label}</span>`;
 }
+function openBPInfo(){ window._modal='bp-info'; render(); }
 function addBP(){
   const sys = Number(document.getElementById('bp-sys').value);
   const dia = Number(document.getElementById('bp-dia').value);
