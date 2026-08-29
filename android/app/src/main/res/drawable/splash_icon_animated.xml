@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draws each ring of the badge on in the same order they're legended everywhere
+     else in the app (Comida, Agua, Ejercicio): orange, then teal, then yellow,
+     staggered so they cascade rather than snap in together. Mirrors the
+     stroke-trim technique already used for the in-app progress rings (see
+     ring-fill-animate / dialSVG in index.html), just replayed once on launch. -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:drawable="@drawable/splash_icon_static">
+
+    <target android:name="orange_ring">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="trimPathEnd"
+                android:valueFrom="0"
+                android:valueTo="1"
+                android:duration="500"
+                android:startOffset="0"
+                android:interpolator="@android:interpolator/decelerate_cubic" />
+        </aapt:attr>
+    </target>
+
+    <target android:name="teal_ring">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="trimPathEnd"
+                android:valueFrom="0"
+                android:valueTo="1"
+                android:duration="500"
+                android:startOffset="150"
+                android:interpolator="@android:interpolator/decelerate_cubic" />
+        </aapt:attr>
+    </target>
+
+    <target android:name="yellow_ring">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="trimPathEnd"
+                android:valueFrom="0"
+                android:valueTo="1"
+                android:duration="500"
+                android:startOffset="300"
+                android:interpolator="@android:interpolator/decelerate_cubic" />
+        </aapt:attr>
+    </target>
+</animated-vector>
