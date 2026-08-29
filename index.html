@@ -76,6 +76,13 @@
   .meal-type-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:12px;border:1px solid var(--line);background:var(--raised);cursor:pointer;font-size:10px;color:var(--muted);}
   .meal-type-btn.active{border-color:var(--accent);background:rgba(242,166,90,.12);color:var(--accent);font-weight:700;}
 
+  .wheel-wrap{position:relative;}
+  .wheel-row{display:flex;gap:8px;}
+  .wheel-col{flex:1;min-width:0;height:180px;overflow-y:auto;scroll-snap-type:y mandatory;scrollbar-width:none;padding:72px 0;}
+  .wheel-col::-webkit-scrollbar{display:none;}
+  .wheel-item{height:36px;display:flex;align-items:center;justify-content:center;scroll-snap-align:center;font-size:14px;color:var(--text);}
+  .wheel-highlight{position:absolute;left:0;right:0;top:72px;height:36px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:rgba(242,166,90,.08);pointer-events:none;border-radius:6px;}
+
   .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
   .cal-day{aspect-ratio:1;border-radius:10px;border:1px solid var(--line);background:var(--raised);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:var(--text);position:relative;}
   .cal-day.empty{visibility:hidden;}
@@ -204,6 +211,8 @@ const I18N = {
     nutr_ma30_nota:'Línea punteada: promedio móvil de 30 días',
     pron_tus_datos:'Tus datos', pron_altura:'Altura (cm)', pron_peso_meta:'Peso meta (kg)',
     pron_ej_170:'Ej. 170', pron_ej_68:'Ej. 68', pron_datos_guardados:'Datos guardados',
+    pron_fecha_nacimiento:'Fecha de nacimiento', pron_genero:'Género',
+    pron_hombre:'Hombre', pron_mujer:'Mujer', pron_otro:'Otro', pron_edad:'Edad: {n} años',
     pron_ingresa_datos:'Ingresa tu altura y peso meta arriba para generar tu pronóstico',
     pron_no_peso:'Aún no tienes ningún peso registrado — agrega uno en Hoy o en el Calendario',
     pron_en_meta_msg:'¡Ya estás en tu peso meta! Peso actual: {w} kg',
@@ -326,6 +335,8 @@ const I18N = {
     nutr_ma30_nota:'Dashed line: 30-day moving average',
     pron_tus_datos:'Your info', pron_altura:'Height (cm)', pron_peso_meta:'Target weight (kg)',
     pron_ej_170:'E.g. 170', pron_ej_68:'E.g. 68', pron_datos_guardados:'Data saved',
+    pron_fecha_nacimiento:'Date of birth', pron_genero:'Gender',
+    pron_hombre:'Male', pron_mujer:'Female', pron_otro:'Other', pron_edad:'Age: {n}',
     pron_ingresa_datos:'Enter your height and target weight above to generate your forecast',
     pron_no_peso:"You don't have any weight logged yet — add one in Today or Calendar",
     pron_en_meta_msg:"You're already at your target weight! Current weight: {w} kg",
@@ -528,8 +539,128 @@ function personalMealTotals(components){
 }
 function getApiKey(){ return LS.get('vl:apikey') || ''; }
 function setApiKey(k){ return LS.set('vl:apikey', k); }
-function getForecastConfig(){ return LS.get('vl:forecast-config') || { heightCm:null, targetWeightKg:null }; }
+function getForecastConfig(){ return LS.get('vl:forecast-config') || { heightCm:null, targetWeightKg:null, birthDate:null, gender:null }; }
 function setForecastConfig(c){ return LS.set('vl:forecast-config', c); }
+
+/* ================= birth date wheel picker ================= */
+const WHEEL_ITEM_H = 36;
+function birthYearOptions(){
+  const nowY = new Date().getFullYear();
+  return ['–', ...Array.from({length:96}).map((_,i)=>nowY-5-i)];
+}
+function birthMonthOptions(){
+  return ['–', ...monthLabels().map(m=>m.slice(0,3))];
+}
+function birthDayOptions(monthIdx, yearIdx){
+  const years = birthYearOptions(), months = birthMonthOptions();
+  if(monthIdx<=0 || yearIdx<=0) return ['–', ...Array.from({length:31}).map((_,i)=>i+1)];
+  const daysInMonth = new Date(years[yearIdx], monthIdx, 0).getDate();
+  return ['–', ...Array.from({length:daysInMonth}).map((_,i)=>i+1)];
+}
+function initBirthWheel(){
+  if(window._birthDateWheel) return window._birthDateWheel;
+  const cfg = getForecastConfig();
+  if(cfg.birthDate){
+    const [y,m,d] = cfg.birthDate.split('-').map(Number);
+    const years = birthYearOptions();
+    const yearIdx = years.indexOf(y);
+    const monthIdx = m;
+    const days = birthDayOptions(monthIdx, yearIdx>=0?yearIdx:0);
+    const dayIdx = days.indexOf(d);
+    window._birthDateWheel = { dayIdx: dayIdx>=0?dayIdx:0, monthIdx, yearIdx: yearIdx>=0?yearIdx:0 };
+  } else {
+    window._birthDateWheel = { dayIdx:0, monthIdx:0, yearIdx:0 };
+  }
+  return window._birthDateWheel;
+}
+function ageFromBirthDate(iso){
+  const [y,m,d] = iso.split('-').map(Number);
+  const today = new Date();
+  let age = today.getFullYear() - y;
+  const hadBirthdayThisYear = (today.getMonth()+1 > m) || (today.getMonth()+1===m && today.getDate()>=d);
+  if(!hadBirthdayThisYear) age--;
+  return age;
+}
+function currentBirthDateFromWheel(){
+  const w = initBirthWheel();
+  if(!w.dayIdx || !w.monthIdx || !w.yearIdx) return null;
+  const years = birthYearOptions();
+  const days = birthDayOptions(w.monthIdx, w.yearIdx);
+  const y = years[w.yearIdx], m = w.monthIdx, d = days[w.dayIdx];
+  if(d==null) return null;
+  return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+function birthAgeDisplayHTML(){
+  const iso = currentBirthDateFromWheel();
+  return iso ? trf('pron_edad',{n:ageFromBirthDate(iso)}) : '';
+}
+function wheelColHTML(key, options){
+  return `<div class="wheel-col" id="wheel-${key}" onscroll="onWheelScroll('${key}')">
+    ${options.map(opt=>`<div class="wheel-item">${opt}</div>`).join('')}
+  </div>`;
+}
+function birthWheelHTML(){
+  const w = initBirthWheel();
+  const days = birthDayOptions(w.monthIdx, w.yearIdx);
+  const months = birthMonthOptions();
+  const years = birthYearOptions();
+  if(w.dayIdx >= days.length) w.dayIdx = w.dayIdx===0 ? 0 : days.length-1;
+  return `
+    <div class="wheel-wrap">
+      <div class="wheel-highlight"></div>
+      <div class="wheel-row">
+        ${wheelColHTML('day', days)}
+        ${wheelColHTML('month', months)}
+        ${wheelColHTML('year', years)}
+      </div>
+    </div>
+    <div id="birth-age-display" style="font-size:11px;color:var(--accent3);margin-top:8px;text-align:center;min-height:14px;">${birthAgeDisplayHTML()}</div>`;
+}
+function restoreWheelScroll(){
+  const w = window._birthDateWheel;
+  if(!w) return;
+  ['day','month','year'].forEach(key=>{
+    const el = document.getElementById('wheel-'+key);
+    if(!el) return;
+    const idx = w[key+'Idx'] || 0;
+    el.scrollTop = idx * WHEEL_ITEM_H;
+  });
+}
+function onWheelScroll(key){
+  const el = document.getElementById('wheel-'+key);
+  if(!el) return;
+  clearTimeout(window['_wheelScrollTimer_'+key]);
+  window['_wheelScrollTimer_'+key] = setTimeout(()=>{
+    const w = initBirthWheel();
+    const maxIdx = (key==='day' ? birthDayOptions(w.monthIdx,w.yearIdx) : key==='month' ? birthMonthOptions() : birthYearOptions()).length - 1;
+    let idx = Math.round(el.scrollTop / WHEEL_ITEM_H);
+    idx = Math.max(0, Math.min(maxIdx, idx));
+    el.scrollTop = idx * WHEEL_ITEM_H;
+    w[key+'Idx'] = idx;
+    if(key==='month' || key==='year'){
+      const days = birthDayOptions(w.monthIdx, w.yearIdx);
+      if(w.dayIdx >= days.length) w.dayIdx = w.dayIdx===0 ? 0 : days.length-1;
+      const dayEl = document.getElementById('wheel-day');
+      if(dayEl){
+        dayEl.innerHTML = days.map(opt=>`<div class="wheel-item">${opt}</div>`).join('');
+        dayEl.scrollTop = w.dayIdx * WHEEL_ITEM_H;
+      }
+    }
+    const ageEl = document.getElementById('birth-age-display');
+    if(ageEl) ageEl.textContent = birthAgeDisplayHTML();
+  }, 120);
+}
+function pickGender(g){
+  window._genderSelected = window._genderSelected===g ? null : g;
+  render();
+}
+function genderPillsHTML(){
+  if(window._genderSelected===undefined) window._genderSelected = getForecastConfig().gender || null;
+  const options = [['m','pron_hombre'],['f','pron_mujer'],['o','pron_otro']];
+  return `<div class="grid2" style="grid-template-columns:repeat(3,1fr);gap:8px;">
+    ${options.map(([g,key])=>`<div class="meal-type-btn ${window._genderSelected===g?'active':''}" style="padding:10px 4px;" onclick="pickGender('${g}')"><span>${tr(key)}</span></div>`).join('')}
+  </div>`;
+}
 function normalizeFoodKey(s){ return String(s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' '); }
 function rekeyByLabel(raw, getLabel){
   const fixed = {};
@@ -2121,6 +2252,10 @@ function renderPronostico(){
       <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('pron_altura')}</div><input id="fc-height" type="number" value="${cfg.heightCm??''}" placeholder="${tr('pron_ej_170')}" style="width:100%;"></div>
       <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('pron_peso_meta')}</div><input id="fc-target" type="number" step="0.1" value="${cfg.targetWeightKg??''}" placeholder="${tr('pron_ej_68')}" style="width:100%;"></div>
     </div>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('pron_genero')}</div>
+    <div style="margin-bottom:14px;">${genderPillsHTML()}</div>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('pron_fecha_nacimiento')}</div>
+    <div style="margin-bottom:14px;">${birthWheelHTML()}</div>
     <button class="btn btn-primary" style="width:100%;" onclick="saveForecastConfig()">${tr('cal_guardar')}</button>
   </div>`;
 
@@ -2192,7 +2327,7 @@ function renderPronostico(){
 function saveForecastConfig(){
   const height = Number(document.getElementById('fc-height').value)||null;
   const target = Number(document.getElementById('fc-target').value)||null;
-  setForecastConfig({ heightCm: height, targetWeightKg: target });
+  setForecastConfig({ heightCm: height, targetWeightKg: target, birthDate: currentBirthDateFromWheel(), gender: window._genderSelected||null });
   toast(tr('pron_datos_guardados'));
 }
 
@@ -2318,7 +2453,7 @@ function saveSettings(){
 }
 
 /* ================= actions ================= */
-function render(){ document.getElementById('app').innerHTML = renderApp(); }
+function render(){ document.getElementById('app').innerHTML = renderApp(); restoreWheelScroll(); }
 function setTab(t){ state.tab=t; window._pmView=false; render(); }
 function setMealType(t){ window._mealType=t; render(); }
 function setRange(r){ state.progressRange=r; render(); }
