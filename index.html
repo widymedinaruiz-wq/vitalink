@@ -930,7 +930,7 @@ async function handleGenerateInsight(force){
 function getBarcodeCache(){ return LS.get('vl:barcode-cache') || {}; }
 function setBarcodeCache(c){ return LS.set('vl:barcode-cache', c); }
 
-function openScanner(){
+function openScanner(target){
   if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){
     toast('Tu navegador no soporta acceso a la cámara', true); return;
   }
@@ -938,6 +938,7 @@ function openScanner(){
     toast('No se pudo cargar el lector de códigos (revisa tu conexión a internet)', true); return;
   }
   window._scanBusy = false;
+  window._scanTarget = target || 'meal';
   window._modal = 'scanner';
   render();
   startScanner();
@@ -1025,7 +1026,8 @@ async function lookupBarcode(barcode){
     setBarcodeCache(cache);
     contributeSharedBarcodeSafe(barcode, product);
   }
-  fillMealFromBarcode(product);
+  if(window._scanTarget==='pm') fillPMComponentFromBarcode(product);
+  else fillMealFromBarcode(product);
 }
 function fillMealFromBarcode(product){
   const nameEl = document.getElementById('meal-name');
@@ -1037,6 +1039,18 @@ function fillMealFromBarcode(product){
   document.getElementById('meal-f').value = product.fat;
   window._pendingMicros = { key: normalizeFoodKey(product.label), data: product };
   document.getElementById('meal-note').textContent = '✓ ' + product.note + ' — ajusta la cantidad a tu porción real';
+  rememberNutrition(product.label, product);
+}
+function fillPMComponentFromBarcode(product){
+  const nameEl = document.getElementById('pmc-name');
+  if(!nameEl) return;
+  nameEl.value = product.label;
+  document.getElementById('pmc-cal').value = product.calories;
+  document.getElementById('pmc-p').value = product.protein;
+  document.getElementById('pmc-c').value = product.carbs;
+  document.getElementById('pmc-f').value = product.fat;
+  window._pmPendingMicros = { key: normalizeFoodKey(product.label), data: product };
+  document.getElementById('pmc-note').textContent = '✓ ' + product.note + ' — ajusta la cantidad a tu porción real';
   rememberNutrition(product.label, product);
 }
 
@@ -1575,6 +1589,7 @@ function renderPersonalMealBuilder(){
         <input id="pmc-cal" type="number" placeholder="kcal" style="flex:1;min-width:0;">
         <button class="btn btn-primary" id="pmc-est-btn" onclick="handlePMEstimate()">${navIcon('sparkle',14)}${tr('comidas_estimar')}</button>
       </div>
+      <button class="btn btn-ghost" style="width:100%;margin-bottom:8px;" onclick="openScanner('pm')">${navIcon('camara',14)}${tr('comidas_escanear')}</button>
       <div id="pmc-note" style="font-size:11px;color:var(--accent3);margin-bottom:8px;"></div>
       <div class="grid4" style="margin-bottom:10px;">
         <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('comidas_prot_g')}</div><input id="pmc-p" type="number" placeholder="0" style="width:100%;"></div>
