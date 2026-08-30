@@ -44,8 +44,13 @@
   .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
   .grid-icons{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:6px;}
   .grid2>*,.grid4>*,.grid-icons>*{min-width:0;}
-  .expand-card{cursor:pointer;}
+  .expand-card{cursor:pointer;position:relative;}
   .expand-card.expanded{grid-column:1/-1;}
+  .expand-card::after{
+    content:'⌄'; position:absolute; right:12px; bottom:10px; font-size:13px; line-height:1;
+    color:var(--muted); opacity:.55; pointer-events:none;
+  }
+  .expand-card.expanded::after{ content:'⌃'; }
   .stack{display:flex;flex-direction:column;gap:16px;}
 
   #app{display:flex;min-height:100vh;max-width:1180px;margin:0 auto;}
@@ -153,7 +158,7 @@ const I18N = {
   es: {
     nav_hoy:'Hoy', nav_comidas:'Comidas', nav_ejercicio:'Ejercicio', nav_salud:'Salud',
     nav_composicion:'Composición', nav_calendario:'Calendario', nav_progreso:'Progreso',
-    nav_nutricion:'Análisis Nutrición', nav_pronostico:'Pronóstico',
+    nav_nutricion:'Nutrición', nav_pronostico:'Pronóstico',
     nav_ajustes:'Ajustes', nav_exportar:'Exportar', nav_importar:'Importar',
     meal_desayuno:'Desayuno', meal_merienda:'Merienda', meal_almuerzo:'Almuerzo', meal_cena:'Cena',
     ejtipo_correr:'Correr', ejtipo_bici:'Bici', ejtipo_nadar:'Nadar', ejtipo_eliptica:'Elíptica', ejtipo_andar:'Andar',
@@ -169,6 +174,7 @@ const I18N = {
     hoy_agua:'Agua (L)', hoy_peso:'Peso (kg)', hoy_sueno:'Sueño (h)', hoy_ajustar_metas:'Ajustar metas diarias',
     hoy_metas_titulo:'Tus metas diarias', hoy_ultimos_7_dias:'Últimos 7 días',
     comidas_tipo:'Tipo de comida', comidas_agregar_a:'Agregar a', comidas_placeholder:'Ej. "lata atún 6oz", "plátano mediano"',
+    comidas_descripcion_requerida:'Escribe qué comiste antes de agregar',
     comidas_estimar:'Estimar', comidas_escanear:'Escanear código de barras',
     comidas_prot_g:'Prot(g)', comidas_carb_g:'Carb(g)', comidas_grasa_g:'Grasa(g)',
     btn_agregar:'+ Agregar', comidas_hoy:'Hoy', comidas_empty:'Sin comidas registradas — agrega la primera arriba',
@@ -185,6 +191,7 @@ const I18N = {
     pm_badge_reconocida:'Comida personalizada', pm_componente_placeholder:'Ej. "pechuga de pollo 150g"',
     comidas_prot:'Prot', comidas_carb:'Carb', comidas_grasa:'Grasa', comidas_fibra:'Fibra', comidas_azucar:'Azúcar', comidas_sodio:'Sodio',
     ejercicio_agregar:'Agregar ejercicio', ejercicio_actividad:'Actividad', ejercicio_min:'min',
+    ejercicio_actividad_requerida:'Elige o escribe una actividad antes de agregar',
     ejercicio_kcal_opc:'kcal quemadas (opcional)', ejercicio_empty:'Sin ejercicio registrado — agrega el primero arriba',
     salud_presion:'Presión arterial', salud_sistolica:'Sistólica', salud_diastolica:'Diastólica', salud_pulso:'Pulso (bpm)',
     bp_info_titulo:'Categorías de presión arterial', bp_info_fuente:'Según la Asociación Americana del Corazón (AHA)',
@@ -307,7 +314,7 @@ const I18N = {
   en: {
     nav_hoy:'Today', nav_comidas:'Meals', nav_ejercicio:'Exercise', nav_salud:'Health',
     nav_composicion:'Body Comp', nav_calendario:'Calendar', nav_progreso:'Progress',
-    nav_nutricion:'Nutrition Analysis', nav_pronostico:'Forecast',
+    nav_nutricion:'Nutrition', nav_pronostico:'Forecast',
     nav_ajustes:'Settings', nav_exportar:'Export', nav_importar:'Import',
     meal_desayuno:'Breakfast', meal_merienda:'Snack', meal_almuerzo:'Lunch', meal_cena:'Dinner',
     ejtipo_correr:'Running', ejtipo_bici:'Cycling', ejtipo_nadar:'Swimming', ejtipo_eliptica:'Elliptical', ejtipo_andar:'Walking',
@@ -323,6 +330,7 @@ const I18N = {
     hoy_agua:'Water (L)', hoy_peso:'Weight (kg)', hoy_sueno:'Sleep (h)', hoy_ajustar_metas:'Adjust daily goals',
     hoy_metas_titulo:'Your daily goals', hoy_ultimos_7_dias:'Last 7 days',
     comidas_tipo:'Meal type', comidas_agregar_a:'Add to', comidas_placeholder:'E.g. "6oz tuna can", "medium banana"',
+    comidas_descripcion_requerida:'Write down what you ate before adding',
     comidas_estimar:'Estimate', comidas_escanear:'Scan barcode',
     comidas_prot_g:'Prot(g)', comidas_carb_g:'Carbs(g)', comidas_grasa_g:'Fat(g)',
     btn_agregar:'+ Add', comidas_hoy:'Today', comidas_empty:'No meals logged yet — add the first one above',
@@ -339,6 +347,7 @@ const I18N = {
     pm_badge_reconocida:'Personalized meal', pm_componente_placeholder:'E.g. "150g chicken breast"',
     comidas_prot:'Prot', comidas_carb:'Carbs', comidas_grasa:'Fat', comidas_fibra:'Fiber', comidas_azucar:'Sugar', comidas_sodio:'Sodium',
     ejercicio_agregar:'Add exercise', ejercicio_actividad:'Activity', ejercicio_min:'min',
+    ejercicio_actividad_requerida:'Choose or type an activity before adding',
     ejercicio_kcal_opc:'kcal burned (optional)', ejercicio_empty:'No exercise logged yet — add the first one above',
     salud_presion:'Blood pressure', salud_sistolica:'Systolic', salud_diastolica:'Diastolic', salud_pulso:'Pulse (bpm)',
     bp_info_titulo:'Blood pressure categories', bp_info_fuente:'Based on American Heart Association (AHA) guidelines',
@@ -1569,7 +1578,7 @@ function renderComidas(){
           const isTop = sub===maxSub && maxSub>0;
           return `<div style="margin-bottom:16px;">
             <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-              <span style="font-size:12px;font-weight:700;color:${isTop?'var(--accent)':'var(--text)'};">${g.ic} ${tr('meal_'+g.id)} ${isTop?'🔥':''}</span>
+              <span style="font-size:12px;font-weight:700;color:${isTop?'var(--accent)':'var(--text)'};display:inline-flex;align-items:center;gap:5px;">${navIcon(g.ic,13)}${tr('meal_'+g.id)} ${isTop?'🔥':''}</span>
               <span style="font-size:12px;color:${isTop?'var(--accent)':'var(--muted)'};">${sub} kcal</span>
             </div>
             <div class="stack" style="gap:8px;">
@@ -2279,7 +2288,7 @@ function renderProgreso(){
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         ${[7,14,30].map(r=>`<button class="btn ${state.progressRange===r?'btn-primary':'btn-ghost'}" onclick="setRange(${r})">${r} ${tr('prog_dias')}</button>`).join('')}
       </div>
-      <button class="btn btn-ghost" style="display:inline-flex;align-items:center;gap:6px;" onclick="generateHealthReportPDF(30)">${navIcon('exportar',14)}${tr('report_boton')}</button>
+      <button class="btn btn-ghost" style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;font-size:12px;" onclick="generateHealthReportPDF(30)">${navIcon('exportar',12)}${tr('report_boton')}</button>
     </div>
     <div style="font-size:12px;color:var(--muted);">${tr('nutr_ma30_nota')}</div>
     <div class="grid2">
@@ -3036,6 +3045,11 @@ async function handleEstimate(){
     contributeSharedFoodSafe(normalizeFoodKey(name), name, r);
   }catch(e){
     toast(e.message || 'No se pudo estimar', true);
+    // toast() re-renders the whole app; the description field isn't backed by
+    // persisted state, so the re-render would otherwise reset it to empty and
+    // the user would have to retype what they just typed.
+    const nameEl = document.getElementById('meal-name');
+    if(nameEl) nameEl.value = name;
   }finally{
     btn.disabled=false; btn.innerHTML=navIcon('sparkle',14)+'Estimar';
     window._estimateBusy = false;
@@ -3044,7 +3058,7 @@ async function handleEstimate(){
 function addMeal(){
   if(window._estimateBusy){ toast('Espera a que termine de estimar antes de agregar', true); return; }
   const name = document.getElementById('meal-name').value.trim();
-  if(!name) return;
+  if(!name){ toast(tr('comidas_descripcion_requerida'), true); return; }
   const pending = window._pendingMicros && window._pendingMicros.key===normalizeFoodKey(name) ? window._pendingMicros.data : null;
   const meal = {
     id: uid(), type: window._mealType||'desayuno', name,
@@ -3151,6 +3165,10 @@ async function handlePMEstimate(){
     contributeSharedFoodSafe(normalizeFoodKey(name), name, r);
   }catch(e){
     toast(e.message || 'No se pudo estimar', true);
+    // toast() re-renders the whole app; the component-name field isn't backed
+    // by persisted state, so the re-render would otherwise reset it to empty.
+    const nameEl = document.getElementById('pmc-name');
+    if(nameEl) nameEl.value = name;
   }finally{
     btn.disabled=false; btn.innerHTML=navIcon('sparkle',14)+tr('comidas_estimar');
     window._estimateBusy = false;
@@ -3259,7 +3277,7 @@ function pickExerciseType(id){
 }
 function addExercise(){
   const name = document.getElementById('ex-name').value.trim();
-  if(!name) return;
+  if(!name){ toast(tr('ejercicio_actividad_requerida'), true); return; }
   const minutes = Number(document.getElementById('ex-min').value)||0;
   const calories = Number(document.getElementById('ex-cal').value)||0;
   state.day.exercises.push({ id: uid(), name, minutes, calories, time: nowHM(), type: window._exerciseType || null });
@@ -3278,7 +3296,7 @@ function bpCategory(sys, dia){
 }
 function bpBadge(sys, dia){
   const cat = bpCategory(sys, dia);
-  return `<span onclick="event.stopPropagation();openBPInfo();" style="cursor:pointer;font-size:10px;font-weight:700;color:${cat.color};border:1px solid ${cat.color};border-radius:10px;padding:2px 8px;display:inline-block;">${cat.label}</span>`;
+  return `<span onclick="event.stopPropagation();openBPInfo();" style="cursor:pointer;font-size:10px;font-weight:700;color:${cat.color};border:1px solid ${cat.color};border-radius:10px;padding:2px 8px;display:inline-flex;align-items:center;gap:4px;">${cat.label}<span style="opacity:.75;">ⓘ</span></span>`;
 }
 function openBPInfo(){ window._modal='bp-info'; render(); }
 function addBP(){
