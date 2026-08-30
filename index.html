@@ -63,6 +63,16 @@
   }
   .expand-card.expanded::after{ content:'⌃'; }
   .stack{display:flex;flex-direction:column;gap:16px;}
+  /* Opt-in, not a change to .stack itself — most tabs are sequential forms/lists
+     that need to stay single-column at any width. Hoy is the one screen where a
+     desktop viewport left ~8 cards in one wide column with the rest of the
+     screen empty; this reflows it to 2 columns above the mobile-nav breakpoint,
+     with .full-span escape-hatching the pieces that shouldn't be halved
+     (a 4-up stat grid, a full-width button). */
+  @media (min-width: 900px){
+    .stack.grid-desktop{display:grid;grid-template-columns:1fr 1fr;align-items:start;gap:16px;}
+    .stack.grid-desktop > .full-span{grid-column:1/-1;}
+  }
 
   #app{display:flex;min-height:100vh;max-width:1180px;margin:0 auto;}
   nav.side{width:210px;flex-shrink:0;padding:24px 12px;border-right:1px solid var(--line);position:sticky;top:0;height:100vh;display:flex;flex-direction:column;}
@@ -1465,7 +1475,7 @@ function renderHoy(){
   if(animateHoy) window._hoyAnimateTargets = { vitality: vScore, calories: calEaten };
   const vCirc = 2*Math.PI*52, vTargetOffset = vCirc*(1-clamp(vScore,0,100)/100);
   return `
-  <div class="stack">
+  <div class="stack grid-desktop">
     ${vScore!=null ? `<div class="card" style="text-align:center;padding:22px;">
       <div class="label" style="margin-bottom:12px;">${tr('hoy_vitality')}</div>
       <div style="position:relative;width:120px;height:120px;margin:0 auto;">
@@ -1506,7 +1516,7 @@ function renderHoy(){
       </div>
     </div>
     ${weeklyGoalsCard()}
-    <div class="grid4">
+    <div class="grid4 full-span">
       ${statTile(navIcon('calorias',14),tr('stat_quemadas'), exCal+' kcal')}
       ${statTile(navIcon('ejercicio',14),tr('stat_ejercicio'), exMin+' min')}
       ${statTile(navIcon('peso',14),tr('stat_peso'), d.weight? d.weight+' kg':'—')}
@@ -1514,7 +1524,7 @@ function renderHoy(){
     </div>
     ${macroCard(d.meals)}
     ${microCard(d.meals)}
-    <div class="card">
+    <div class="card full-span">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">
         <div class="label" style="margin:0;">${tr('hoy_agua')}</div>
         <span class="display" style="font-size:13px;color:var(--accent3);font-weight:700;">${d.water} L</span>
@@ -1544,7 +1554,7 @@ function renderHoy(){
         </div>
       </div>
     </div>
-    <button class="btn btn-ghost" style="border-style:dashed;" onclick="openSettings()">${navIcon('ajustes',14)}${tr('hoy_ajustar_metas')}</button>
+    <button class="btn btn-ghost full-span" style="border-style:dashed;" onclick="openSettings()">${navIcon('ajustes',14)}${tr('hoy_ajustar_metas')}</button>
   </div>`;
 }
 function statTile(ic,label,value){
