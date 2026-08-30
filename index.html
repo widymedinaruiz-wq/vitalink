@@ -216,6 +216,21 @@ const I18N = {
     bc_muscleMassKg:'Masa muscular', bc_skeletalMassKg:'Masa esquelética', bc_proteinPct:'Proteína', bc_bodyAge:'Edad corporal',
     prog_dias:'días', prog_promedio_7dias:'Promedio 7 días', prog_calorias_meta:'Calorías (meta {goal})',
     prog_ejercicio_min_meta:'Ejercicio min (meta {goal})',
+    pattern_titulo:'Patrones', pattern_subtitulo:'Relaciones en tus propios datos, últimos 60 días',
+    pattern_focus_weight:'Peso', pattern_focus_bp:'Presión', pattern_focus_sleep:'Sueño',
+    pattern_outcome_weight:'tu peso', pattern_outcome_bp:'tu presión sistólica', pattern_outcome_sleep:'tus horas de sueño',
+    pattern_sin_datos:'Sigue registrando — necesitamos al menos 2 semanas de datos para detectar patrones.',
+    pattern_relacion:'En días con más {input}, {outcome} tiende a {dir} ({strength}, {n} días).',
+    pattern_dir_subir:'subir', pattern_dir_bajar:'bajar',
+    pattern_fuerza_leve:'relación leve', pattern_fuerza_moderada:'relación moderada', pattern_fuerza_fuerte:'relación fuerte',
+    pattern_alto:'Alto', pattern_bajo:'Bajo',
+    pattern_disclaimer:'Estos son patrones estadísticos de tus propios datos, no son consejo médico.',
+    pattern_ejercicio_tipo_titulo:'Por tipo de ejercicio',
+    pattern_ejercicio_tipo_detalle:'Promedio de {outcome} en días con {tipo}: {avgWith} · sin: {avgWithout}',
+    pattern_input_protein:'proteína', pattern_input_carbs:'carbohidratos', pattern_input_fat:'grasas',
+    pattern_input_fiber:'fibra', pattern_input_sugar:'azúcar', pattern_input_sodium:'sodio',
+    pattern_input_exercise:'minutos de ejercicio', pattern_input_exercisecal:'calorías quemadas',
+    pattern_input_water:'agua', pattern_input_meds:'adherencia a medicamentos', pattern_input_sleep:'horas de sueño',
     nutr_ultimos_30_dias:'Últimos 30 días', nutr_macro_g:'Macronutrientes (g)',
     nutr_ma30_nota:'Línea punteada: promedio móvil de 30 días',
     pron_tus_datos:'Tus datos', pron_altura:'Altura (cm)', pron_peso_meta:'Peso meta (kg)',
@@ -355,6 +370,21 @@ const I18N = {
     bc_muscleMassKg:'Muscle mass', bc_skeletalMassKg:'Skeletal mass', bc_proteinPct:'Protein', bc_bodyAge:'Body age',
     prog_dias:'days', prog_promedio_7dias:'7-day average', prog_calorias_meta:'Calories (goal {goal})',
     prog_ejercicio_min_meta:'Exercise min (goal {goal})',
+    pattern_titulo:'Patterns', pattern_subtitulo:'Relationships in your own data, last 60 days',
+    pattern_focus_weight:'Weight', pattern_focus_bp:'Pressure', pattern_focus_sleep:'Sleep',
+    pattern_outcome_weight:'your weight', pattern_outcome_bp:'your systolic pressure', pattern_outcome_sleep:'your sleep hours',
+    pattern_sin_datos:'Keep logging — we need at least 2 weeks of data to detect patterns.',
+    pattern_relacion:'On days with more {input}, {outcome} tends to {dir} ({strength}, {n} days).',
+    pattern_dir_subir:'rise', pattern_dir_bajar:'drop',
+    pattern_fuerza_leve:'weak relationship', pattern_fuerza_moderada:'moderate relationship', pattern_fuerza_fuerte:'strong relationship',
+    pattern_alto:'High', pattern_bajo:'Low',
+    pattern_disclaimer:'These are statistical patterns in your own data, not medical advice.',
+    pattern_ejercicio_tipo_titulo:'By exercise type',
+    pattern_ejercicio_tipo_detalle:'Average {outcome} on days with {tipo}: {avgWith} · without: {avgWithout}',
+    pattern_input_protein:'protein', pattern_input_carbs:'carbs', pattern_input_fat:'fat',
+    pattern_input_fiber:'fiber', pattern_input_sugar:'sugar', pattern_input_sodium:'sodium',
+    pattern_input_exercise:'exercise minutes', pattern_input_exercisecal:'calories burned',
+    pattern_input_water:'water', pattern_input_meds:'medication adherence', pattern_input_sleep:'sleep hours',
     nutr_ultimos_30_dias:'Last 30 days', nutr_macro_g:'Macronutrients (g)',
     nutr_ma30_nota:'Dashed line: 30-day moving average',
     pron_tus_datos:'Your info', pron_altura:'Height (cm)', pron_peso_meta:'Target weight (kg)',
@@ -1768,6 +1798,25 @@ function linearTrendKgPerDay(points){
   if(denom===0) return null;
   return (n*sumXY - sumX*sumY)/denom;
 }
+const PATTERN_MIN_N = 14;
+const PATTERN_MIN_R = 0.3;
+function pearsonR(xs, ys){
+  const pairs = xs.map((x,i)=>[x, ys[i]]).filter(([x,y])=>x!=null && y!=null);
+  const n = pairs.length;
+  if(n < PATTERN_MIN_N) return null;
+  const xv = pairs.map(p=>p[0]), yv = pairs.map(p=>p[1]);
+  const sumX = xv.reduce((a,b)=>a+b,0), sumY = yv.reduce((a,b)=>a+b,0);
+  const meanX = sumX/n, meanY = sumY/n;
+  let num=0, sxx=0, syy=0;
+  for(let i=0;i<n;i++){
+    const dx = xv[i]-meanX, dy = yv[i]-meanY;
+    num += dx*dy; sxx += dx*dx; syy += dy*dy;
+  }
+  // Zero variance in either side (e.g. a user who never misses a dose — constant 100%
+  // adherence every day) makes the correlation mathematically undefined, not just noisy.
+  if(sxx===0 || syy===0) return null;
+  return { r: num/Math.sqrt(sxx*syy), n };
+}
 function getAvgDailyCaloriesConsumed(days){
   const isos = Array.from({length:days}).map((_,i)=>isoDaysAgo(days-1-i));
   const totals = isos.map(iso=>dayAt(iso).meals.reduce((s,m)=>s+(Number(m.calories)||0),0)).filter(v=>v>0);
@@ -2273,6 +2322,182 @@ function renderProgreso(){
         <div class="chart-box">${barChartSVG(sleepPts,{color:'var(--accent2)', gridLines:true, gridSteps:isExp('sleep')?5:4, unit:'h', maValues:sleepMA, h:isExp('sleep')?320:150})}</div>
       </div>
     </div>
+    ${renderPatternsCard()}
+  </div>`;
+}
+
+/* ================= Patrones: v1 correlation insights ================= */
+const PATTERN_FOCUSES = {
+  weight: { outcomeKey:'weight', labelKey:'pattern_focus_weight', outcomeLabelKey:'pattern_outcome_weight' },
+  bp:     { outcomeKey:'sys',    labelKey:'pattern_focus_bp',     outcomeLabelKey:'pattern_outcome_bp' },
+  sleep:  { outcomeKey:'sleep',  labelKey:'pattern_focus_sleep',  outcomeLabelKey:'pattern_outcome_sleep' },
+};
+const PATTERN_INPUTS = [
+  { key:'protein', labelKey:'pattern_input_protein' },
+  { key:'carbs', labelKey:'pattern_input_carbs' },
+  { key:'fat', labelKey:'pattern_input_fat' },
+  { key:'fiber', labelKey:'pattern_input_fiber' },
+  { key:'sugar', labelKey:'pattern_input_sugar' },
+  { key:'sodium', labelKey:'pattern_input_sodium' },
+  { key:'exercise', labelKey:'pattern_input_exercise' },
+  { key:'exerciseCal', labelKey:'pattern_input_exercisecal' },
+  { key:'water', labelKey:'pattern_input_water' },
+  { key:'medsAdherencePct', labelKey:'pattern_input_meds' },
+  { key:'sleep', labelKey:'pattern_input_sleep' },
+];
+function getPatternsFocus(){ return LS.get('vl:patterns-focus') || 'weight'; }
+function setPatternsFocus(f){ LS.set('vl:patterns-focus', f); render(); }
+function togglePatternExpand(key){
+  window._expandedPattern = window._expandedPattern===key ? null : key;
+  render();
+}
+function computePatternData(days){
+  days = days || 60;
+  const dosesPerDay = state.meds.reduce((s,m)=>s+m.times.length,0);
+  return Array.from({length:days}).map((_,i)=>{
+    const iso = isoDaysAgo(days-1-i);
+    const d = dayAt(iso);
+    const lastBP = d.bp[d.bp.length-1];
+    // A day with zero meals logged is almost always a day nobody bothered to log,
+    // not a real zero-nutrient day — treating it as null (rather than the macroSums/
+    // microSums default of 0) keeps unlogged days from masquerading as low-intake
+    // data points and skewing the correlation. Exercise/water keep their real 0
+    // default (a genuine rest day, or a day with no water logged, is a real value).
+    const hasMeals = d.meals.length>0;
+    const macros = hasMeals ? macroSums(d.meals) : null;
+    const micros = hasMeals ? microSums(d.meals) : null;
+    return {
+      iso,
+      weight: d.weight,
+      sys: lastBP ? lastBP.systolic : null,
+      sleep: d.sleepHours,
+      protein: macros ? macros.protein : null,
+      carbs: macros ? macros.carbs : null,
+      fat: macros ? macros.fat : null,
+      fiber: micros ? micros.fiber : null,
+      sugar: micros ? micros.sugar : null,
+      sodium: micros ? micros.sodium : null,
+      exercise: d.exercises.reduce((s,e)=>s+(Number(e.minutes)||0),0),
+      exerciseCal: d.exercises.reduce((s,e)=>s+(Number(e.calories)||0),0),
+      exerciseTypeIds: new Set(d.exercises.map(e=>e.type).filter(Boolean)),
+      water: d.water||0,
+      // Unlike vitalityScore's same-day adherence (which excludes days with zero
+      // logged doses to avoid a false "perfect score" on an empty day), here a
+      // missed dose is exactly the data point this correlation needs to see — so
+      // it's a real 0, not excluded, whenever the user has an active med at all.
+      medsAdherencePct: dosesPerDay>0 ? clamp((d.medsTaken.length/dosesPerDay)*100, 0, 100) : null,
+    };
+  });
+}
+function rankedPatterns(focusKey, data){
+  const focus = PATTERN_FOCUSES[focusKey];
+  const ys = data.map(d=>d[focus.outcomeKey]);
+  return PATTERN_INPUTS
+    .filter(inp=>inp.key!==focus.outcomeKey)
+    .map(inp=>{
+      const res = pearsonR(data.map(d=>d[inp.key]), ys);
+      return res ? { ...inp, r:res.r, n:res.n } : null;
+    })
+    .filter(p=>p && Math.abs(p.r)>=PATTERN_MIN_R)
+    .sort((a,b)=>Math.abs(b.r)-Math.abs(a.r))
+    .slice(0,4);
+}
+function exerciseTypePatterns(focusKey, data){
+  const focus = PATTERN_FOCUSES[focusKey];
+  const results = EXERCISE_TYPES.map(et=>{
+    const withType = data.filter(d=>d.exerciseTypeIds.has(et.id) && d[focus.outcomeKey]!=null);
+    const withoutType = data.filter(d=>!d.exerciseTypeIds.has(et.id) && d[focus.outcomeKey]!=null);
+    if(withType.length<5 || withoutType.length<5) return null;
+    const avg = arr=>arr.reduce((s,d)=>s+d[focus.outcomeKey],0)/arr.length;
+    return { id:et.id, avgWith:avg(withType), avgWithout:avg(withoutType), nWith:withType.length };
+  }).filter(Boolean);
+  return results.length>=2 ? results : [];
+}
+function formatOutcomeValue(outcomeKey, v){
+  if(v==null) return '—';
+  if(outcomeKey==='sys') return Math.round(v)+' mmHg';
+  if(outcomeKey==='weight') return v.toFixed(1)+' kg';
+  return v.toFixed(1)+' h';
+}
+function patternBarRow(label, value, maxV, outcomeKey){
+  const pct = clamp((value/maxV)*100, 4, 100);
+  return `<div>
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:3px;">
+      <span>${label}</span><span>${formatOutcomeValue(outcomeKey, value)}</span>
+    </div>
+    <div style="height:8px;border-radius:4px;background:var(--line);overflow:hidden;">
+      <div style="height:100%;width:${pct}%;background:var(--accent3);border-radius:4px;"></div>
+    </div>
+  </div>`;
+}
+function patternRowHTML(focusKey, p, data){
+  const focus = PATTERN_FOCUSES[focusKey];
+  const dir = p.r>0 ? tr('pattern_dir_subir') : tr('pattern_dir_bajar');
+  const strength = Math.abs(p.r)>0.7 ? tr('pattern_fuerza_fuerte') : Math.abs(p.r)>=0.5 ? tr('pattern_fuerza_moderada') : tr('pattern_fuerza_leve');
+  const sentence = trf('pattern_relacion', { input: tr(p.labelKey), outcome: tr(focus.outcomeLabelKey), dir, strength, n: p.n });
+  const rowKey = focusKey+':'+p.key;
+  const isExp = window._expandedPattern===rowKey;
+  let detail = '';
+  if(isExp){
+    const paired = data.filter(d=>d[p.key]!=null && d[focus.outcomeKey]!=null);
+    const xs = [...paired].sort((a,b)=>a[p.key]-b[p.key]);
+    const median = xs[Math.floor(xs.length/2)][p.key];
+    const highGroup = paired.filter(d=>d[p.key]>=median);
+    const lowGroup = paired.filter(d=>d[p.key]<median);
+    if(highGroup.length && lowGroup.length){
+      const avg = arr=>arr.reduce((s,d)=>s+d[focus.outcomeKey],0)/arr.length;
+      const avgHigh = avg(highGroup), avgLow = avg(lowGroup);
+      const maxV = Math.max(avgHigh, avgLow) || 1;
+      detail = `<div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
+        ${patternBarRow(tr('pattern_alto'), avgHigh, maxV, focus.outcomeKey)}
+        ${patternBarRow(tr('pattern_bajo'), avgLow, maxV, focus.outcomeKey)}
+      </div>`;
+    }
+  }
+  return `<div style="padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer;" onclick="togglePatternExpand('${rowKey}')">
+    <div style="font-size:13px;">${sentence}</div>
+    ${detail}
+  </div>`;
+}
+function renderPatternsCard(){
+  const focusKey = getPatternsFocus();
+  const focus = PATTERN_FOCUSES[focusKey];
+  const data = computePatternData(60);
+  const totalDaysWithAnyData = data.filter(d=>
+    d.weight!=null || d.sys!=null || d.sleep!=null || d.protein!=null ||
+    d.exercise>0 || d.water>0 || d.medsAdherencePct!=null
+  ).length;
+  const focusPills = Object.keys(PATTERN_FOCUSES).map(k=>
+    `<div class="meal-type-btn ${focusKey===k?'active':''}" style="padding:10px 4px;flex:1;" onclick="setPatternsFocus('${k}')"><span>${tr(PATTERN_FOCUSES[k].labelKey)}</span></div>`
+  ).join('');
+
+  let body;
+  if(totalDaysWithAnyData < PATTERN_MIN_N){
+    body = `<div style="color:var(--muted);font-size:12px;padding:14px 0;text-align:center;">${tr('pattern_sin_datos')}</div>`;
+  } else {
+    const ranked = rankedPatterns(focusKey, data);
+    const typePatterns = exerciseTypePatterns(focusKey, data);
+    const rows = ranked.length ? ranked.map(p=>patternRowHTML(focusKey, p, data)).join('')
+      : `<div style="color:var(--muted);font-size:12px;padding:10px 0;">${tr('pattern_sin_datos')}</div>`;
+    const typeSection = typePatterns.length ? `
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line);">
+        <div class="label" style="font-size:11px;margin-bottom:8px;">${tr('pattern_ejercicio_tipo_titulo')}</div>
+        ${typePatterns.map(tp=>`<div style="font-size:12px;color:var(--muted);margin-bottom:6px;">${trf('pattern_ejercicio_tipo_detalle',{
+          outcome: tr(focus.outcomeLabelKey),
+          tipo: tr('ejtipo_'+tp.id),
+          avgWith: formatOutcomeValue(focus.outcomeKey, tp.avgWith),
+          avgWithout: formatOutcomeValue(focus.outcomeKey, tp.avgWithout),
+        })}</div>`).join('')}
+      </div>` : '';
+    body = rows + typeSection;
+  }
+
+  return `<div class="card">
+    <div class="label" style="margin-bottom:2px;">${tr('pattern_titulo')}</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:14px;">${tr('pattern_subtitulo')}</div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;">${focusPills}</div>
+    ${body}
+    <div style="font-size:10px;color:var(--muted);margin-top:14px;padding-top:12px;border-top:1px solid var(--line);">${tr('pattern_disclaimer')}</div>
   </div>`;
 }
 
