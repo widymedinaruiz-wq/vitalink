@@ -221,12 +221,13 @@ const I18N = {
     bc_bmr:'Metabolismo basal (MMR)', bc_fatLossKg:'Pérdida de grasa', bc_subcutaneousFatPct:'Grasa subcutánea',
     bc_heartRate:'Frecuencia cardíaca', bc_cardiacIndex:'Índice cardíaco', bc_visceralFat:'Grasa visceral',
     bc_muscleMassKg:'Masa muscular', bc_skeletalMassKg:'Masa esquelética', bc_proteinPct:'Proteína', bc_bodyAge:'Edad corporal',
-    prog_dias:'días', prog_promedio_7dias:'Promedio 7 días', prog_calorias_meta:'Calorías (meta {goal})',
+    prog_dias:'días', prog_promedio_ndias:'Promedio {n} días', prog_calorias_meta:'Calorías (meta {goal})',
     prog_ejercicio_min_meta:'Ejercicio min (meta {goal})',
     pattern_titulo:'Patrones', pattern_subtitulo:'Relaciones en tus propios datos, últimos 60 días',
     pattern_focus_weight:'Peso', pattern_focus_bp:'Presión', pattern_focus_sleep:'Sueño',
     pattern_outcome_weight:'tu peso', pattern_outcome_bp:'tu presión sistólica', pattern_outcome_sleep:'tus horas de sueño',
     pattern_sin_datos:'Sigue registrando — necesitamos al menos 2 semanas de datos para detectar patrones.',
+    pattern_sin_relaciones:'No se detectaron relaciones claras todavía para este enfoque — sigue registrando, o prueba otro enfoque.',
     pattern_relacion:'En días con más {input}, {outcome} tiende a {dir} ({strength}, {n} días).',
     pattern_dir_subir:'subir', pattern_dir_bajar:'bajar',
     pattern_fuerza_leve:'relación leve', pattern_fuerza_moderada:'relación moderada', pattern_fuerza_fuerte:'relación fuerte',
@@ -377,12 +378,13 @@ const I18N = {
     bc_bmr:'Basal metabolism (BMR)', bc_fatLossKg:'Fat loss', bc_subcutaneousFatPct:'Subcutaneous fat',
     bc_heartRate:'Heart rate', bc_cardiacIndex:'Cardiac index', bc_visceralFat:'Visceral fat',
     bc_muscleMassKg:'Muscle mass', bc_skeletalMassKg:'Skeletal mass', bc_proteinPct:'Protein', bc_bodyAge:'Body age',
-    prog_dias:'days', prog_promedio_7dias:'7-day average', prog_calorias_meta:'Calories (goal {goal})',
+    prog_dias:'days', prog_promedio_ndias:'{n}-day average', prog_calorias_meta:'Calories (goal {goal})',
     prog_ejercicio_min_meta:'Exercise min (goal {goal})',
     pattern_titulo:'Patterns', pattern_subtitulo:'Relationships in your own data, last 60 days',
     pattern_focus_weight:'Weight', pattern_focus_bp:'Pressure', pattern_focus_sleep:'Sleep',
     pattern_outcome_weight:'your weight', pattern_outcome_bp:'your systolic pressure', pattern_outcome_sleep:'your sleep hours',
     pattern_sin_datos:'Keep logging — we need at least 2 weeks of data to detect patterns.',
+    pattern_sin_relaciones:'No clear relationships found yet for this focus — keep logging, or try another focus.',
     pattern_relacion:'On days with more {input}, {outcome} tends to {dir} ({strength}, {n} days).',
     pattern_dir_subir:'rise', pattern_dir_bajar:'drop',
     pattern_fuerza_leve:'weak relationship', pattern_fuerza_moderada:'moderate relationship', pattern_fuerza_fuerte:'strong relationship',
@@ -2127,8 +2129,9 @@ function renderDayDetail(iso){
 function weightSummaryHTML(pts){
   const valid = pts.filter(p=>p.v!=null);
   if(valid.length < 2) return '';
-  const firstEver = getFirstEverWeight();
-  const first = firstEver ? firstEver.weight : valid[0].v, last = valid[valid.length-1].v;
+  // Scoped to the selected range (pts already reflects it), not all-time —
+  // otherwise this number wouldn't change when the 7/14/30-day toggle does.
+  const first = valid[0].v, last = valid[valid.length-1].v;
   const change = last - first;
   const sign = change>0?'+':'';
   const targetKg = getForecastConfig().targetWeightKg;
@@ -2151,7 +2154,8 @@ function weightSummaryHTML(pts){
   </div>`;
 }
 function bpSummaryHTML(){
-  const readings = Array.from({length:7}).map((_,i)=>{
+  const n = state.progressRange;
+  const readings = Array.from({length:n}).map((_,i)=>{
     const d = dayAt(isoDaysAgo(i));
     return d.bp[d.bp.length-1];
   }).filter(Boolean);
@@ -2160,18 +2164,19 @@ function bpSummaryHTML(){
   const avgDia = readings.reduce((s,r)=>s+r.diastolic,0)/readings.length;
   return `<div style="text-align:right;">
     <div style="font-size:13px;font-weight:700;color:var(--text);">${Math.round(avgSys)}/${Math.round(avgDia)} mmHg</div>
-    <div style="font-size:10px;color:var(--muted);">${tr('prog_promedio_7dias')}</div>
+    <div style="font-size:10px;color:var(--muted);">${trf('prog_promedio_ndias',{n})}</div>
   </div>`;
 }
 function avgSummaryHTML(value, unit, decimals){
   if(value==null) return '';
   return `<div style="text-align:right;">
     <div style="font-size:13px;font-weight:700;color:var(--text);">${value.toFixed(decimals??0)}${unit?' '+unit:''}</div>
-    <div style="font-size:10px;color:var(--muted);">${tr('prog_promedio_7dias')}</div>
+    <div style="font-size:10px;color:var(--muted);">${trf('prog_promedio_ndias',{n:state.progressRange})}</div>
   </div>`;
 }
 function pulseSummaryHTML(){
-  const readings = Array.from({length:7}).map((_,i)=>{
+  const n = state.progressRange;
+  const readings = Array.from({length:n}).map((_,i)=>{
     const d = dayAt(isoDaysAgo(i));
     const last = d.bp[d.bp.length-1];
     return last?last.pulse:null;
@@ -2180,11 +2185,13 @@ function pulseSummaryHTML(){
   return avgSummaryHTML(readings.reduce((a,b)=>a+b,0)/readings.length, 'bpm', 0);
 }
 function exerciseAvgSummaryHTML(){
-  const totals = Array.from({length:7}).map((_,i)=>dayAt(isoDaysAgo(i)).exercises.reduce((s,e)=>s+(Number(e.minutes)||0),0));
-  return avgSummaryHTML(totals.reduce((a,b)=>a+b,0)/7, 'min', 0);
+  const n = state.progressRange;
+  const totals = Array.from({length:n}).map((_,i)=>dayAt(isoDaysAgo(i)).exercises.reduce((s,e)=>s+(Number(e.minutes)||0),0));
+  return avgSummaryHTML(totals.reduce((a,b)=>a+b,0)/n, 'min', 0);
 }
 function sleepAvgSummaryHTML(){
-  const vals = Array.from({length:7}).map((_,i)=>dayAt(isoDaysAgo(i)).sleepHours).filter(v=>v!=null);
+  const n = state.progressRange;
+  const vals = Array.from({length:n}).map((_,i)=>dayAt(isoDaysAgo(i)).sleepHours).filter(v=>v!=null);
   if(!vals.length) return '';
   return avgSummaryHTML(vals.reduce((a,b)=>a+b,0)/vals.length, 'h', 1);
 }
@@ -2487,7 +2494,7 @@ function renderPatternsCard(){
     const ranked = rankedPatterns(focusKey, data);
     const typePatterns = exerciseTypePatterns(focusKey, data);
     const rows = ranked.length ? ranked.map(p=>patternRowHTML(focusKey, p, data)).join('')
-      : `<div style="color:var(--muted);font-size:12px;padding:10px 0;">${tr('pattern_sin_datos')}</div>`;
+      : `<div style="color:var(--muted);font-size:12px;padding:10px 0;">${tr('pattern_sin_relaciones')}</div>`;
     const typeSection = typePatterns.length ? `
       <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line);">
         <div class="label" style="font-size:11px;margin-bottom:8px;">${tr('pattern_ejercicio_tipo_titulo')}</div>
