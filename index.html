@@ -1838,10 +1838,18 @@ function latestBodyCompValue(day, key){
 const KCAL_PER_KG = 7700; // approx. energy density of body fat, used to translate a calorie balance into a weight-change rate
 function dayAt(iso){ return iso===todayISO() ? state.day : getDay(iso); }
 function medAdherence(days){
-  const dosesPerDay = state.meds.reduce((s,m)=>s+m.times.length,0);
+  // Count against the medication schedule as configured *now* — a raw count of
+  // medsTaken entries can include stale keys left behind by a deleted/renamed
+  // med or a changed dose time (those entries never get cleaned up), which
+  // inflates the total past 100% without a matching increase in doses expected.
+  const doseSlots = state.meds.flatMap(m=>m.times.map(t=>m.id+':'+t));
+  const dosesPerDay = doseSlots.length;
   if(dosesPerDay===0) return null;
   let taken=0;
-  for(let n=0;n<days;n++) taken += dayAt(isoDaysAgo(n)).medsTaken.length;
+  for(let n=0;n<days;n++){
+    const takenKeys = new Set(dayAt(isoDaysAgo(n)).medsTaken.map(t=>t.key));
+    taken += doseSlots.filter(slot=>takenKeys.has(slot)).length;
+  }
   return Math.round((taken/(dosesPerDay*days))*100);
 }
 function clamp(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); }
