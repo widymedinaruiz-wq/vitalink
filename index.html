@@ -2587,7 +2587,14 @@ function exerciseTypePatterns(focusKey, data){
     const withoutType = data.filter(d=>!d.exerciseTypeIds.has(et.id) && d[focus.outcomeKey]!=null);
     if(withType.length<5 || withoutType.length<5) return null;
     const avg = arr=>arr.reduce((s,d)=>s+d[focus.outcomeKey],0)/arr.length;
-    return { id:et.id, avgWith:avg(withType), avgWithout:avg(withoutType), nWith:withType.length };
+    const avgWith = avg(withType), avgWithout = avg(withoutType);
+    // Same "moderate effect" bar as PATTERN_MIN_R (Cohen's d), so a type split can't
+    // surface on sample-size alone — a 0.1kg gap on noisy data no longer reads as fact.
+    const all = [...withType, ...withoutType].map(d=>d[focus.outcomeKey]);
+    const mean = all.reduce((s,v)=>s+v,0)/all.length;
+    const sd = Math.sqrt(all.reduce((s,v)=>s+(v-mean)**2,0)/all.length);
+    if(sd===0 || Math.abs(avgWith-avgWithout)/sd < 0.5) return null;
+    return { id:et.id, avgWith, avgWithout, nWith:withType.length };
   }).filter(Boolean);
   return results.length>=2 ? results : [];
 }
