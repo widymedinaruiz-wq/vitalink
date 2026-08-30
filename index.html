@@ -1636,8 +1636,8 @@ function macroCard(meals){
   return `<div class="card">
     <div class="label">${tr('macro_title')}</div>
     <div style="display:flex;height:10px;border-radius:6px;overflow:hidden;background:var(--line);margin-bottom:14px;">
-      <div style="flex:${protein};background:var(--macro-protein);"></div>
-      <div style="flex:${carbs};background:var(--macro-carbs);"></div>
+      <div style="flex:${protein};background:var(--macro-protein);${protein>0?'border-right:2px solid var(--surface);':''}"></div>
+      <div style="flex:${carbs};background:var(--macro-carbs);${carbs>0?'border-right:2px solid var(--surface);':''}"></div>
       <div style="flex:${fat};background:var(--macro-fat);"></div>
     </div>
     <div class="stack" style="gap:8px;">
