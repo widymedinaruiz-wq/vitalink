@@ -87,13 +87,15 @@
   .wheel-row{display:flex;gap:8px;}
   .wheel-col{flex:1;min-width:0;height:180px;overflow-y:auto;scroll-snap-type:y mandatory;scrollbar-width:none;padding:72px 0;}
   .wheel-col::-webkit-scrollbar{display:none;}
-  .wheel-item{height:36px;display:flex;align-items:center;justify-content:center;scroll-snap-align:center;font-size:14px;color:var(--text);}
+  .wheel-item{height:36px;display:flex;align-items:center;justify-content:center;scroll-snap-align:center;font-size:14px;color:var(--muted);cursor:pointer;transition:color .15s,font-size .15s;}
+  .wheel-item.selected{color:var(--accent);font-weight:700;font-size:16px;}
   .wheel-highlight{position:absolute;left:0;right:0;top:72px;height:36px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:rgba(242,166,90,.08);pointer-events:none;border-radius:6px;}
 
   .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
   .cal-day{aspect-ratio:1;border-radius:10px;border:1px solid var(--line);background:var(--raised);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:var(--text);position:relative;}
   .cal-day.empty{visibility:hidden;}
   .cal-day.has-data::after{content:'';width:5px;height:5px;border-radius:99px;background:var(--accent);position:absolute;bottom:6px;}
+  .cal-day.has-data.flagged::after{background:var(--danger);width:6px;height:6px;}
   .cal-day.selected{border-color:var(--accent);background:rgba(242,166,90,.15);}
   .cal-day.today{color:var(--accent2);font-weight:700;}
   .cal-dow{text-align:center;font-size:10px;color:var(--muted);}
@@ -210,11 +212,13 @@ const I18N = {
     comp_group_cardio:'Cardiovascular', comp_group_metabolismo:'Metabolismo y resumen',
     comp_agregar_medicion:'+ Agregar medición', comp_mediciones_hoy:'Mediciones de hoy', comp_sin_mediciones:'Sin mediciones hoy',
     comp_tendencia:'Tendencia — últimos 30 días', comp_info_title:'Qué significa este dato', comp_sin_valores:'Sin valores',
+    comp_sin_datos_grafico:'Registra tu primera medición para empezar a ver tendencias aquí.',
     cal_calorias:'Calorías', cal_ejercicio:'Ejercicio', cal_peso:'Peso', cal_sueno:'Sueño',
     cal_editar_peso:'Editar peso (kg)', cal_editar_sueno:'Editar sueño (h)', cal_guardar:'Guardar',
     cal_comidas:'Comidas', cal_sin_registros:'Sin registros', cal_nombre:'Nombre', cal_agregar_comida:'+ Agregar comida',
     cal_actividad:'Actividad', cal_kcal_opc:'kcal (opc.)', cal_agregar_ejercicio:'+ Agregar ejercicio',
     cal_presion_arterial:'Presión arterial', cal_medicamentos_tomados:'Medicamentos tomados',
+    cal_lectura_fuera_rango:'Lectura de presión fuera de rango este día',
     cal_composicion_corporal:'Composición corporal', cal_medicamento_generico:'Medicamento',
     cal_en_meta:'En tu meta', cal_faltan:'Faltan', cal_sobran:'Sobran', cal_para_meta:'kg para tu meta',
     bc_bmi:'IMC', bc_bodyFatPct:'Grasa corporal', bc_bodyWaterPct:'Agua corporal', bc_skeletalMusclePct:'Músculo esquelético',
@@ -239,7 +243,7 @@ const I18N = {
     pattern_input_fiber:'fibra', pattern_input_sugar:'azúcar', pattern_input_sodium:'sodio',
     pattern_input_exercise:'minutos de ejercicio', pattern_input_exercisecal:'calorías quemadas',
     pattern_input_water:'agua', pattern_input_meds:'adherencia a medicamentos', pattern_input_sleep:'horas de sueño',
-    nutr_ultimos_30_dias:'Últimos 30 días', nutr_macro_g:'Macronutrientes (g)',
+    nutr_ultimos_30_dias:'Últimos 30 días',
     nutr_ma30_nota:'Línea punteada: promedio móvil de 30 días',
     pron_tus_datos:'Tus datos', pron_altura:'Altura (cm)', pron_peso_meta:'Peso meta (kg)',
     pron_ej_170:'Ej. 170', pron_ej_68:'Ej. 68', pron_datos_guardados:'Datos guardados',
@@ -279,6 +283,8 @@ const I18N = {
     share_texto:'Mi progreso en VitaLinks', share_descargada:'Imagen descargada', share_en_dias:'en {days} días',
     set_cerrar:'Cerrar',
     scan_titulo:'Escanear código', scan_apunta:'Apunta la cámara al código de barras del producto…',
+    scan_iniciando:'Iniciando cámara…',
+    scan_timeout:'La cámara está tardando en iniciar. Revisa los permisos de la app o inténtalo de nuevo.',
     sync_cargando:'Cargando sincronización…', sync_iniciar_sesion:'Iniciar sesión con Google',
     sync_conecta:'Conecta tu cuenta para que tus datos se sincronicen automáticamente entre tu computadora y tu celular.',
     sync_error:'Error:', sync_nunca:'nunca', sync_cerrar_sesion:'Cerrar sesión',
@@ -367,11 +373,13 @@ const I18N = {
     comp_group_cardio:'Cardiovascular', comp_group_metabolismo:'Metabolism & summary',
     comp_agregar_medicion:'+ Add reading', comp_mediciones_hoy:"Today's readings", comp_sin_mediciones:'No readings today',
     comp_tendencia:'Trend — last 30 days', comp_info_title:'What this metric means', comp_sin_valores:'No values',
+    comp_sin_datos_grafico:'Log your first reading to start seeing trends here.',
     cal_calorias:'Calories', cal_ejercicio:'Exercise', cal_peso:'Weight', cal_sueno:'Sleep',
     cal_editar_peso:'Edit weight (kg)', cal_editar_sueno:'Edit sleep (h)', cal_guardar:'Save',
     cal_comidas:'Meals', cal_sin_registros:'No entries', cal_nombre:'Name', cal_agregar_comida:'+ Add meal',
     cal_actividad:'Activity', cal_kcal_opc:'kcal (opt.)', cal_agregar_ejercicio:'+ Add exercise',
     cal_presion_arterial:'Blood pressure', cal_medicamentos_tomados:'Medications taken',
+    cal_lectura_fuera_rango:'Out-of-range blood pressure reading this day',
     cal_composicion_corporal:'Body composition', cal_medicamento_generico:'Medication',
     cal_en_meta:'At your goal', cal_faltan:'Remaining', cal_sobran:'Over', cal_para_meta:'kg to reach your goal',
     bc_bmi:'BMI', bc_bodyFatPct:'Body fat', bc_bodyWaterPct:'Body water', bc_skeletalMusclePct:'Skeletal muscle',
@@ -396,7 +404,7 @@ const I18N = {
     pattern_input_fiber:'fiber', pattern_input_sugar:'sugar', pattern_input_sodium:'sodium',
     pattern_input_exercise:'exercise minutes', pattern_input_exercisecal:'calories burned',
     pattern_input_water:'water', pattern_input_meds:'medication adherence', pattern_input_sleep:'sleep hours',
-    nutr_ultimos_30_dias:'Last 30 days', nutr_macro_g:'Macronutrients (g)',
+    nutr_ultimos_30_dias:'Last 30 days',
     nutr_ma30_nota:'Dashed line: 30-day moving average',
     pron_tus_datos:'Your info', pron_altura:'Height (cm)', pron_peso_meta:'Target weight (kg)',
     pron_ej_170:'E.g. 170', pron_ej_68:'E.g. 68', pron_datos_guardados:'Data saved',
@@ -436,6 +444,8 @@ const I18N = {
     share_texto:'My progress on VitaLinks', share_descargada:'Image downloaded', share_en_dias:'in {days} days',
     set_cerrar:'Close',
     scan_titulo:'Scan code', scan_apunta:"Point the camera at the product's barcode…",
+    scan_iniciando:'Starting camera…',
+    scan_timeout:'The camera is taking a while to start. Check the app’s permissions or try again.',
     sync_cargando:'Loading sync…', sync_iniciar_sesion:'Sign in with Google',
     sync_conecta:'Connect your account so your data syncs automatically between your computer and phone.',
     sync_error:'Error:', sync_nunca:'never', sync_cerrar_sesion:'Sign out',
@@ -542,6 +552,17 @@ const BODYCOMP_FIELDS = [
   { key:'bodyAge', label:'Edad corporal', unit:'años', info:'Es una estimación algorítmica de tu "edad metabólica" comparada con el promedio poblacional, calculada combinando varias de las métricas anteriores (metabolismo basal, músculo, grasa, etc.), según el fabricante de tu báscula.<br><br>Está relacionada con <b>todas las demás métricas de esta sección</b> — es básicamente un resumen compuesto de qué tan bien o mal se comparan tus números con los de tu edad real.<br><br>Si tu edad corporal es <b>menor</b> a tu edad real, es una señal positiva de buena condición física relativa. Si es <b>mayor</b>, indica áreas de mejora (normalmente relacionadas con más músculo y menos grasa).<br><br>Es solo una estimación orientativa del fabricante, no un diagnóstico médico.',
     infoEn:`This is an algorithmic estimate of your "metabolic age" compared to the population average, calculated by combining several of the metrics above (basal metabolism, muscle, fat, etc.), according to your scale's manufacturer.<br><br>It's related to <b>every other metric in this section</b> — it's essentially a composite summary of how well or poorly your numbers compare to people your actual age.<br><br>If your body age is <b>lower</b> than your actual age, that's a positive sign of relatively good physical condition. If it's <b>higher</b>, it points to areas for improvement (usually related to more muscle and less fat).<br><br>It's only a rough estimate from the manufacturer, not a medical diagnosis.` },
 ];
+// Chart color grouped by what each metric actually measures — not a rotating
+// index — so related fields share a color and none of them lands on
+// var(--danger) by coincidence (that color is reserved for genuinely
+// concerning readings, e.g. an out-of-range BP badge).
+const BODYCOMP_COLOR_BY_KEY = {
+  bmi:'var(--accent)', bodyFatPct:'var(--accent)', bodyWaterPct:'var(--accent)',
+  subcutaneousFatPct:'var(--accent)', visceralFat:'var(--accent)', fatLossKg:'var(--accent)', bodyAge:'var(--accent)',
+  skeletalMusclePct:'var(--accent3)', bmr:'var(--accent3)', muscleMassKg:'var(--accent3)',
+  skeletalMassKg:'var(--accent3)', proteinPct:'var(--accent3)',
+  heartRate:'var(--accent2)', cardiacIndex:'var(--accent2)',
+};
 // Groups the long scale-reading form into scannable sections instead of one flat list.
 const BODYCOMP_GROUPS = {
   bmi:'corporal', bodyFatPct:'corporal', bodyWaterPct:'corporal',
@@ -667,9 +688,9 @@ function birthAgeDisplayHTML(){
   const iso = currentBirthDateFromWheel();
   return iso ? trf('pron_edad',{n:ageFromBirthDate(iso)}) : '';
 }
-function wheelColHTML(key, options){
+function wheelColHTML(key, options, selectedIdx){
   return `<div class="wheel-col" id="wheel-${key}" onscroll="onWheelScroll('${key}')">
-    ${options.map(opt=>`<div class="wheel-item">${opt}</div>`).join('')}
+    ${options.map((opt,i)=>`<div class="wheel-item ${i===selectedIdx?'selected':''}" onclick="selectWheelItem('${key}',${i})">${opt}</div>`).join('')}
   </div>`;
 }
 function birthWheelHTML(){
@@ -682,9 +703,9 @@ function birthWheelHTML(){
     <div class="wheel-wrap">
       <div class="wheel-highlight"></div>
       <div class="wheel-row">
-        ${wheelColHTML('day', days)}
-        ${wheelColHTML('month', months)}
-        ${wheelColHTML('year', years)}
+        ${wheelColHTML('day', days, w.dayIdx)}
+        ${wheelColHTML('month', months, w.monthIdx)}
+        ${wheelColHTML('year', years, w.yearIdx)}
       </div>
     </div>
     <div id="birth-age-display" style="font-size:11px;color:var(--accent3);margin-top:8px;text-align:center;min-height:14px;">${birthAgeDisplayHTML()}</div>`;
@@ -699,29 +720,44 @@ function restoreWheelScroll(){
     el.scrollTop = idx * WHEEL_ITEM_H;
   });
 }
+// Shared by both the debounced scroll-settle and a direct tap on a row — a tap
+// animates to center (it's a discrete, deliberate jump), a scroll just
+// snap-corrects instantly (it's already basically there from momentum).
+// Updates the DOM directly rather than a full render() so it doesn't fight
+// scroll momentum on the other two columns or reset unrelated form fields.
+function settleWheelAt(key, idx, smooth){
+  const el = document.getElementById('wheel-'+key);
+  if(!el) return;
+  const w = initBirthWheel();
+  const maxIdx = (key==='day' ? birthDayOptions(w.monthIdx,w.yearIdx) : key==='month' ? birthMonthOptions() : birthYearOptions()).length - 1;
+  idx = Math.max(0, Math.min(maxIdx, idx));
+  if(smooth) el.scrollTo({top: idx*WHEEL_ITEM_H, behavior:'smooth'});
+  else el.scrollTop = idx * WHEEL_ITEM_H;
+  w[key+'Idx'] = idx;
+  [...el.children].forEach((child,i)=>child.classList.toggle('selected', i===idx));
+  if(key==='month' || key==='year'){
+    const days = birthDayOptions(w.monthIdx, w.yearIdx);
+    if(w.dayIdx >= days.length) w.dayIdx = w.dayIdx===0 ? 0 : days.length-1;
+    const dayEl = document.getElementById('wheel-day');
+    if(dayEl){
+      dayEl.innerHTML = days.map((opt,i)=>`<div class="wheel-item ${i===w.dayIdx?'selected':''}" onclick="selectWheelItem('day',${i})">${opt}</div>`).join('');
+      dayEl.scrollTop = w.dayIdx * WHEEL_ITEM_H;
+    }
+  }
+  const ageEl = document.getElementById('birth-age-display');
+  if(ageEl) ageEl.textContent = birthAgeDisplayHTML();
+}
 function onWheelScroll(key){
   const el = document.getElementById('wheel-'+key);
   if(!el) return;
   clearTimeout(window['_wheelScrollTimer_'+key]);
   window['_wheelScrollTimer_'+key] = setTimeout(()=>{
-    const w = initBirthWheel();
-    const maxIdx = (key==='day' ? birthDayOptions(w.monthIdx,w.yearIdx) : key==='month' ? birthMonthOptions() : birthYearOptions()).length - 1;
-    let idx = Math.round(el.scrollTop / WHEEL_ITEM_H);
-    idx = Math.max(0, Math.min(maxIdx, idx));
-    el.scrollTop = idx * WHEEL_ITEM_H;
-    w[key+'Idx'] = idx;
-    if(key==='month' || key==='year'){
-      const days = birthDayOptions(w.monthIdx, w.yearIdx);
-      if(w.dayIdx >= days.length) w.dayIdx = w.dayIdx===0 ? 0 : days.length-1;
-      const dayEl = document.getElementById('wheel-day');
-      if(dayEl){
-        dayEl.innerHTML = days.map(opt=>`<div class="wheel-item">${opt}</div>`).join('');
-        dayEl.scrollTop = w.dayIdx * WHEEL_ITEM_H;
-      }
-    }
-    const ageEl = document.getElementById('birth-age-display');
-    if(ageEl) ageEl.textContent = birthAgeDisplayHTML();
+    const idx = Math.round(el.scrollTop / WHEEL_ITEM_H);
+    settleWheelAt(key, idx, false);
   }, 120);
+}
+function selectWheelItem(key, idx){
+  settleWheelAt(key, idx, true);
 }
 function pickGender(g){
   window._genderSelected = window._genderSelected===g ? null : g;
@@ -822,6 +858,14 @@ function dayHasData(iso){
   const raw = LS.get('vl:day:'+iso);
   if(!raw) return false;
   return (raw.meals?.length||0) + (raw.exercises?.length||0) + (raw.bp?.length||0) + (raw.medsTaken?.length||0) > 0 || raw.weight != null || raw.sleepHours != null || (raw.water||0) > 0;
+}
+// Stage 2 / crisis readings already use --danger as their category color
+// elsewhere (bpBadge, the info popup) — reuse that same threshold here so a
+// user can spot a concerning day from the calendar grid without opening it.
+function dayHasFlaggedBP(iso){
+  const raw = LS.get('vl:day:'+iso);
+  if(!raw || !raw.bp || !raw.bp.length) return false;
+  return raw.bp.some(b=>bpCategory(b.systolic, b.diastolic).color==='var(--danger)');
 }
 
 /* ================= app state ================= */
@@ -987,16 +1031,36 @@ function openScanner(target){
 function startScanner(){
   const codeReader = new ZXing.BrowserMultiFormatReader();
   window._scannerReader = codeReader;
+  // The status line starts neutral (not "point at a barcode") until the video
+  // feed actually confirms it's live. A timeout also covers the case where
+  // getUserMedia's promise never settles at all (e.g. a permission prompt the
+  // user never responds to) — without it, this screen can otherwise get stuck
+  // indefinitely with no error and no way forward except Cancelar.
+  clearTimeout(window._scannerTimeout);
+  window._scannerTimeout = setTimeout(()=>{
+    const statusEl = document.getElementById('scanner-status');
+    if(statusEl) statusEl.textContent = tr('scan_timeout');
+  }, 9000);
   codeReader.decodeFromConstraints(
     { video: { facingMode: { ideal: 'environment' } } },
     'scanner-video',
     (result) => { if(result) handleScanResult(result.getText()); }
   ).catch(err=>{
+    clearTimeout(window._scannerTimeout);
     const statusEl = document.getElementById('scanner-status');
     if(statusEl) statusEl.textContent = 'No se pudo acceder a la cámara: ' + (err.message||err);
   });
+  const videoEl = document.getElementById('scanner-video');
+  if(videoEl){
+    videoEl.addEventListener('loadedmetadata', ()=>{
+      clearTimeout(window._scannerTimeout);
+      const statusEl = document.getElementById('scanner-status');
+      if(statusEl) statusEl.textContent = tr('scan_apunta');
+    }, { once:true });
+  }
 }
 function stopScanner(){
+  clearTimeout(window._scannerTimeout);
   if(window._scannerReader){
     try{ window._scannerReader.reset(); }catch(e){}
     window._scannerReader = null;
@@ -1175,6 +1239,12 @@ function multiLineChartSVG(points, series, opts){
 }
 function barChartSVG(points, opts){
   const w = opts.w||520, h = opts.h||150, pad=28;
+  // Some series here (sleep) can be genuinely unlogged (null) on a given day,
+  // same as the line-chart metrics — distinct from series like calories/water/
+  // exercise minutes that are always a real number (0 included) by construction.
+  // Only bail to the text fallback when every point is truly unset, not when
+  // they're all real zeros.
+  if(points.every(p=>p.v==null)) return `<div style="color:var(--muted);font-size:12px;padding:20px;text-align:center;">${opts.emptyMsg||tr('chart_no_data')}</div>`;
   const vals = points.map(p=>p.v||0);
   const maVals = opts.maValues ? opts.maValues.filter(v=>v!=null) : [];
   const max = Math.max(...vals, ...maVals, opts.goal||0, 1);
@@ -1439,9 +1509,18 @@ function renderHoy(){
         <span class="display" style="font-size:13px;color:var(--accent3);font-weight:700;">${d.water} L</span>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;">
-        ${Array.from({length:Math.max(g.waterGoal, d.water)}).map((_,i)=>`
-          <button class="btn ${i<d.water?'btn-primary':'btn-ghost'}" style="width:36px;height:36px;padding:0;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;"
-            onclick="setWater(${i+1===d.water?i:i+1})">${navIcon('gota',17)}</button>`).join('')}
+        ${Array.from({length:Math.max(g.waterGoal, d.water)}).map((_,i,arr)=>{
+          // Every droplet except the last one jumps straight to its position (tap
+          // droplet 3 -> water=3), same as before. The last droplet is the only
+          // way to go *past* the goal: while it's the topmost filled droplet,
+          // tapping it adds one more instead of un-filling it — otherwise there
+          // was no way to log water beyond the goal at all, since a droplet only
+          // exists here once water reaches it.
+          const isLastAtMax = i===arr.length-1 && d.water>=arr.length;
+          const nextValue = isLastAtMax ? d.water+1 : (i+1===d.water ? i : i+1);
+          return `<button class="btn ${i<d.water?'btn-primary':'btn-ghost'}" style="width:44px;height:44px;padding:0;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;"
+            onclick="setWater(${nextValue})">${navIcon('gota',19)}</button>`;
+        }).join('')}
       </div>
       <div class="grid2">
         <div>
@@ -1980,16 +2059,27 @@ function renderComposicionCharts(){
     });
   }
   const isos = Array.from({length:n}).map((_,i)=>isoDaysAgo(n-1-i));
-  const colors = ['var(--accent)','var(--accent2)','var(--accent3)','var(--danger)'];
   const exp = window._expandedCompChart;
-  const charts = BODYCOMP_FIELDS.map((f,i)=>{
-    const pts = isos.map((iso,idx)=>({ label:dayLetter(iso), v: valueAt(n-1-idx, f.key) }));
+  // 30 single-letter weekday labels in a row overlap illegibly — thin to every 5th.
+  const axisLabel = (iso,idx) => idx%5===0 ? dayLetter(iso) : '';
+  // Body comp has 14 fields but most users only ever log a handful of them —
+  // showing all 14 as chart cards means scrolling past a dozen identical
+  // "not enough data" placeholders to find the ones that actually have data.
+  // Only render a card once a field has at least one real reading.
+  const fieldsWithData = BODYCOMP_FIELDS.filter(f =>
+    Array.from({length:n}).some((_,idx)=>valueAt(n-1-idx, f.key)!=null)
+  );
+  if(!fieldsWithData.length){
+    return `<div style="font-size:12px;color:var(--muted);">${tr('comp_tendencia')}</div><div class="card" style="text-align:center;color:var(--muted);font-size:12px;padding:20px;">${tr('comp_sin_datos_grafico')}</div>`;
+  }
+  const charts = fieldsWithData.map((f)=>{
+    const pts = isos.map((iso,idx)=>({ label:axisLabel(iso,idx), v: valueAt(n-1-idx, f.key) }));
     const ma = ma30(f.key);
     const isExp = exp===f.key;
     return `<div class="card expand-card ${isExp?'expanded':''}" onclick="toggleChartExpand('comp','${f.key}')"><div class="label" style="display:flex;align-items:center;gap:6px;justify-content:space-between;">
         <span>${tr('bc_'+f.key)}${f.unit?' ('+bcUnit(f)+')':''}</span>
         <button class="info-btn" onclick="event.stopPropagation();openBodyCompInfo('${f.key}')" title="${esc(tr('comp_info_title'))}">ⓘ</button>
-      </div><div class="chart-box">${lineChartSVG(pts,{color:colors[i%colors.length], gridLines:true, gridSteps:isExp?5:4, unit:bcUnit(f), maValues:ma, h:isExp?320:150})}</div></div>`;
+      </div><div class="chart-box">${lineChartSVG(pts,{color:BODYCOMP_COLOR_BY_KEY[f.key], gridLines:true, gridSteps:isExp?5:4, unit:bcUnit(f), maValues:ma, h:isExp?320:150})}</div></div>`;
   }).join('');
   return `<div style="font-size:12px;color:var(--muted);">${tr('comp_tendencia')} · ${tr('nutr_ma30_nota')}</div><div class="grid2">${charts}</div>`;
 }
@@ -2009,6 +2099,7 @@ function renderCalendario(){
     const iso = isoOf(y,m,day);
     const cls = ['cal-day'];
     if(dayHasData(iso)) cls.push('has-data');
+    if(dayHasFlaggedBP(iso)) cls.push('flagged');
     if(iso===state.selectedDate) cls.push('selected');
     if(iso===todayISO()) cls.push('today');
     return `<div class="${cls.join(' ')}" onclick="selectCalDate('${iso}')">${day}</div>`;
@@ -2037,9 +2128,15 @@ function renderDayDetail(iso){
   const d = getDay(iso);
   const totalCal = d.meals.reduce((s,m)=>s+(Number(m.calories)||0),0);
   const totalMin = d.exercises.reduce((s,e)=>s+(Number(e.minutes)||0),0);
+  const flaggedBP = d.bp.filter(b=>bpCategory(b.systolic,b.diastolic).color==='var(--danger)');
+  const flaggedBanner = flaggedBP.length ? `<div style="background:rgba(224,122,95,.12);border:1px solid var(--danger);border-radius:10px;padding:10px 12px;margin-bottom:16px;">
+    <div style="font-size:11px;color:var(--danger);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">${tr('cal_lectura_fuera_rango')}</div>
+    <div class="stack" style="gap:6px;">${flaggedBP.map(b=>rowItemStatic(b.systolic+'/'+b.diastolic+' mmHg', b.time, b.pulse?b.pulse+' bpm':'', bpBadge(b.systolic,b.diastolic))).join('')}</div>
+  </div>` : '';
   return `
   <div class="card">
     <div class="label" style="text-transform:capitalize;">${formatDateEs(iso)}</div>
+    ${flaggedBanner}
     <div class="grid4" style="margin-bottom:16px;">
       ${statTile(navIcon('calorias',14),tr('cal_calorias'), totalCal+' kcal')}
       ${statTile(navIcon('ejercicio',14),tr('cal_ejercicio'), totalMin+' min')}
@@ -2064,8 +2161,8 @@ function renderDayDetail(iso){
         </div>
       </div>
     </div>
-    ${macroCard(d.meals)}
-    ${microCard(d.meals)}
+    ${d.meals.length ? macroCard(d.meals) : ''}
+    ${d.meals.length ? microCard(d.meals) : ''}
     <div class="grid2">
       <div style="min-width:0;">
         <div class="label">${tr('cal_comidas')}</div>
@@ -2264,7 +2361,12 @@ function renderProgreso(){
   // Averages only over samples that actually exist in each trailing window — correct
   // for both always-populated series (calories, exercise, water default to 0) and
   // genuinely sparse ones (weight, BP, pulse, sleep aren't logged every day).
+  // The MA is always a 30-day average regardless of range, so on the 7-day view
+  // it's a near-flat line sitting well above/below that week's real data — a
+  // confusing reference line rather than a trend. Suppress it there entirely;
+  // it only adds clarity once the visible window is wide enough to relate to it.
   function ma30(key){
+    if(n===7) return null;
     return Array.from({length:n}).map((_,i)=>{
       const daysAgo = n-1-i;
       let sum=0, count=0;
@@ -2277,13 +2379,17 @@ function renderProgreso(){
   }
   const isos = Array.from({length:n}).map((_,i)=>isoDaysAgo(n-1-i));
   const rawAt = i => rawByDaysAgo[n-1-i];
-  const weightPts = isos.map((iso,i)=>({ label:dayLetter(iso), v: rawAt(i).weight }));
-  const calPts = isos.map((iso,i)=>({ label:dayLetter(iso), v: rawAt(i).calories }));
-  const exPts = isos.map((iso,i)=>({ label:dayLetter(iso), v: rawAt(i).exercise }));
-  const waterPts = isos.map((iso,i)=>({ label:dayLetter(iso), v: rawAt(i).water }));
-  const sleepPts = isos.map((iso,i)=>({ label:dayLetter(iso), v: rawAt(i).sleep }));
-  const bpPts = isos.map((iso,i)=>({ label:dayLetter(iso), sys: rawAt(i).sys, dia: rawAt(i).dia }));
-  const pulsePts = isos.map((iso,i)=>({ label:dayLetter(iso), v: rawAt(i).pulse }));
+  // A single-letter-per-day label works at 7 points but overlaps illegibly at
+  // 14-30 — thin to every 2nd/5th point instead of labeling every single one.
+  const labelStep = n<=7 ? 1 : n<=14 ? 2 : 5;
+  const axisLabel = (iso,i) => i%labelStep===0 ? dayLetter(iso) : '';
+  const weightPts = isos.map((iso,i)=>({ label:axisLabel(iso,i), v: rawAt(i).weight }));
+  const calPts = isos.map((iso,i)=>({ label:axisLabel(iso,i), v: rawAt(i).calories }));
+  const exPts = isos.map((iso,i)=>({ label:axisLabel(iso,i), v: rawAt(i).exercise }));
+  const waterPts = isos.map((iso,i)=>({ label:axisLabel(iso,i), v: rawAt(i).water }));
+  const sleepPts = isos.map((iso,i)=>({ label:axisLabel(iso,i), v: rawAt(i).sleep }));
+  const bpPts = isos.map((iso,i)=>({ label:axisLabel(iso,i), sys: rawAt(i).sys, dia: rawAt(i).dia }));
+  const pulsePts = isos.map((iso,i)=>({ label:axisLabel(iso,i), v: rawAt(i).pulse }));
   const weightMA = ma30('weight'), sysMA = ma30('sys'), diaMA = ma30('dia'), pulseMA = ma30('pulse');
   const calMA = ma30('calories'), exMA = ma30('exercise'), waterMA = ma30('water'), sleepMA = ma30('sleep');
   const isExp = key => window._expandedProgresoChart===key;
@@ -2534,9 +2640,11 @@ function nutricionChartData(){
     });
   }
   const isos = Array.from({length:n}).map((_,i)=>isoDaysAgo(n-1-i));
+  // 30 single-letter weekday labels in a row overlap illegibly — thin to every 5th.
+  const axisLabel = (iso,i) => i%5===0 ? dayLetter(iso) : '';
   const macroPts = isos.map((iso,i)=>{
     const r = rawByDaysAgo[n-1-i];
-    return { label:dayLetter(iso), protein:r.protein, carbs:r.carbs, fat:r.fat };
+    return { label:axisLabel(iso,i), protein:r.protein, carbs:r.carbs, fat:r.fat };
   });
   const macroMA = { protein: ma30('protein'), carbs: ma30('carbs'), fat: ma30('fat') };
 
@@ -2552,23 +2660,29 @@ function nutricionChartData(){
   const microData = {};
   microDefs.forEach(mk=>{
     microData[mk.key] = {
-      pts: isos.map((iso,i)=>({ label:dayLetter(iso), v: rawByDaysAgo[n-1-i][mk.key] })),
+      pts: isos.map((iso,i)=>({ label:axisLabel(iso,i), v: rawByDaysAgo[n-1-i][mk.key] })),
       ma: ma30(mk.key), color: mk.color, unit: mk.unit, label: mk.label,
     };
   });
   return { macroPts, macroMA, microDefs, microData };
 }
-function macroChartHTML(macroPts, macroMA, opts){
-  return multiLineChartSVG(macroPts,[
-    {key:'protein',color:'var(--accent)', ma:macroMA.protein},
-    {key:'carbs',color:'var(--accent2)', ma:macroMA.carbs},
-    {key:'fat',color:'var(--accent3)', ma:macroMA.fat},
-  ],{gridLines:true, gridSteps:4, unit:'g', ...opts});
-}
 function renderNutricion(){
   const { macroPts, macroMA, microDefs, microData } = nutricionChartData();
   const exp = window._expandedNutriChart;
-  const macroExpanded = exp==='macros';
+  // Split rather than overlaying all 3 macros (+ their MA lines) on one chart —
+  // protein and carbs in particular sit in overlapping ranges and cross
+  // constantly, making a single 6-line chart hard to read. One metric per
+  // chart matches the pattern already used for micronutrients below.
+  const macroDefs = [
+    { key:'protein', label: tr('macro_proteina')+' (g)', color:'var(--accent)' },
+    { key:'carbs', label: tr('macro_carbohidratos')+' (g)', color:'var(--accent2)' },
+    { key:'fat', label: tr('macro_grasas')+' (g)', color:'var(--accent3)' },
+  ];
+  const macroCharts = macroDefs.map(mk=>{
+    const pts = macroPts.map(p=>({ label:p.label, v:p[mk.key] }));
+    const isExp = exp===mk.key;
+    return `<div class="card expand-card ${isExp?'expanded':''}" onclick="toggleChartExpand('nutri','${mk.key}')"><div class="label">${mk.label}</div><div class="chart-box">${lineChartSVG(pts,{color:mk.color, gridLines:true, gridSteps:isExp?5:4, unit:'g', maValues:macroMA[mk.key], h:isExp?320:150})}</div></div>`;
+  }).join('');
   const microCharts = microDefs.map(mk=>{
     const d = microData[mk.key];
     const isExp = exp===mk.key;
@@ -2579,15 +2693,7 @@ function renderNutricion(){
   <div class="stack">
     <div style="font-size:12px;color:var(--muted);">${tr('nutr_ultimos_30_dias')} · ${tr('nutr_ma30_nota')}</div>
     <div class="grid2">
-      <div class="card expand-card ${macroExpanded?'expanded':''}" onclick="toggleChartExpand('nutri','macros')">
-        <div class="label">${tr('nutr_macro_g')}</div>
-        <div class="chart-box">${macroChartHTML(macroPts, macroMA, macroExpanded?{gridSteps:5, h:320}:{})}</div>
-        <div class="legend" style="margin-top:10px;">
-          <span><span class="dot" style="background:var(--accent);"></span>${tr('macro_proteina')}</span>
-          <span><span class="dot" style="background:var(--accent2);"></span>${tr('macro_carbohidratos')}</span>
-          <span><span class="dot" style="background:var(--accent3);"></span>${tr('macro_grasas')}</span>
-        </div>
-      </div>
+      ${macroCharts}
       ${microCharts}
     </div>
   </div>`;
@@ -2793,7 +2899,7 @@ function modalHTML(){
           <video id="scanner-video" autoplay playsinline muted></video>
           <div class="scanner-frame"></div>
         </div>
-        <div id="scanner-status" style="font-size:12px;color:var(--muted);margin:12px 0;text-align:center;">${tr('scan_apunta')}</div>
+        <div id="scanner-status" style="font-size:12px;color:var(--muted);margin:12px 0;text-align:center;">${tr('scan_iniciando')}</div>
         <button class="btn btn-ghost" style="width:100%;" onclick="closeScanner()">${tr('set_cancelar')}</button>
       </div>
     </div>`;
