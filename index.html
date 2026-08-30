@@ -15,6 +15,17 @@
     --bg:#0E2723; --surface:#153934; --raised:#1B453F; --line:#2A5049;
     --accent:#F2A65A; --accent2:#E8C468; --accent3:#7FC8B0;
     --text:#EFF6F2; --muted:#8FB2A8; --danger:#E07A5F;
+    /* Status/severity scale (score-based: good/warn/bad) — kept deliberately
+       separate from the 3 accents above, which are reserved for fixed
+       categories (food/water/exercise). --danger already covers the "bad"
+       tier; these two fill in "good" and "warn" so a score or vital-sign
+       indicator never borrows a category color by coincidence. */
+    --status-good:#5FB878; --status-warn:#D6A23C;
+    /* Macro palette (protein/carbs/fat) — a separate cool triplet so it never
+       collides with the food/water/exercise category colors it can sit right
+       next to on Hoy (that collision — orange meaning "food" in one card and
+       "protein" one card below — was the clearest case found in the audit). */
+    --macro-protein:#B9A0E0; --macro-carbs:#D999C7; --macro-fat:#8FA8DE;
   }
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
@@ -605,7 +616,7 @@ function bodyCompStatus(key, v){
   return 'warn';
 }
 function statusColor(status){
-  return status==='good' ? 'var(--accent3)' : status==='warn' ? 'var(--accent2)' : status==='bad' ? 'var(--danger)' : 'var(--text)';
+  return status==='good' ? 'var(--status-good)' : status==='warn' ? 'var(--status-warn)' : status==='bad' ? 'var(--danger)' : 'var(--text)';
 }
 function emptyDay(){ return { meals:[], exercises:[], weight:null, sleepHours:null, water:0, bp:[], medsTaken:[], bodyComp:[] }; }
 function getDay(iso){ return { ...emptyDay(), ...(LS.get('vl:day:'+iso) || {}) }; }
@@ -1460,7 +1471,7 @@ function renderHoy(){
       <div style="position:relative;width:120px;height:120px;margin:0 auto;">
         <svg width="120" height="120" viewBox="0 0 120 120">
           <circle cx="60" cy="60" r="52" fill="none" stroke="var(--line)" stroke-width="10"/>
-          <circle class="${animateHoy?'ring-fill-animate':''}" data-target-offset="${vTargetOffset}" cx="60" cy="60" r="52" fill="none" stroke="${vScore>=75?'var(--accent3)':vScore>=50?'var(--accent2)':'var(--danger)'}" stroke-width="10"
+          <circle class="${animateHoy?'ring-fill-animate':''}" data-target-offset="${vTargetOffset}" cx="60" cy="60" r="52" fill="none" stroke="${vScore>=75?'var(--status-good)':vScore>=50?'var(--status-warn)':'var(--danger)'}" stroke-width="10"
             stroke-dasharray="${vCirc} ${vCirc}" stroke-dashoffset="${animateHoy?vCirc:vTargetOffset}" stroke-linecap="round" transform="rotate(-90 60 60)"/>
         </svg>
         <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
@@ -1593,14 +1604,14 @@ function macroCard(meals){
   return `<div class="card">
     <div class="label">${tr('macro_title')}</div>
     <div style="display:flex;height:10px;border-radius:6px;overflow:hidden;background:var(--line);margin-bottom:14px;">
-      <div style="flex:${protein};background:var(--accent);"></div>
-      <div style="flex:${carbs};background:var(--accent2);"></div>
-      <div style="flex:${fat};background:var(--accent3);"></div>
+      <div style="flex:${protein};background:var(--macro-protein);"></div>
+      <div style="flex:${carbs};background:var(--macro-carbs);"></div>
+      <div style="flex:${fat};background:var(--macro-fat);"></div>
     </div>
     <div class="stack" style="gap:8px;">
-      ${macroLegendRow('var(--accent)',tr('macro_proteina'),protein)}
-      ${macroLegendRow('var(--accent2)',tr('macro_carbohidratos'),carbs)}
-      ${macroLegendRow('var(--accent3)',tr('macro_grasas'),fat)}
+      ${macroLegendRow('var(--macro-protein)',tr('macro_proteina'),protein)}
+      ${macroLegendRow('var(--macro-carbs)',tr('macro_carbohidratos'),carbs)}
+      ${macroLegendRow('var(--macro-fat)',tr('macro_grasas'),fat)}
     </div>
   </div>`;
 }
@@ -1791,7 +1802,7 @@ function renderSalud(){
       <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">${tr('salud_alertas_sub')}</div>
       ${meds.length>0 ? (()=>{
         const a7 = medAdherence(7);
-        const color = a7>=90?'var(--accent3)':a7>=70?'var(--accent2)':'var(--danger)';
+        const color = a7>=90?'var(--status-good)':a7>=70?'var(--status-warn)':'var(--danger)';
         return `<div style="display:flex;align-items:center;justify-content:space-between;background:var(--raised);border-radius:10px;padding:9px 12px;margin-bottom:12px;">
           <span style="font-size:12px;color:var(--muted);">${tr('salud_adherencia')}</span>
           <span class="display" style="font-size:15px;font-weight:700;color:${color};">${a7}%</span>
@@ -1897,7 +1908,12 @@ function linearTrendKgPerDay(points){
   return (n*sumXY - sumX*sumY)/denom;
 }
 const PATTERN_MIN_N = 14;
-const PATTERN_MIN_R = 0.3;
+// Raised from 0.3 after the UX audit found weak (0.3-0.5) correlations shown with
+// the same visual confidence as well-established ones (e.g. sodium->BP sitting
+// next to a likely-coincidental sleep->BP finding, both labeled "relación leve").
+// At 0.5 every finding that clears the floor is at least "moderada" — fewer
+// findings shown, but each one is a real relationship rather than sample noise.
+const PATTERN_MIN_R = 0.5;
 function pearsonR(xs, ys){
   const pairs = xs.map((x,i)=>[x, ys[i]]).filter(([x,y])=>x!=null && y!=null);
   const n = pairs.length;
@@ -2248,7 +2264,7 @@ function weightSummaryHTML(pts){
     const movingLoss = change < -0.05, movingGain = change > 0.05;
     const onTrack = (needLoss && movingLoss) || (needGain && movingGain);
     const offTrack = (needLoss && movingGain) || (needGain && movingLoss);
-    color = onTrack ? 'var(--accent3)' : offTrack ? 'var(--danger)' : 'var(--text)';
+    color = onTrack ? 'var(--status-good)' : offTrack ? 'var(--danger)' : 'var(--text)';
     goalLine = Math.abs(dist)<0.05
       ? `<div style="font-size:10px;color:var(--accent3);display:flex;align-items:center;gap:4px;">${navIcon('logrado',12)}${tr('cal_en_meta')}</div>`
       : `<div style="font-size:10px;color:var(--muted);">${dist>0?tr('cal_faltan'):tr('cal_sobran')} ${Math.abs(dist).toFixed(1)} ${tr('cal_para_meta')}</div>`;
@@ -2682,9 +2698,9 @@ function renderNutricion(){
   // constantly, making a single 6-line chart hard to read. One metric per
   // chart matches the pattern already used for micronutrients below.
   const macroDefs = [
-    { key:'protein', label: tr('macro_proteina')+' (g)', color:'var(--accent)' },
-    { key:'carbs', label: tr('macro_carbohidratos')+' (g)', color:'var(--accent2)' },
-    { key:'fat', label: tr('macro_grasas')+' (g)', color:'var(--accent3)' },
+    { key:'protein', label: tr('macro_proteina')+' (g)', color:'var(--macro-protein)' },
+    { key:'carbs', label: tr('macro_carbohidratos')+' (g)', color:'var(--macro-carbs)' },
+    { key:'fat', label: tr('macro_grasas')+' (g)', color:'var(--macro-fat)' },
   ];
   const macroCharts = macroDefs.map(mk=>{
     const pts = macroPts.map(p=>({ label:p.label, v:p[mk.key] }));
@@ -2914,9 +2930,9 @@ function modalHTML(){
   }
   if(window._modal==='bp-info'){
     const rows = [
-      { key:'normal', color:'var(--accent3)' },
-      { key:'elevada', color:'var(--accent2)' },
-      { key:'etapa1', color:'var(--accent2)' },
+      { key:'normal', color:'var(--status-good)' },
+      { key:'elevada', color:'var(--status-warn)' },
+      { key:'etapa1', color:'var(--status-warn)' },
       { key:'etapa2', color:'var(--danger)' },
       { key:'crisis', color:'var(--danger)' },
     ];
@@ -3411,9 +3427,9 @@ function removeExercise(id){ state.day.exercises = state.day.exercises.filter(e=
 function bpCategory(sys, dia){
   if(sys>180 || dia>120) return { label:'Crisis hipertensiva', color:'var(--danger)' };
   if(sys>=140 || dia>=90) return { label:'Hipertensión etapa 2', color:'var(--danger)' };
-  if(sys>=130 || dia>=80) return { label:'Hipertensión etapa 1', color:'var(--accent2)' };
-  if(sys>=120 && dia<80) return { label:'Elevada', color:'var(--accent2)' };
-  return { label:'Normal', color:'var(--accent3)' };
+  if(sys>=130 || dia>=80) return { label:'Hipertensión etapa 1', color:'var(--status-warn)' };
+  if(sys>=120 && dia<80) return { label:'Elevada', color:'var(--status-warn)' };
+  return { label:'Normal', color:'var(--status-good)' };
 }
 function bpBadge(sys, dia){
   const cat = bpCategory(sys, dia);
