@@ -294,7 +294,7 @@ const I18N = {
     pron_ej_170:'Ej. 170', pron_ej_68:'Ej. 68', pron_datos_guardados:'Datos guardados',
     pron_fecha_nacimiento:'Fecha de nacimiento', pron_genero:'Género',
     pron_hombre:'Hombre', pron_mujer:'Mujer', pron_otro:'Otro', pron_edad:'Edad: {n} años',
-    pron_guardado:'Guardado',
+    pron_guardado:'Guardado', pron_editar_nacimiento:'Editar fecha de nacimiento',
     pron_meta_calorica_rec:'Meta calórica recomendada',
     pron_meta_calorica_nota:'Basado en tu edad, género, altura, peso actual y tu actividad de los últimos 7 días (fórmula Mifflin-St Jeor).',
     pron_usar_meta:'Usar esta meta', pron_meta_aplicada:'Meta calórica actualizada', pron_kcal_dia:'kcal/día',
@@ -457,7 +457,7 @@ const I18N = {
     pron_ej_170:'E.g. 170', pron_ej_68:'E.g. 68', pron_datos_guardados:'Data saved',
     pron_fecha_nacimiento:'Date of birth', pron_genero:'Gender',
     pron_hombre:'Male', pron_mujer:'Female', pron_otro:'Other', pron_edad:'Age: {n}',
-    pron_guardado:'Saved',
+    pron_guardado:'Saved', pron_editar_nacimiento:'Edit date of birth',
     pron_meta_calorica_rec:'Recommended calorie goal',
     pron_meta_calorica_nota:'Based on your age, gender, height, current weight, and your activity over the last 7 days (Mifflin-St Jeor formula).',
     pron_usar_meta:'Use this goal', pron_meta_aplicada:'Calorie goal updated', pron_kcal_dia:'kcal/day',
@@ -2792,7 +2792,8 @@ function renderPronostico(){
     <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('pron_genero')}</div>
     <div style="margin-bottom:14px;">${genderPillsHTML()}</div>
     <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('pron_fecha_nacimiento')}</div>
-    <div style="margin-bottom:14px;">${birthWheelHTML()}</div>
+    ${(!cfg.birthDate || window._editingBirthDate) ? `<div style="margin-bottom:14px;">${birthWheelHTML()}</div>` :
+      `<button class="btn btn-ghost" style="width:100%;margin-bottom:14px;" onclick="startEditBirthDate()">${tr('pron_editar_nacimiento')}</button>`}
     <button class="btn btn-primary" style="width:100%;" onclick="saveForecastConfig()">${tr('cal_guardar')}</button>
   </div>`;
 
@@ -2875,10 +2876,12 @@ function renderPronostico(){
 
   return `<div class="stack">${configCard}${calorieRecCard}${resultCard}${chartCard}</div>`;
 }
+function startEditBirthDate(){ window._editingBirthDate = true; render(); }
 function saveForecastConfig(){
   const height = Number(document.getElementById('fc-height').value)||null;
   const target = Number(document.getElementById('fc-target').value)||null;
   setForecastConfig({ heightCm: height, targetWeightKg: target, birthDate: currentBirthDateFromWheel(), gender: window._genderSelected||null });
+  window._editingBirthDate = false;
   toast(tr('pron_datos_guardados'));
 }
 
