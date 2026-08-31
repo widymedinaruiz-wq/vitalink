@@ -251,6 +251,8 @@ const I18N = {
     salud_empty_meds:'Agrega un medicamento abajo para ver su horario aquí', salud_pendiente:'pendiente',
     salud_tomado:'✓ Tomado', salud_marcar_tomado:'Marcar tomado', salud_administrar:'Administrar medicamentos',
     salud_nombre:'Nombre', salud_dosis:'Dosis (opcional)', salud_horarios:'Horarios, ej: 08:00, 20:00',
+    salud_editar:'Editar', salud_actualizar:'Actualizar medicamento', salud_cancelar_edicion:'Cancelar edición',
+    salud_editando:'Editando',
     comp_registrar:'Registrar medición de báscula', comp_group_corporal:'Composición corporal',
     comp_group_cardio:'Cardiovascular', comp_group_metabolismo:'Metabolismo y resumen',
     comp_agregar_medicion:'+ Agregar medición', comp_mediciones_hoy:'Mediciones de hoy', comp_sin_mediciones:'Sin mediciones hoy',
@@ -412,6 +414,8 @@ const I18N = {
     salud_empty_meds:'Add a medication below to see its schedule here', salud_pendiente:'due',
     salud_tomado:'✓ Taken', salud_marcar_tomado:'Mark taken', salud_administrar:'Manage medications',
     salud_nombre:'Name', salud_dosis:'Dose (optional)', salud_horarios:'Times, e.g. 08:00, 20:00',
+    salud_editar:'Edit', salud_actualizar:'Update medication', salud_cancelar_edicion:'Cancel edit',
+    salud_editando:'Editing',
     comp_registrar:'Log a scale reading', comp_group_corporal:'Body composition',
     comp_group_cardio:'Cardiovascular', comp_group_metabolismo:'Metabolism & summary',
     comp_agregar_medicion:'+ Add reading', comp_mediciones_hoy:"Today's readings", comp_sin_mediciones:'No readings today',
@@ -1856,16 +1860,20 @@ function renderSalud(){
     </div>
 
     <div class="card">
-      <div class="label">${tr('salud_administrar')}</div>
+      ${(()=>{
+        const editingMed = window._medEditingId ? meds.find(m=>m.id===window._medEditingId) : null;
+        return `<div class="label">${editingMed ? tr('salud_editando')+' — '+esc(editingMed.name) : tr('salud_administrar')}</div>
       <div style="display:flex;gap:8px;margin-bottom:8px;">
-        <input id="med-name" placeholder="${tr('salud_nombre')}" style="flex:2;min-width:0;">
-        <input id="med-dose" placeholder="${tr('salud_dosis')}" style="flex:1;min-width:0;">
+        <input id="med-name" value="${esc(editingMed?editingMed.name:'')}" placeholder="${tr('salud_nombre')}" style="flex:2;min-width:0;">
+        <input id="med-dose" value="${esc(editingMed?(editingMed.dose||''):'')}" placeholder="${tr('salud_dosis')}" style="flex:1;min-width:0;">
       </div>
       <div style="display:flex;gap:8px;margin-bottom:8px;">
-        <input id="med-times" placeholder="${tr('salud_horarios')}" style="flex:1;min-width:0;">
-        <button class="btn btn-primary" onclick="addMed()">${tr('btn_agregar')}</button>
+        <input id="med-times" value="${esc(editingMed?editingMed.times.join(', '):'')}" placeholder="${tr('salud_horarios')}" style="flex:1;min-width:0;">
+        <button class="btn btn-primary" onclick="${editingMed?`updateMed('${editingMed.id}')`:'addMed()'}">${editingMed?tr('salud_actualizar'):tr('btn_agregar')}</button>
       </div>
-      ${meds.length ? `<div class="stack" style="gap:8px;">${meds.map(m=>rowItem(m.name, m.times.join(', '), '', `removeMed('${m.id}')`)).join('')}</div>` : ''}
+      ${editingMed ? `<button class="btn btn-ghost" style="width:100%;margin-bottom:8px;" onclick="cancelMedEdit()">${tr('salud_cancelar_edicion')}</button>` : ''}`;
+      })()}
+      ${meds.length ? `<div class="stack" style="gap:8px;">${meds.map(m=>rowItem(m.name, m.times.join(', '), '', `removeMed('${m.id}')`, `<button onclick="startEditMed('${m.id}')" class="btn btn-ghost" style="padding:4px 8px;font-size:11px;">${tr('salud_editar')}</button>`)).join('')}</div>` : ''}
     </div>
   </div>`;
 }
@@ -3504,6 +3512,22 @@ function addMed(){
   setMeds(state.meds); syncNativeMedAlerts(); render();
 }
 function removeMed(id){ state.meds = state.meds.filter(m=>m.id!==id); setMeds(state.meds); syncNativeMedAlerts(); render(); }
+function startEditMed(id){ window._medEditingId = id; render(); }
+function cancelMedEdit(){ window._medEditingId = null; render(); }
+function updateMed(id){
+  const name = document.getElementById('med-name').value.trim();
+  const dose = document.getElementById('med-dose').value.trim();
+  const times = document.getElementById('med-times').value.split(',').map(s=>s.trim()).filter(Boolean);
+  if(!name || times.length===0) return;
+  const med = state.meds.find(m=>m.id===id);
+  if(!med) return;
+  // Keep the same id — changing name/dose/times in place preserves any medsTaken
+  // entries logged under time slots that still exist, instead of orphaning the
+  // whole history the way delete-then-recreate does (id:time is the taken-key).
+  med.name = name; med.dose = dose; med.times = times;
+  setMeds(state.meds); syncNativeMedAlerts();
+  window._medEditingId = null; render();
+}
 function toggleMedTaken(key){
   const exists = state.day.medsTaken.find(t=>t.key===key);
   if(exists) state.day.medsTaken = state.day.medsTaken.filter(t=>t.key!==key);
