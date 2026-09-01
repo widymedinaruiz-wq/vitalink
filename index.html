@@ -288,7 +288,7 @@ const I18N = {
     pattern_input_fiber:'fibra', pattern_input_sugar:'azúcar', pattern_input_sodium:'sodio',
     pattern_input_exercise:'minutos de ejercicio', pattern_input_exercisecal:'calorías quemadas',
     pattern_input_water:'agua', pattern_input_meds:'adherencia a medicamentos', pattern_input_sleep:'horas de sueño',
-    nutr_ultimos_30_dias:'Últimos 30 días',
+    nutr_ultimos_30_dias:'Últimos {n} días',
     nutr_ma30_nota:'Línea punteada: promedio móvil de 30 días',
     pron_tus_datos:'Tus datos', pron_altura:'Altura (cm)', pron_peso_meta:'Peso meta (kg)',
     pron_ej_170:'Ej. 170', pron_ej_68:'Ej. 68', pron_datos_guardados:'Datos guardados',
@@ -451,7 +451,7 @@ const I18N = {
     pattern_input_fiber:'fiber', pattern_input_sugar:'sugar', pattern_input_sodium:'sodium',
     pattern_input_exercise:'exercise minutes', pattern_input_exercisecal:'calories burned',
     pattern_input_water:'water', pattern_input_meds:'medication adherence', pattern_input_sleep:'sleep hours',
-    nutr_ultimos_30_dias:'Last 30 days',
+    nutr_ultimos_30_dias:'Last {n} days',
     nutr_ma30_nota:'Dashed line: 30-day moving average',
     pron_tus_datos:'Your info', pron_altura:'Height (cm)', pron_peso_meta:'Target weight (kg)',
     pron_ej_170:'E.g. 170', pron_ej_68:'E.g. 68', pron_datos_guardados:'Data saved',
@@ -926,6 +926,7 @@ const state = {
   toast: null,
   alertsOn: false,
   progressRange: 7,
+  nutritionRange: 30,
   bodyCompFormOpen: false,
   calendarOpen: true,
   lang: getLang(),
@@ -2695,14 +2696,18 @@ function renderPatternsCard(){
 }
 
 function nutricionChartData(){
-  const n = 30;
+  const n = state.nutritionRange;
   const maWindow = 30;
   const lookbackDays = n - 1 + maWindow; // extra days behind the visible range so the oldest point still gets a full 30-day trailing average
   const rawByDaysAgo = Array.from({length:lookbackDays}).map((_,daysAgo)=>{
     const d = dayAt(isoDaysAgo(daysAgo));
     return { ...macroSums(d.meals), ...microSums(d.meals) };
   });
+  // The MA is always a 30-day average regardless of range, so on the 7-day view
+  // it's a near-flat line well above/below that week's real data — suppress it
+  // there entirely, same as Progreso's chart range toggle.
   function ma30(key){
+    if(n===7) return null;
     return Array.from({length:n}).map((_,i)=>{
       const daysAgo = n-1-i;
       let sum = 0;
@@ -2711,8 +2716,10 @@ function nutricionChartData(){
     });
   }
   const isos = Array.from({length:n}).map((_,i)=>isoDaysAgo(n-1-i));
-  // 30 single-letter weekday labels in a row overlap illegibly — thin to every 5th.
-  const axisLabel = (iso,i) => i%5===0 ? dayLetter(iso) : '';
+  // A single-letter-per-day label works at 7 points but overlaps illegibly at
+  // 14-30 — thin to every 2nd/5th point instead of labeling every single one.
+  const labelStep = n<=7 ? 1 : n<=14 ? 2 : 5;
+  const axisLabel = (iso,i) => i%labelStep===0 ? dayLetter(iso) : '';
   const macroPts = isos.map((iso,i)=>{
     const r = rawByDaysAgo[n-1-i];
     return { label:axisLabel(iso,i), protein:r.protein, carbs:r.carbs, fat:r.fat };
@@ -2762,7 +2769,10 @@ function renderNutricion(){
 
   return `
   <div class="stack">
-    <div style="font-size:12px;color:var(--muted);">${tr('nutr_ultimos_30_dias')} · ${tr('nutr_ma30_nota')}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      ${[7,14,30].map(r=>`<button class="btn ${state.nutritionRange===r?'btn-primary':'btn-ghost'}" onclick="setNutritionRange(${r})">${r} ${tr('prog_dias')}</button>`).join('')}
+    </div>
+    <div style="font-size:12px;color:var(--muted);">${trf('nutr_ultimos_30_dias',{n:state.nutritionRange})} · ${tr('nutr_ma30_nota')}</div>
     <div class="grid2">
       ${macroCharts}
       ${microCharts}
@@ -3064,6 +3074,7 @@ function runHoyEntranceAnimation(){
 }
 function setMealType(t){ window._mealType=t; render(); }
 function setRange(r){ state.progressRange=r; render(); }
+function setNutritionRange(r){ state.nutritionRange=r; render(); }
 
 function setWater(v){ state.day.water = v; saveDay(); render(); }
 function setWeight(v){ state.day.weight = v===''?null:Number(v); saveDay(); }
