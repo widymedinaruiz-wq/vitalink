@@ -181,9 +181,26 @@ const LS = {
       // vl:apikey is device-local by design (never synced) — it must not bump the
       // change timestamp either, or a device with no real data but a freshly-typed
       // key can look "newer" than the cloud and overwrite it with near-empty state.
-      if(k!=='vl:_lastChangeAt' && k!=='vl:apikey'){
-        localStorage.setItem('vl:_lastChangeAt', String(Date.now()));
-        if(typeof window._scheduleCloudPush==='function') window._scheduleCloudPush();
+      // vl:_dayChangedAt is itself the day-level change ledger below — writing it
+      // must never re-trigger this branch (it's set via localStorage directly, but
+      // guarded here too in case that ever changes).
+      if(k!=='vl:_lastChangeAt' && k!=='vl:apikey' && k!=='vl:_dayChangedAt'){
+        const ts = Date.now();
+        if(k.startsWith('vl:day:')){
+          // Day logs sync one Firestore doc per day (see the sync module below) so a
+          // years-old account never grows a single document toward Firestore's 1 MiB
+          // cap. That needs its own per-day "changed at" ledger, separate from the
+          // single vl:_lastChangeAt used for everything else, so a device can tell
+          // which individual days it has newer local edits for.
+          const iso = k.slice('vl:day:'.length);
+          const map = LS.get('vl:_dayChangedAt') || {};
+          map[iso] = ts;
+          localStorage.setItem('vl:_dayChangedAt', JSON.stringify(map));
+          if(typeof window._scheduleCloudPushDay==='function') window._scheduleCloudPushDay(iso);
+        } else {
+          localStorage.setItem('vl:_lastChangeAt', String(ts));
+          if(typeof window._scheduleCloudPush==='function') window._scheduleCloudPush();
+        }
       }
       return true;
     }catch(e){ console.error('storage error', e); return false; }
@@ -4338,7 +4355,7 @@ syncNativeMedAlerts();
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithCredential, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-  import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  import { getFirestore, doc, setDoc, getDoc, getDocs, collection, writeBatch, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCa-OtYw9PP02-f7maZ3WSKkYEkpRnHPIc",
@@ -4357,16 +4374,20 @@ syncNativeMedAlerts();
 
   let currentUser = null;
   let unsubscribeSnapshot = null;
+  let unsubscribeDays = null;
   let pushTimer = null;
   let lastPushedAt = 0;
 
   function safeRender(){ if(typeof window.render==='function') window.render(); }
 
+  // Excludes vl:day:* — those sync as their own docs under users/{uid}/days/{iso}
+  // (see below) so this "everything else" doc (settings, goals, meds, caches...)
+  // stays small and bounded no matter how many days a user has logged.
   function collectLocalData(){
     const all = {};
     for(let i=0;i<localStorage.length;i++){
       const k = localStorage.key(i);
-      if(k.startsWith('vl:') && k!=='vl:apikey' && k!=='vl:_lastChangeAt') all[k]=localStorage.getItem(k);
+      if(k.startsWith('vl:') && k!=='vl:apikey' && k!=='vl:_lastChangeAt' && k!=='vl:_dayChangedAt' && !k.startsWith('vl:day:')) all[k]=localStorage.getItem(k);
     }
     return all;
   }
@@ -4389,6 +4410,97 @@ syncNativeMedAlerts();
     clearTimeout(pushTimer);
     pushTimer = setTimeout(pushToCloud, 2000);
   };
+
+  // Per-day sync: each logged day gets its own tiny doc instead of accumulating
+  // forever inside the one users/{uid} doc, which is what put that doc on a path
+  // toward Firestore's 1 MiB per-document cap for long-time daily users. Pushes are
+  // batched (one write per dirty day, committed together) and debounced the same
+  // 2s as the meta doc.
+  let dirtyDays = new Set();
+  let dayPushTimer = null;
+  let lastPushedDayAt = {};
+
+  window._scheduleCloudPushDay = function(iso){
+    if(!currentUser) return;
+    dirtyDays.add(iso);
+    clearTimeout(dayPushTimer);
+    dayPushTimer = setTimeout(pushDirtyDays, 2000);
+  };
+
+  async function pushDirtyDays(){
+    if(!currentUser || !dirtyDays.size) return;
+    const isos = Array.from(dirtyDays);
+    dirtyDays.clear();
+    window._syncState.syncing = true; window._syncState.error = null; safeRender();
+    const ts = Date.now();
+    try{
+      const batch = writeBatch(db);
+      isos.forEach(iso=>{
+        lastPushedDayAt[iso] = ts;
+        batch.set(doc(db,'users',currentUser.uid,'days',iso), { data: localStorage.getItem('vl:day:'+iso), updatedAt: ts });
+      });
+      await batch.commit();
+      window._syncState.lastSyncAt = ts;
+    }catch(e){
+      window._syncState.error = e.message;
+    }
+    window._syncState.syncing = false; safeRender();
+  }
+
+  function applyRemoteDayChange(docSnap){
+    if(!docSnap.exists()) return;
+    const iso = docSnap.id;
+    const remote = docSnap.data();
+    if(remote.updatedAt === lastPushedDayAt[iso]) return; // echo of our own push
+    const dayChangedAt = LS.get('vl:_dayChangedAt') || {};
+    const localTs = dayChangedAt[iso] || 0;
+    const remoteTs = remote.updatedAt || 0;
+    if(remoteTs > localTs){
+      localStorage.setItem('vl:day:'+iso, remote.data);
+      dayChangedAt[iso] = remoteTs;
+      localStorage.setItem('vl:_dayChangedAt', JSON.stringify(dayChangedAt));
+      window._syncState.lastSyncAt = Date.now();
+      if(typeof window.resyncFromStorage === 'function') window.resyncFromStorage();
+      else safeRender();
+    } else if(localTs > remoteTs){
+      window._scheduleCloudPushDay(iso); // this device has a newer local edit remote hasn't seen yet
+    }
+  }
+
+  // One-time cleanup for accounts that synced before per-day docs existed: their
+  // vl:day:* entries are sitting inline in the old single users/{uid} doc. Move
+  // each into its own days/{iso} doc (skipping any another device already migrated)
+  // and rewrite the meta doc without them, so the oversized doc actually shrinks
+  // back down instead of just not growing further.
+  async function migrateLegacyDaysIfNeeded(uid){
+    const metaRef = doc(db,'users',uid);
+    const metaSnap = await getDoc(metaRef);
+    if(!metaSnap.exists()) return;
+    const remote = metaSnap.data();
+    const remoteData = remote.data || {};
+    const legacyKeys = Object.keys(remoteData).filter(k=>k.startsWith('vl:day:'));
+    if(!legacyKeys.length) return;
+    const daysSnap = await getDocs(collection(db,'users',uid,'days'));
+    const existing = new Set(daysSnap.docs.map(d=>d.id));
+    const ts = Date.now();
+    const toMigrate = legacyKeys
+      .map(k=>k.slice('vl:day:'.length))
+      .filter(iso=>!existing.has(iso)); // skip days another device already migrated
+    // A writeBatch caps at 500 ops — exactly the kind of account (years of daily
+    // logging) this migration exists for, so chunk rather than assume it fits.
+    const CHUNK = 400;
+    for(let i=0;i<toMigrate.length;i+=CHUNK){
+      const batch = writeBatch(db);
+      toMigrate.slice(i,i+CHUNK).forEach(iso=>{
+        batch.set(doc(db,'users',uid,'days',iso), { data: remoteData['vl:day:'+iso], updatedAt: ts });
+      });
+      await batch.commit();
+    }
+    const slimData = {};
+    Object.keys(remoteData).forEach(k=>{ if(!k.startsWith('vl:day:')) slimData[k]=remoteData[k]; });
+    await setDoc(metaRef, { data: slimData, updatedAt: ts });
+    lastPushedAt = ts;
+  }
 
   // Shared, cross-user reference banks (foods/{normalizedName}, barcodeFoods/{barcode}).
   // Read is public; write only happens from a vetted source (AI estimate or Open Food
@@ -4457,21 +4569,28 @@ syncNativeMedAlerts();
   };
   window.firebaseSignOut = async function(){
     if(unsubscribeSnapshot){ unsubscribeSnapshot(); unsubscribeSnapshot=null; }
+    if(unsubscribeDays){ unsubscribeDays(); unsubscribeDays=null; }
     if(window.Capacitor && window.Capacitor.isNativePlatform()){
       try{ await window.Capacitor.Plugins.FirebaseAuthentication.signOut(); }catch(e){}
     }
     await signOut(auth);
   };
 
-  onAuthStateChanged(auth, (user) => {
+  onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     window._syncState.user = user ? { email: user.email, uid: user.uid } : null;
     window._syncState.ready = true;
     if(unsubscribeSnapshot){ unsubscribeSnapshot(); unsubscribeSnapshot=null; }
+    if(unsubscribeDays){ unsubscribeDays(); unsubscribeDays=null; }
     if(user){
+      try{ await migrateLegacyDaysIfNeeded(user.uid); }
+      catch(e){ /* best-effort cleanup — regular per-day sync below still works without it */ }
       unsubscribeSnapshot = onSnapshot(doc(db,'users',user.uid), applyRemoteSnapshot, (err)=>{
         window._syncState.error = err.message; safeRender();
       });
+      unsubscribeDays = onSnapshot(collection(db,'users',user.uid,'days'), (snap)=>{
+        snap.docChanges().forEach(change=>{ if(change.type!=='removed') applyRemoteDayChange(change.doc); });
+      }, (err)=>{ window._syncState.error = err.message; safeRender(); });
     }
     safeRender();
   });
