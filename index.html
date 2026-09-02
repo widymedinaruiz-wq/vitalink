@@ -598,6 +598,21 @@ function setTheme(t){ LS.set('vl:theme', t); state.theme = t; applyTheme(); rend
 function applyTheme(){
   if(state.theme==='light' || state.theme==='dark') document.documentElement.dataset.theme = state.theme;
   else delete document.documentElement.dataset.theme;
+  const isLight = state.theme==='light' || (state.theme==='system' && window.matchMedia('(prefers-color-scheme: light)').matches);
+  syncNativeStatusBar(isLight);
+}
+async function syncNativeStatusBar(isLight){
+  if(!(window.Capacitor && window.Capacitor.isNativePlatform())) return;
+  // Capacitor 8's core bundles SystemBars (superseding the old standalone
+  // @capacitor/status-bar plugin) — one call themes both the status bar and
+  // the Android navigation/gesture bar, matching how they render on
+  // edge-to-edge Android (API 35+) targets like this app's (targetSdk 36).
+  const SystemBars = window.Capacitor.Plugins.SystemBars;
+  if(!SystemBars) return;
+  try{ await SystemBars.setStyle({ style: isLight ? 'LIGHT' : 'DARK' }); }catch(e){}
+}
+if(window.matchMedia){
+  window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', ()=>{ if(state.theme==='system') applyTheme(); });
 }
 function tr(key){ return (I18N[state.lang] && I18N[state.lang][key]) ?? I18N.es[key] ?? key; }
 function trf(key, params){ return tr(key).replace(/\{(\w+)\}/g, (_,k)=>params[k]??''); }
