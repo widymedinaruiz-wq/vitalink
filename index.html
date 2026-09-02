@@ -120,7 +120,7 @@
   .wheel-highlight{position:absolute;left:0;right:0;top:72px;height:36px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:rgba(242,166,90,.08);pointer-events:none;border-radius:6px;}
 
   .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
-  .cal-day{aspect-ratio:1;border-radius:10px;border:1px solid var(--line);background:var(--raised);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:var(--text);position:relative;}
+  .cal-day{aspect-ratio:1;min-width:44px;min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--raised);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:var(--text);position:relative;}
   .cal-day.empty{visibility:hidden;}
   .cal-day.has-data::after{content:'';width:5px;height:5px;border-radius:99px;background:var(--accent);position:absolute;bottom:6px;}
   .cal-day.has-data.flagged::after{background:var(--danger);width:6px;height:6px;}
@@ -250,7 +250,8 @@ const I18N = {
     salud_alertas_sub:'Las alertas solo suenan mientras esta pestaña esté abierta.', salud_adherencia:'Adherencia últimos 7 días',
     salud_empty_meds:'Agrega un medicamento abajo para ver su horario aquí', salud_pendiente:'pendiente',
     salud_tomado:'✓ Tomado', salud_marcar_tomado:'Marcar tomado', salud_administrar:'Administrar medicamentos',
-    salud_nombre:'Nombre', salud_dosis:'Dosis (opcional)', salud_horarios:'Horarios, ej: 08:00, 20:00',
+    salud_nombre:'Nombre', salud_dosis:'Dosis', salud_horarios:'Horarios, ej: 08:00, 20:00',
+    salud_pulso_corto:'Pulso',
     salud_editar:'Editar', salud_actualizar:'Actualizar medicamento', salud_cancelar_edicion:'Cancelar edición',
     salud_editando:'Editando',
     comp_registrar:'Registrar medición de báscula', comp_group_corporal:'Composición corporal',
@@ -319,7 +320,22 @@ const I18N = {
     chart_no_data:'No hay suficientes datos aún',
     set_metas_diarias:'Metas diarias', set_ejercicio_min:'Ejercicio (min)',
     set_apikey_label:'API key de Anthropic (opcional, para estimar calorías con IA)',
-    set_apikey_note:'Se guarda solo en este navegador. Nunca la compartas si publicas este archivo.',
+    set_apikey_note:'Se guarda solo en este dispositivo y nunca se comparte con nadie.',
+    err_storage_save:'No se pudo guardar en este dispositivo (¿modo privado / almacenamiento lleno?)',
+    err_ai_key_missing:'Agrega tu API key de Anthropic en Ajustes para usar esta función',
+    err_camera_unsupported:'Tu dispositivo no soporta acceso a la cámara',
+    err_barcode_lib_failed:'No se pudo cargar el lector de códigos (revisa tu conexión a internet)',
+    err_barcode_not_found:'Producto no encontrado en Open Food Facts (código {code}) — ingrésalo manualmente',
+    err_import_invalid_json:'El archivo no es un JSON válido',
+    err_import_no_data:'El archivo no contiene datos de VitaLinks (vl:...)',
+    import_success:'Se importaron {count} registros. Recargando…',
+    err_ai_bad_response:'Respuesta inválida de la IA — intenta de nuevo',
+    err_estimate_busy:'Espera a que termine de estimar antes de agregar',
+    export_backup_done:'Respaldo descargado',
+    err_file_read:'No se pudo leer el archivo',
+    err_bp_requerido:'Ingresa al menos la presión sistólica y diastólica',
+    err_bodycomp_requerido:'Ingresa al menos un valor antes de agregar',
+    err_med_requerido:'Ingresa un nombre y al menos un horario',
     set_sync_title:'Sincronización entre dispositivos', set_cancelar:'Cancelar', set_ajustes_guardados:'Ajustes guardados',
     invite_titulo:'Invita a un amigo', invite_boton:'Compartir invitación', invite_copiado:'Enlace copiado al portapapeles',
     invite_asunto:'Invitación a VitaLinks',
@@ -413,7 +429,8 @@ const I18N = {
     salud_alertas_sub:'Alerts only sound while this tab is open.', salud_adherencia:'7-day adherence',
     salud_empty_meds:'Add a medication below to see its schedule here', salud_pendiente:'due',
     salud_tomado:'✓ Taken', salud_marcar_tomado:'Mark taken', salud_administrar:'Manage medications',
-    salud_nombre:'Name', salud_dosis:'Dose (optional)', salud_horarios:'Times, e.g. 08:00, 20:00',
+    salud_nombre:'Name', salud_dosis:'Dose', salud_horarios:'Times, e.g. 08:00, 20:00',
+    salud_pulso_corto:'Pulse',
     salud_editar:'Edit', salud_actualizar:'Update medication', salud_cancelar_edicion:'Cancel edit',
     salud_editando:'Editing',
     comp_registrar:'Log a scale reading', comp_group_corporal:'Body composition',
@@ -482,7 +499,22 @@ const I18N = {
     chart_no_data:'Not enough data yet',
     set_metas_diarias:'Daily goals', set_ejercicio_min:'Exercise (min)',
     set_apikey_label:'Anthropic API key (optional, for AI calorie estimates)',
-    set_apikey_note:"Stored only in this browser. Never share it if you publish this file.",
+    set_apikey_note:"Stored only on this device, and never shared with anyone.",
+    err_storage_save:"Couldn't save to this device (private mode / storage full?)",
+    err_ai_key_missing:'Add your Anthropic API key in Settings to use this feature',
+    err_camera_unsupported:"Your device doesn't support camera access",
+    err_barcode_lib_failed:"Couldn't load the barcode reader (check your internet connection)",
+    err_barcode_not_found:'Product not found in Open Food Facts (code {code}) — enter it manually',
+    err_import_invalid_json:"That file isn't valid JSON",
+    err_import_no_data:"That file doesn't contain VitaLinks data (vl:...)",
+    import_success:'Imported {count} records. Reloading…',
+    err_ai_bad_response:'Invalid response from the AI — please try again',
+    err_estimate_busy:'Wait for the estimate to finish before adding',
+    export_backup_done:'Backup downloaded',
+    err_file_read:"Couldn't read the file",
+    err_bp_requerido:'Enter at least the systolic and diastolic pressure',
+    err_bodycomp_requerido:'Enter at least one value before adding',
+    err_med_requerido:'Enter a name and at least one time',
     set_sync_title:'Cross-device sync', set_cancelar:'Cancel', set_ajustes_guardados:'Settings saved',
     invite_titulo:'Invite a friend', invite_boton:'Share invite', invite_copiado:'Link copied to clipboard',
     invite_asunto:'Invitation to VitaLinks',
@@ -938,7 +970,7 @@ function toggleMicroOpen(){ state.microOpen = !state.microOpen; render(); }
 
 function saveDay(){
   const ok = setDayData(todayISO(), state.day);
-  if(!ok) toast('No se pudo guardar en este navegador (¿modo privado / almacenamiento lleno?)', true);
+  if(!ok) toast(tr('err_storage_save'), true);
 }
 
 function toast(msg, isError){
@@ -951,7 +983,7 @@ function toast(msg, isError){
 /* ================= nutrition AI estimate ================= */
 async function estimateNutrition(desc){
   const key = getApiKey();
-  if(!key) throw new Error('Agrega tu API key de Anthropic en Ajustes para usar esta función');
+  if(!key) throw new Error(tr('err_ai_key_missing'));
   const prompt = `Eres un nutricionista. Estima el contenido nutricional para el siguiente alimento, considerando la cantidad/porción indicada, usando valores nutricionales típicos (USDA u equivalente). Si la porción no se especifica, asume una porción individual estándar. Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional, sin markdown, sin backticks:
 {"calories": <entero kcal>, "protein": <entero g>, "carbs": <entero g>, "fat": <entero g>, "fiber": <entero g>, "sugar": <entero g>, "sodium": <entero mg>, "iron": <entero mg>, "calcium": <entero mg>, "potassium": <entero mg>, "vitaminC": <entero mg>, "note": "<nota breve en español, max 10 palabras>"}
 
@@ -971,7 +1003,7 @@ Alimento: "${desc}"`;
   const text = (data.content||[]).map(b=>b.text||'').join('');
   const clean = text.replace(/```json|```/g,'').trim();
   const parsed = JSON.parse(clean);
-  if(typeof parsed.calories !== 'number') throw new Error('respuesta inválida');
+  if(typeof parsed.calories !== 'number') throw new Error(tr('err_ai_bad_response'));
   return parsed;
 }
 async function lookupSharedFoodSafe(key){
@@ -1001,7 +1033,7 @@ async function generateDailyInsight(force){
   const cache = getDailyInsightCache();
   if(!force && cache[iso]) return cache[iso];
   const key = getApiKey();
-  if(!key) throw new Error('Agrega tu API key de Anthropic en Ajustes para usar esta función');
+  if(!key) throw new Error(tr('err_ai_key_missing'));
 
   const d = state.day, g = state.goals;
   const calEaten = d.meals.reduce((s,m)=>s+(Number(m.calories)||0),0);
@@ -1067,10 +1099,10 @@ function setBarcodeCache(c){ return LS.set('vl:barcode-cache', c); }
 
 function openScanner(target){
   if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){
-    toast('Tu navegador no soporta acceso a la cámara', true); return;
+    toast(tr('err_camera_unsupported'), true); return;
   }
   if(typeof ZXing === 'undefined'){
-    toast('No se pudo cargar el lector de códigos (revisa tu conexión a internet)', true); return;
+    toast(tr('err_barcode_lib_failed'), true); return;
   }
   window._scanBusy = false;
   window._scanTarget = target || 'meal';
@@ -1174,7 +1206,7 @@ async function lookupBarcode(barcode){
     product = await fetchOFF(barcode);
     if(!product && barcode.length < 13) product = await fetchOFF(barcode.padStart(13,'0'));
     if(!product){
-      toast('Producto no encontrado en Open Food Facts (código '+barcode+') — ingrésalo manualmente', true);
+      toast(trf('err_barcode_not_found', {code:barcode}), true);
       return;
     }
     cache[barcode] = product;
@@ -1827,7 +1859,7 @@ function renderSalud(){
       <div style="display:flex;gap:8px;margin-bottom:8px;">
         <input id="bp-sys" type="number" placeholder="${tr('salud_sistolica')}" style="flex:1;min-width:0;">
         <input id="bp-dia" type="number" placeholder="${tr('salud_diastolica')}" style="flex:1;min-width:0;">
-        <input id="bp-pulse" type="number" placeholder="${tr('salud_pulso')}" style="flex:1;min-width:0;">
+        <input id="bp-pulse" type="number" placeholder="${tr('salud_pulso_corto')}" style="flex:1;min-width:0;">
         <button class="btn btn-primary" onclick="addBP()">+</button>
       </div>
       ${d.bp.length===0 ? emptyState('salud', tr('salud_sin_lecturas')) :
@@ -3260,7 +3292,7 @@ async function handleEstimate(){
   }
 }
 function addMeal(){
-  if(window._estimateBusy){ toast('Espera a que termine de estimar antes de agregar', true); return; }
+  if(window._estimateBusy){ toast(tr('err_estimate_busy'), true); return; }
   const name = document.getElementById('meal-name').value.trim();
   if(!name){ toast(tr('comidas_descripcion_requerida'), true); return; }
   const pending = window._pendingMicros && window._pendingMicros.key===normalizeFoodKey(name) ? window._pendingMicros.data : null;
@@ -3379,7 +3411,7 @@ async function handlePMEstimate(){
   }
 }
 function addPMComponent(){
-  if(window._estimateBusy){ toast('Espera a que termine de estimar antes de agregar', true); return; }
+  if(window._estimateBusy){ toast(tr('err_estimate_busy'), true); return; }
   ensurePMBuilder();
   const name = document.getElementById('pmc-name').value.trim();
   if(!name) return;
@@ -3507,7 +3539,7 @@ function addBP(){
   const sys = Number(document.getElementById('bp-sys').value);
   const dia = Number(document.getElementById('bp-dia').value);
   const pulse = Number(document.getElementById('bp-pulse').value) || null;
-  if(!sys || !dia) return;
+  if(!sys || !dia){ toast(tr('err_bp_requerido'), true); return; }
   state.day.bp.push({ id:uid(), systolic:sys, diastolic:dia, pulse, time: nowHM() });
   saveDay(); render();
 }
@@ -3517,7 +3549,7 @@ function addBodyComp(){
   const vals = {};
   BODYCOMP_FIELDS.forEach(f=>{ const v = document.getElementById('bc-'+f.key).value; vals[f.key] = v===''?null:Number(v); });
   const hasAny = Object.values(vals).some(v=>v!=null);
-  if(!hasAny) return;
+  if(!hasAny){ toast(tr('err_bodycomp_requerido'), true); return; }
   state.day.bodyComp.push({ id:uid(), time: nowHM(), ...vals });
   saveDay(); render();
 }
@@ -3527,7 +3559,7 @@ function addMed(){
   const name = document.getElementById('med-name').value.trim();
   const dose = document.getElementById('med-dose').value.trim();
   const times = document.getElementById('med-times').value.split(',').map(s=>s.trim()).filter(Boolean);
-  if(!name || times.length===0) return;
+  if(!name || times.length===0){ toast(tr('err_med_requerido'), true); return; }
   state.meds.push({ id:uid(), name, dose, times });
   setMeds(state.meds); syncNativeMedAlerts(); render();
 }
@@ -3538,7 +3570,7 @@ function updateMed(id){
   const name = document.getElementById('med-name').value.trim();
   const dose = document.getElementById('med-dose').value.trim();
   const times = document.getElementById('med-times').value.split(',').map(s=>s.trim()).filter(Boolean);
-  if(!name || times.length===0) return;
+  if(!name || times.length===0){ toast(tr('err_med_requerido'), true); return; }
   const med = state.meds.find(m=>m.id===id);
   if(!med) return;
   // Keep the same id — changing name/dose/times in place preserves any medsTaken
@@ -3699,7 +3731,7 @@ async function handleEstimateForDay(){
   }
 }
 function addMealForDay(iso){
-  if(window._estimateBusy){ toast('Espera a que termine de estimar antes de agregar', true); return; }
+  if(window._estimateBusy){ toast(tr('err_estimate_busy'), true); return; }
   const name = document.getElementById('cal-meal-name').value.trim();
   if(!name) return;
   const pending = window._pendingMicros && window._pendingMicros.key===normalizeFoodKey(name) ? window._pendingMicros.data : null;
@@ -3793,7 +3825,7 @@ function exportBackup(){
   a.href = url; a.download = `vitalinks-backup-${todayISO()}.json`;
   a.click();
   URL.revokeObjectURL(url);
-  toast('Respaldo descargado');
+  toast(tr('export_backup_done'));
 }
 function triggerImportBackup(){
   document.getElementById('import-file-input').click();
@@ -3805,14 +3837,14 @@ function handleImportFile(input){
   reader.onload = (e) => {
     let data;
     try{ data = JSON.parse(e.target.result); }
-    catch(err){ toast('El archivo no es un JSON válido', true); return; }
+    catch(err){ toast(tr('err_import_invalid_json'), true); return; }
     const keys = Object.keys(data).filter(k=>k.startsWith('vl:'));
-    if(!keys.length){ toast('El archivo no contiene datos de VitaLinks (vl:...)', true); return; }
+    if(!keys.length){ toast(tr('err_import_no_data'), true); return; }
     keys.forEach(k=>localStorage.setItem(k, data[k]));
-    toast(`Se importaron ${keys.length} registros. Recargando…`);
+    toast(trf('import_success', {count:keys.length}));
     setTimeout(()=>location.reload(), 1200);
   };
-  reader.onerror = () => toast('No se pudo leer el archivo', true);
+  reader.onerror = () => toast(tr('err_file_read'), true);
   reader.readAsText(file);
   input.value = '';
 }
