@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Static native baseline, matching index.html's dark bg/accent tokens.
+         The JS side (applyTheme calling syncNativeStatusBar) overrides this at
+         runtime once Capacitor's bridge is ready, including switching to the
+         light theme's colors when applicable. These are just what shows
+         before that runs, and what pre-edge-to-edge devices (below Android
+         API 35) keep using. -->
+    <color name="colorPrimary">#153934</color>
+    <color name="colorPrimaryDark">#0E2723</color>
+    <color name="colorAccent">#F2A65A</color>
+</resources>
