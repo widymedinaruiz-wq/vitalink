@@ -4465,8 +4465,24 @@ syncNativeMedAlerts();
   let unsubscribeSnapshot = null;
   let pushTimer = null;
   let lastPushedAt = 0;
+  // Set true the first time we've actually seen the cloud's current state for
+  // this sign-in (a real snapshot, or confirmation the doc doesn't exist yet).
+  // Tracked separately from lastPushedAt because the failure mode this guards
+  // against has nothing to do with echoing our own writes: a freshly-cleared
+  // or reinstalled device signs in, some unrelated local write (even just a
+  // theme toggle) fires _scheduleCloudPush, and — if that timer resolves
+  // before the initial pull arrives — a near-empty local state races ahead
+  // and overwrites real data the device just hasn't fetched yet. That's
+  // exactly how a real multi-week data loss happened. Blocking every push
+  // until the real remote state has been observed at least once closes the
+  // race outright, and self-heals once it arrives (see applyRemoteSnapshot's
+  // own conditional pushToCloud() call).
+  let remoteSnapshotSeen = false;
+  let lastKnownRemoteDayCount = 0;
 
   function safeRender(){ if(typeof window.render==='function') window.render(); }
+
+  function dayKeyCount(obj){ return Object.keys(obj).filter(k=>k.startsWith('vl:day:')).length; }
 
   function collectLocalData(){
     const all = {};
@@ -4479,10 +4495,21 @@ syncNativeMedAlerts();
 
   async function pushToCloud(){
     if(!currentUser) return;
+    if(!remoteSnapshotSeen) return;
+    const payload = collectLocalData();
+    const localDays = dayKeyCount(payload);
+    // Day logs are effectively append-only from this sync layer's point of view
+    // (nothing in the UI deletes a whole day) — a push with fewer days than the
+    // cloud already has is always suspicious, never a legitimate daily update.
+    if(lastKnownRemoteDayCount > 0 && localDays < lastKnownRemoteDayCount){
+      window._syncState.error = `Sync blocked: this device has ${localDays} day(s) logged but the cloud has ${lastKnownRemoteDayCount} — refusing to overwrite. Reload the app before making further changes.`;
+      safeRender();
+      return;
+    }
     window._syncState.syncing = true; window._syncState.error = null; safeRender();
     const ts = Date.now();
     try{
-      await setDoc(doc(db,'users',currentUser.uid), { data: collectLocalData(), updatedAt: ts });
+      await setDoc(doc(db,'users',currentUser.uid), { data: payload, updatedAt: ts });
       lastPushedAt = ts;
       window._syncState.lastSyncAt = ts;
     }catch(e){
@@ -4526,10 +4553,13 @@ syncNativeMedAlerts();
   if(window._pendingInviteRef){ window.recordInviteConversion(window._pendingInviteRef); window._pendingInviteRef = null; }
 
   function applyRemoteSnapshot(snap){
-    if(!snap.exists()){ pushToCloud(); return; }
+    if(!snap.exists()){ remoteSnapshotSeen = true; lastKnownRemoteDayCount = 0; pushToCloud(); return; }
     const remote = snap.data();
-    if(remote.updatedAt === lastPushedAt) return; // echo of our own push
     const remoteData = remote.data || {};
+    // Update before the echo check below so our own pushes keep this current too.
+    remoteSnapshotSeen = true;
+    lastKnownRemoteDayCount = dayKeyCount(remoteData);
+    if(remote.updatedAt === lastPushedAt) return; // echo of our own push
     const remoteUpdatedAt = remote.updatedAt || 0;
     const localUpdatedAt = Number(localStorage.getItem('vl:_lastChangeAt')||0);
     if(remoteUpdatedAt > localUpdatedAt){
@@ -4574,6 +4604,11 @@ syncNativeMedAlerts();
     window._syncState.user = user ? { email: user.email, uid: user.uid } : null;
     window._syncState.ready = true;
     if(unsubscribeSnapshot){ unsubscribeSnapshot(); unsubscribeSnapshot=null; }
+    // Reset per-session sync-safety state on every auth change (sign-in, sign-out,
+    // or switching accounts without a full page reload) — each new subscription
+    // must earn its own "we've seen the real cloud state" before it's allowed to push.
+    remoteSnapshotSeen = false;
+    lastKnownRemoteDayCount = 0;
     if(user){
       unsubscribeSnapshot = onSnapshot(doc(db,'users',user.uid), applyRemoteSnapshot, (err)=>{
         window._syncState.error = err.message; safeRender();
