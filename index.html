@@ -26,6 +26,36 @@
        next to on Hoy (that collision — orange meaning "food" in one card and
        "protein" one card below — was the clearest case found in the audit). */
     --macro-protein:#B9A0E0; --macro-carbs:#D999C7; --macro-fat:#8FA8DE;
+    /* Text/mark color for anything sitting on an accent-colored fill (button
+       labels, a toggle's "on" knob) — aliases --bg on dark, since a dark mark
+       on a bright accent is what already looks right there. Light mode can't
+       reuse --bg for this (it's near-white, same problem accent2 had) so it
+       points at --text instead. Kept as its own token so both callers update
+       together instead of drifting. */
+    --on-accent:#0E2723;
+  }
+  /* Light mode: same 15 category/status/macro/neutral tokens, independently
+     darkened and contrast-checked against a white ground (not copy-pasted
+     from the dark set — the accent2 audit showed dark-tuned colors quietly
+     fail on light). Follows the OS by default; :root[data-theme] lets the
+     in-app Settings toggle override it either direction. */
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --bg:#F4F7F5; --surface:#FFFFFF; --raised:#EAF0EE; --line:#DCE6E2;
+      --accent:#C9731D; --accent2:#4E8B23; --accent3:#358D6F;
+      --text:#132A25; --muted:#5B7A72; --danger:#D04825;
+      --status-good:#358D4E; --status-warn:#AD7E1F;
+      --macro-protein:#6C3DB8; --macro-carbs:#B03B8F; --macro-fat:#325AAE;
+      --on-accent:#132A25;
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#F4F7F5; --surface:#FFFFFF; --raised:#EAF0EE; --line:#DCE6E2;
+    --accent:#C9731D; --accent2:#4E8B23; --accent3:#358D6F;
+    --text:#132A25; --muted:#5B7A72; --danger:#D04825;
+    --status-good:#358D4E; --status-warn:#AD7E1F;
+    --macro-protein:#6C3DB8; --macro-carbs:#B03B8F; --macro-fat:#325AAE;
+    --on-accent:#132A25;
   }
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
@@ -45,7 +75,7 @@
      anything already taller from its own content (icon+label buttons) is
      completely unaffected. */
   .btn{display:inline-flex;align-items:center;gap:6px;justify-content:center;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;min-height:44px;}
-  .btn-primary{background:var(--accent);color:var(--bg);}
+  .btn-primary{background:var(--accent);color:var(--on-accent);}
   .btn-ghost{background:var(--raised);color:var(--text);border:1px solid var(--line);}
   .btn-danger{background:var(--danger);color:var(--bg);}
   .btn:disabled{opacity:.5;cursor:default;}
@@ -134,7 +164,7 @@
   .switch{width:38px;height:22px;border-radius:99px;background:var(--line);position:relative;cursor:pointer;flex-shrink:0;}
   .switch.on{background:var(--accent);}
   .switch .knob{width:16px;height:16px;border-radius:99px;background:var(--text);position:absolute;top:3px;left:3px;transition:left .15s;}
-  .switch.on .knob{left:19px;background:var(--bg);}
+  .switch.on .knob{left:19px;background:var(--on-accent);}
 
   .scanner-video-wrap{position:relative;width:100%;aspect-ratio:4/3;background:#000;border-radius:14px;overflow:hidden;}
   .scanner-video-wrap video{width:100%;height:100%;object-fit:cover;}
@@ -319,6 +349,7 @@ const I18N = {
     pron_peso_vs_meta:'Peso vs. meta — últimos 30 días',
     chart_no_data:'No hay suficientes datos aún',
     set_metas_diarias:'Metas diarias', set_ejercicio_min:'Ejercicio (min)',
+    set_apariencia:'Apariencia', set_tema_sistema:'Sistema', set_tema_claro:'Claro', set_tema_oscuro:'Oscuro',
     set_apikey_label:'API key de Anthropic (opcional, para estimar calorías con IA)',
     set_apikey_note:'Se guarda solo en este dispositivo y nunca se comparte con nadie.',
     err_storage_save:'No se pudo guardar en este dispositivo (¿modo privado / almacenamiento lleno?)',
@@ -498,6 +529,7 @@ const I18N = {
     pron_peso_vs_meta:'Weight vs. goal — last 30 days',
     chart_no_data:'Not enough data yet',
     set_metas_diarias:'Daily goals', set_ejercicio_min:'Exercise (min)',
+    set_apariencia:'Appearance', set_tema_sistema:'System', set_tema_claro:'Light', set_tema_oscuro:'Dark',
     set_apikey_label:'Anthropic API key (optional, for AI calorie estimates)',
     set_apikey_note:"Stored only on this device, and never shared with anyone.",
     err_storage_save:"Couldn't save to this device (private mode / storage full?)",
@@ -561,6 +593,12 @@ const I18N = {
 };
 function getLang(){ return LS.get('vl:lang') || 'es'; }
 function setLang(l){ LS.set('vl:lang', l); state.lang = l; render(); }
+function getTheme(){ return LS.get('vl:theme') || 'system'; }
+function setTheme(t){ LS.set('vl:theme', t); state.theme = t; applyTheme(); render(); }
+function applyTheme(){
+  if(state.theme==='light' || state.theme==='dark') document.documentElement.dataset.theme = state.theme;
+  else delete document.documentElement.dataset.theme;
+}
 function tr(key){ return (I18N[state.lang] && I18N[state.lang][key]) ?? I18N.es[key] ?? key; }
 function trf(key, params){ return tr(key).replace(/\{(\w+)\}/g, (_,k)=>params[k]??''); }
 
@@ -963,7 +1001,9 @@ const state = {
   calendarOpen: true,
   microOpen: false,
   lang: getLang(),
+  theme: getTheme(),
 };
+applyTheme();
 function toggleBodyCompForm(){ state.bodyCompFormOpen = !state.bodyCompFormOpen; render(); }
 function toggleCalendarView(){ state.calendarOpen = !state.calendarOpen; render(); }
 function toggleMicroOpen(){ state.microOpen = !state.microOpen; render(); }
@@ -2999,6 +3039,12 @@ function modalHTML(){
           <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('hoy_agua')}</div><input id="g-water" type="number" value="${g.waterGoal}" style="width:100%;"></div>
         </div>
         <div style="margin-bottom:16px;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('set_ejercicio_min')}</div><input id="g-ex" type="number" value="${g.exerciseGoal}" style="width:100%;"></div>
+        <div class="label">${tr('set_apariencia')}</div>
+        <div style="display:flex;gap:6px;margin-bottom:16px;">
+          <button class="btn ${state.theme==='system'?'btn-primary':'btn-ghost'}" style="flex:1;padding:8px;font-size:12px;" onclick="setTheme('system')">${tr('set_tema_sistema')}</button>
+          <button class="btn ${state.theme==='light'?'btn-primary':'btn-ghost'}" style="flex:1;padding:8px;font-size:12px;" onclick="setTheme('light')">${tr('set_tema_claro')}</button>
+          <button class="btn ${state.theme==='dark'?'btn-primary':'btn-ghost'}" style="flex:1;padding:8px;font-size:12px;" onclick="setTheme('dark')">${tr('set_tema_oscuro')}</button>
+        </div>
         <div class="label">${tr('set_apikey_label')}</div>
         <input id="g-apikey" type="password" value="${getApiKey()}" placeholder="sk-ant-..." style="width:100%;margin-bottom:6px;">
         <div style="font-size:11px;color:var(--muted);margin-bottom:16px;">${tr('set_apikey_note')}</div>
