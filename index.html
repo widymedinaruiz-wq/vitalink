@@ -95,7 +95,7 @@
   main header h1{font-family:'Space Grotesk',sans-serif;font-size:22px;margin:0;}
   main header .sub{color:var(--muted);font-size:13px;text-transform:capitalize;}
 
-  .toast{margin:0 0 16px;padding:12px 14px;background:rgba(224,122,95,.15);border:1px solid var(--danger);border-radius:10px;color:var(--danger);font-size:13px;}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);width:calc(100vw - 32px);max-width:420px;margin:0;padding:12px 14px;padding-bottom:calc(12px + env(safe-area-inset-bottom));background:rgba(224,122,95,.15);border:1px solid var(--danger);border-radius:10px;color:var(--danger);font-size:13px;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,.35);}
   .toast.ok{background:rgba(127,200,176,.15);border-color:var(--accent3);color:var(--accent3);}
 
   .dial-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;padding:14px 0;}
@@ -1263,7 +1263,7 @@ function refGridSVG(min, range, w, h, pad, steps, unit){
     const val = min + frac*range;
     const y = h-pad-frac*(h-pad*2);
     lines.push(`<line x1="${pad}" y1="${y}" x2="${w-pad}" y2="${y}" stroke="var(--line)" stroke-dasharray="3,3"/>
-      <text x="2" y="${y+3}" font-size="9" fill="var(--muted)">${val.toFixed(decimals)}${unit?' '+unit:''}</text>`);
+      <text x="2" y="${y+3}" font-size="15" fill="var(--muted)">${val.toFixed(decimals)}${unit?' '+unit:''}</text>`);
   }
   return lines.join('');
 }
@@ -1279,12 +1279,12 @@ function lineChartSVG(points, opts){
   const xy = points.map((p,i)=> p.v==null ? null : [pad+i*stepX, h-pad-((p.v-min)/range)*(h-pad*2)]);
   const validPts = svgPathThroughValid(xy);
   const dots = xy.map((p,i)=> p ? `<circle cx="${p[0]}" cy="${p[1]}" r="3.2" fill="${opts.color}"/>` : '').join('');
-  const labels = points.map((p,i)=>`<text x="${pad+i*stepX}" y="${h-6}" font-size="10" fill="var(--muted)" text-anchor="middle">${p.label}</text>`).join('');
+  const labels = points.map((p,i)=>`<text x="${pad+i*stepX}" y="${h-6}" font-size="15" fill="var(--muted)" text-anchor="middle">${p.label}</text>`).join('');
   const grid = opts.gridLines ? refGridSVG(min, range, w, h, pad, opts.gridSteps||4, opts.unit) : '';
   const targetColor = opts.targetColor||'var(--accent2)';
   const targetY = opts.targetValue!=null ? h-pad-((opts.targetValue-min)/range)*(h-pad*2) : null;
   const targetLine = targetY!=null ? `<line x1="${pad}" y1="${targetY}" x2="${w-pad}" y2="${targetY}" stroke="${targetColor}" stroke-width="2" stroke-dasharray="6,3"/>
-    <text x="${w-pad-2}" y="${targetY-4}" font-size="9" fill="${targetColor}" text-anchor="end">Meta ${opts.targetValue}${opts.unit?' '+opts.unit:''}</text>` : '';
+    <text x="${w-pad-2}" y="${targetY-4}" font-size="15" fill="${targetColor}" text-anchor="end">Meta ${opts.targetValue}${opts.unit?' '+opts.unit:''}</text>` : '';
   const maPath = opts.maValues ? `<path d="${svgPathThroughValid(opts.maValues.map((v,i)=> v==null ? null : [pad+i*stepX, h-pad-((v-min)/range)*(h-pad*2)]))}" fill="none" stroke="${opts.maColor||opts.color}" stroke-width="1.6" stroke-dasharray="5,4" opacity="0.8"/>` : '';
   return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:${h}px;">
     ${grid}
@@ -1311,7 +1311,7 @@ function multiLineChartSVG(points, series, opts){
     const maPath = s.ma ? `<path d="${svgPathThroughValid(s.ma.map((v,i)=> v==null ? null : [pad+i*stepX, h-pad-((v-min)/range)*(h-pad*2)]))}" fill="none" stroke="${s.color}" stroke-width="1.6" stroke-dasharray="5,4" opacity="0.8"/>` : '';
     return `${maPath}<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.5"/>${dots}`;
   }).join('');
-  const labels = points.map((p,i)=>`<text x="${pad+i*stepX}" y="${h-6}" font-size="10" fill="var(--muted)" text-anchor="middle">${p.label}</text>`).join('');
+  const labels = points.map((p,i)=>`<text x="${pad+i*stepX}" y="${h-6}" font-size="15" fill="var(--muted)" text-anchor="middle">${p.label}</text>`).join('');
   const grid = opts.gridLines ? refGridSVG(min, range, w, h, pad, opts.gridSteps||4, opts.unit) : '';
   return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:${h}px;">
     ${grid}
@@ -1343,7 +1343,7 @@ function barChartSVG(points, opts){
   // Bars are solid fills, so the MA overlay defaults to a neutral color rather than
   // matching the bar (a same-color dashed line on a same-color bar has poor contrast).
   const maPath = opts.maValues ? `<path d="${svgPathThroughValid(opts.maValues.map((v,i)=> v==null ? null : [pad+i*stepX+stepX/2, h-pad-(v/max)*(h-pad*2)]))}" fill="none" stroke="${opts.maColor||'var(--text)'}" stroke-width="1.6" stroke-dasharray="5,4" opacity="0.85"/>` : '';
-  const labels = points.map((p,i)=>`<text x="${pad+i*stepX+stepX/2}" y="${h-6}" font-size="10" fill="var(--muted)" text-anchor="middle">${p.label}</text>`).join('');
+  const labels = points.map((p,i)=>`<text x="${pad+i*stepX+stepX/2}" y="${h-6}" font-size="15" fill="var(--muted)" text-anchor="middle">${p.label}</text>`).join('');
   const grid = opts.gridLines ? refGridSVG(0, max, w, h, pad, opts.gridSteps||4, opts.unit) : '';
   return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:${h}px;">
     ${grid}
@@ -3078,7 +3078,14 @@ function saveSettings(){
 }
 
 /* ================= actions ================= */
-function render(){ document.getElementById('app').innerHTML = renderApp(); restoreWheelScroll(); runHoyEntranceAnimation(); }
+function render(){
+  const prevNav = document.querySelector('nav.side');
+  const navScrollLeft = prevNav ? prevNav.scrollLeft : 0;
+  document.getElementById('app').innerHTML = renderApp();
+  const newNav = document.querySelector('nav.side');
+  if(newNav) newNav.scrollLeft = navScrollLeft;
+  restoreWheelScroll(); runHoyEntranceAnimation();
+}
 function setTab(t){
   if(t==='hoy' && state.tab!=='hoy') window._hoyAnimate = true;
   state.tab=t; window._pmView=false; render();
