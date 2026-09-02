@@ -929,10 +929,12 @@ const state = {
   nutritionRange: 30,
   bodyCompFormOpen: false,
   calendarOpen: true,
+  microOpen: false,
   lang: getLang(),
 };
 function toggleBodyCompForm(){ state.bodyCompFormOpen = !state.bodyCompFormOpen; render(); }
 function toggleCalendarView(){ state.calendarOpen = !state.calendarOpen; render(); }
+function toggleMicroOpen(){ state.microOpen = !state.microOpen; render(); }
 
 function saveDay(){
   const ok = setDayData(todayISO(), state.day);
@@ -1624,7 +1626,11 @@ function microRow(label, value, unit){
 function microCard(meals){
   const s = microSums(meals);
   return `<div class="card">
-    <div class="label">${tr('micro_title')}</div>
+    <div class="label" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:${state.microOpen?'10px':'0'};" onclick="toggleMicroOpen()">
+      <span>${tr('micro_title')}</span>
+      <span style="font-size:13px;color:var(--muted);">${state.microOpen?'▾':'▸'}</span>
+    </div>
+    ${state.microOpen ? `
     <div class="grid2" style="gap:8px;">
       ${microRow(tr('micro_fibra'), s.fiber, 'g')}
       ${microRow(tr('micro_azucar'), s.sugar, 'g')}
@@ -1633,7 +1639,7 @@ function microCard(meals){
       ${microRow(tr('micro_calcio'), s.calcium, 'mg')}
       ${microRow(tr('micro_potasio'), s.potassium, 'mg')}
       ${microRow(tr('micro_vitc'), s.vitaminC, 'mg')}
-    </div>
+    </div>` : ''}
   </div>`;
 }
 function macroCard(meals){
