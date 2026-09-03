@@ -87,6 +87,7 @@
   .btn-primary{background:var(--accent);color:var(--on-accent);}
   .btn-ghost{background:var(--raised);color:var(--text);border:1px solid var(--line);}
   .btn-danger{background:var(--danger);color:var(--bg);}
+  .btn-accent3{background:var(--accent3);color:var(--on-accent);}
   .btn:disabled{opacity:.5;cursor:default;}
   .row-item{display:flex;align-items:center;justify-content:space-between;padding:9px 10px;background:var(--raised);border-radius:12px;}
   .suggest-list{position:absolute;top:100%;left:0;right:0;z-index:30;background:var(--raised);border:1px solid var(--line);border-radius:10px;margin-top:4px;max-height:180px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.35);}
@@ -157,7 +158,7 @@
   .wheel-col::-webkit-scrollbar{display:none;}
   .wheel-item{height:36px;display:flex;align-items:center;justify-content:center;scroll-snap-align:center;font-size:14px;color:var(--muted);cursor:pointer;transition:color .15s,font-size .15s;}
   .wheel-item.selected{color:var(--accent);font-weight:700;font-size:16px;}
-  .wheel-highlight{position:absolute;left:0;right:0;top:72px;height:36px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:rgba(242,166,90,.08);pointer-events:none;border-radius:6px;}
+  .wheel-highlight{position:absolute;left:0;right:0;top:72px;height:36px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:color-mix(in srgb, var(--accent) 8%, transparent);pointer-events:none;border-radius:6px;}
 
   .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
   .cal-day{aspect-ratio:1;min-width:44px;min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--raised);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:var(--text);position:relative;}
@@ -257,6 +258,16 @@ const I18N = {
     micro_title:'Micronutrientes', micro_fibra:'Fibra', micro_azucar:'Azúcar', micro_sodio:'Sodio',
     micro_hierro:'Hierro', micro_calcio:'Calcio', micro_potasio:'Potasio', micro_vitc:'Vitamina C',
     hoy_agua:'Agua (L)', hoy_peso:'Peso (kg)', hoy_sueno:'Sueño (h)', hoy_ajustar_metas:'Ajustar metas diarias',
+    aria_water_drop:'Registrar {n} L de agua', aria_eliminar:'Eliminar {name}',
+    aria_eliminar_medicion:'Eliminar medición de las {time}',
+    err_auth_popup_blocked:'No se pudo abrir la ventana de inicio de sesión — revisa el bloqueador de ventanas emergentes e inténtalo de nuevo',
+    err_auth_popup_closed:'Inicio de sesión cancelado',
+    err_auth_network:'Error de conexión — revisa tu internet e inténtalo de nuevo',
+    err_auth_account_exists:'Ya existe una cuenta con este correo usando otro método de inicio de sesión',
+    err_auth_too_many:'Demasiados intentos — espera un momento e inténtalo de nuevo',
+    err_auth_generic:'No se pudo iniciar sesión — inténtalo de nuevo',
+    err_sync_permission:'No tienes permiso para sincronizar — intenta cerrar sesión y volver a iniciarla',
+    err_sync_generic:'No se pudo sincronizar — inténtalo de nuevo',
     hoy_metas_titulo:'Tus metas diarias', hoy_ultimos_7_dias:'Últimos 7 días',
     comidas_tipo:'Tipo de comida', comidas_agregar_a:'Agregar a', comidas_placeholder:'Ej. "lata atún 6oz", "plátano mediano"',
     comidas_descripcion_requerida:'Escribe qué comiste antes de agregar',
@@ -442,6 +453,16 @@ const I18N = {
     micro_title:'Micronutrients', micro_fibra:'Fiber', micro_azucar:'Sugar', micro_sodio:'Sodium',
     micro_hierro:'Iron', micro_calcio:'Calcium', micro_potasio:'Potassium', micro_vitc:'Vitamin C',
     hoy_agua:'Water (L)', hoy_peso:'Weight (kg)', hoy_sueno:'Sleep (h)', hoy_ajustar_metas:'Adjust daily goals',
+    aria_water_drop:'Log {n} L of water', aria_eliminar:'Delete {name}',
+    aria_eliminar_medicion:'Delete the {time} measurement',
+    err_auth_popup_blocked:"Couldn't open the sign-in window — check your popup blocker and try again",
+    err_auth_popup_closed:'Sign-in cancelled',
+    err_auth_network:'Connection error — check your internet and try again',
+    err_auth_account_exists:'An account with this email already exists using a different sign-in method',
+    err_auth_too_many:'Too many attempts — wait a moment and try again',
+    err_auth_generic:"Couldn't sign in — please try again",
+    err_sync_permission:"You don't have permission to sync — try signing out and back in",
+    err_sync_generic:"Couldn't sync — please try again",
     hoy_metas_titulo:'Your daily goals', hoy_ultimos_7_dias:'Last 7 days',
     comidas_tipo:'Meal type', comidas_agregar_a:'Add to', comidas_placeholder:'E.g. "6oz tuna can", "medium banana"',
     comidas_descripcion_requerida:'Write down what you ate before adding',
@@ -1719,8 +1740,8 @@ function renderHoy(){
           // exists here once water reaches it.
           const isLastAtMax = i===arr.length-1 && d.water>=arr.length;
           const nextValue = isLastAtMax ? d.water+1 : (i+1===d.water ? i : i+1);
-          return `<button class="btn ${i<d.water?'btn-primary':'btn-ghost'}" style="width:44px;height:44px;padding:0;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;"
-            onclick="setWater(${nextValue})">${navIcon('gota',19)}</button>`;
+          return `<button class="btn ${i<d.water?'btn-accent3':'btn-ghost'}" style="width:44px;height:44px;padding:0;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;"
+            onclick="setWater(${nextValue})" aria-label="${trf('aria_water_drop',{n:i+1})}">${navIcon('gota',19)}</button>`;
         }).join('')}
       </div>
       <div class="grid2">
@@ -2219,7 +2240,7 @@ function bodyCompEntryHTML(bc, onDelete){
   return `<div style="padding:10px 0;border-bottom:1px solid var(--line);">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
       <span style="font-size:12px;color:var(--muted);">${bc.time}</span>
-      ${onDelete?`<button onclick="${onDelete}" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>`:''}
+      ${onDelete?`<button onclick="${onDelete}" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;" aria-label="${esc(trf('aria_eliminar_medicion',{time:bc.time}))}">✕</button>`:''}
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;">${chips || `<span style="font-size:11px;color:var(--muted);">${tr('comp_sin_valores')}</span>`}</div>
   </div>`;
@@ -2300,7 +2321,7 @@ function renderComposicionCharts(){
     const isExp = exp===f.key;
     return `<div class="card expand-card ${isExp?'expanded':''}" onclick="toggleChartExpand('comp','${f.key}')"><div class="label" style="display:flex;align-items:center;gap:6px;justify-content:space-between;">
         <span>${tr('bc_'+f.key)}${f.unit?' ('+bcUnit(f)+')':''}</span>
-        <button class="info-btn" onclick="event.stopPropagation();openBodyCompInfo('${f.key}')" title="${esc(tr('comp_info_title'))}">ⓘ</button>
+        <button class="info-btn" onclick="event.stopPropagation();openBodyCompInfo('${f.key}')" title="${esc(tr('comp_info_title'))}" aria-label="${esc(tr('comp_info_title'))}">ⓘ</button>
       </div><div class="chart-box">${lineChartSVG(pts,{color:BODYCOMP_COLOR_BY_KEY[f.key], gridLines:true, gridSteps:isExp?5:4, unit:bcUnit(f), maValues:ma, h:isExp?320:150})}</div></div>`;
   }).join('');
   return `<div style="font-size:12px;color:var(--muted);">${tr('comp_tendencia')} · ${tr('nutr_ma30_nota')}</div><div class="grid2">${charts}</div>`;
@@ -3061,7 +3082,7 @@ function rowItem(left, sub, right, onDelete, badge){
     <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
       ${badge||''}
       ${right?`<span class="display" style="font-size:12px;color:var(--muted);">${esc(right)}</span>`:''}
-      <button onclick="${onDelete}" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
+      <button onclick="${onDelete}" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;" aria-label="${esc(trf('aria_eliminar',{name:left}))}">✕</button>
     </div>
   </div>`;
 }
@@ -4624,7 +4645,7 @@ syncNativeMedAlerts();
       lastPushedAt = ts;
       window._syncState.lastSyncAt = ts;
     }catch(e){
-      window._syncState.error = e.message;
+      window._syncState.error = friendlyFirebaseError(e);
     }
     window._syncState.syncing = false; safeRender();
   }
@@ -4684,6 +4705,28 @@ syncNativeMedAlerts();
     }
   }
 
+  // Maps a Firebase (Auth or Firestore) error code to translated, actionable
+  // copy instead of leaking the SDK's raw English message (e.g. "Firebase:
+  // Error (auth/popup-blocked).") straight into the sync-status UI regardless
+  // of the app's language. Unmapped codes fall back to a generic translated
+  // message — never the raw e.message.
+  function friendlyFirebaseError(e){
+    const key = ({
+      'auth/popup-blocked': 'err_auth_popup_blocked',
+      'auth/popup-closed-by-user': 'err_auth_popup_closed',
+      'auth/cancelled-popup-request': 'err_auth_popup_closed',
+      'auth/user-cancelled': 'err_auth_popup_closed',
+      'auth/network-request-failed': 'err_auth_network',
+      'auth/account-exists-with-different-credential': 'err_auth_account_exists',
+      'auth/too-many-requests': 'err_auth_too_many',
+      'permission-denied': 'err_sync_permission',
+      'unauthenticated': 'err_sync_permission',
+      'unavailable': 'err_auth_network',
+      'deadline-exceeded': 'err_auth_network',
+      'resource-exhausted': 'err_auth_too_many',
+    })[e && e.code] || 'err_sync_generic';
+    return window.tr(key);
+  }
   window.firebaseSignIn = async function(){
     try{
       if(window.Capacitor && window.Capacitor.isNativePlatform()){
@@ -4700,7 +4743,7 @@ syncNativeMedAlerts();
         await signInWithPopup(auth, provider);
       }
     }
-    catch(e){ window._syncState.error = e.message; safeRender(); }
+    catch(e){ window._syncState.error = friendlyFirebaseError(e); safeRender(); }
   };
   window.firebaseSignOut = async function(){
     if(unsubscribeSnapshot){ unsubscribeSnapshot(); unsubscribeSnapshot=null; }
@@ -4722,7 +4765,7 @@ syncNativeMedAlerts();
     lastKnownRemoteDayCount = 0;
     if(user){
       unsubscribeSnapshot = onSnapshot(doc(db,'users',user.uid), applyRemoteSnapshot, (err)=>{
-        window._syncState.error = err.message; safeRender();
+        window._syncState.error = friendlyFirebaseError(err); safeRender();
       });
     }
     safeRender();
