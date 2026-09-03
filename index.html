@@ -92,10 +92,11 @@
   .expand-card{cursor:pointer;position:relative;}
   .expand-card.expanded{grid-column:1/-1;}
   .expand-card::after{
-    content:'⌄'; position:absolute; right:12px; bottom:10px; font-size:13px; line-height:1;
-    color:var(--muted); opacity:.55; pointer-events:none;
+    content:''; position:absolute; right:14px; bottom:14px; width:0; height:0;
+    border-left:7px solid transparent; border-right:7px solid transparent;
+    border-top:9px solid var(--muted); pointer-events:none; transition:transform .15s;
   }
-  .expand-card.expanded::after{ content:'⌃'; }
+  .expand-card.expanded::after{ transform:rotate(180deg); }
   .stack{display:flex;flex-direction:column;gap:16px;}
   /* Opt-in, not a change to .stack itself — most tabs are sequential forms/lists
      that need to stay single-column at any width. Hoy is the one screen where a
@@ -1313,14 +1314,18 @@ function refGridSVG(min, range, w, h, pad, steps, unit){
   const stepSize = range/(steps-1 || 1);
   const decimals = stepSize===0 ? 0 : stepSize < 0.1 ? 2 : stepSize < 1 ? 1 : 0;
   const lines = [];
+  const labels = [];
   for(let i=0;i<steps;i++){
     const frac = i/(steps-1);
     const val = min + frac*range;
     const y = h-pad-frac*(h-pad*2);
-    lines.push(`<line x1="${pad}" y1="${y}" x2="${w-pad}" y2="${y}" stroke="var(--line)" stroke-dasharray="3,3"/>
-      <text x="2" y="${y+3}" font-size="15" fill="var(--muted)">${val.toFixed(decimals)}${unit?' '+unit:''}</text>`);
+    lines.push(`<line x1="${pad}" y1="${y}" x2="${w-pad}" y2="${y}" stroke="var(--line)" stroke-dasharray="3,3"/>`);
+    labels.push(`<text x="2" y="${y+3}" font-size="15" fill="var(--muted)">${val.toFixed(decimals)}${unit?' '+unit:''}</text>`);
   }
-  return lines.join('');
+  // Split so callers can draw the dashed reference lines behind the plotted data
+  // but the numeric labels after it — otherwise the line/dots paint over the
+  // numbers wherever a value happens to pass near the left edge.
+  return { lines: lines.join(''), labels: labels.join('') };
 }
 function lineChartSVG(points, opts){
   const w = opts.w||520, h = opts.h||150, pad=28;
@@ -1335,19 +1340,18 @@ function lineChartSVG(points, opts){
   const validPts = svgPathThroughValid(xy);
   const dots = xy.map((p,i)=> p ? `<circle cx="${p[0]}" cy="${p[1]}" r="3.2" fill="${opts.color}"/>` : '').join('');
   const labels = points.map((p,i)=>`<text x="${pad+i*stepX}" y="${h-6}" font-size="15" fill="var(--muted)" text-anchor="middle">${p.label}</text>`).join('');
-  const grid = opts.gridLines ? refGridSVG(min, range, w, h, pad, opts.gridSteps||4, opts.unit) : '';
+  const grid = opts.gridLines ? refGridSVG(min, range, w, h, pad, opts.gridSteps||4, opts.unit) : {lines:'',labels:''};
   const targetColor = opts.targetColor||'var(--accent2)';
   const targetY = opts.targetValue!=null ? h-pad-((opts.targetValue-min)/range)*(h-pad*2) : null;
   const targetLine = targetY!=null ? `<line x1="${pad}" y1="${targetY}" x2="${w-pad}" y2="${targetY}" stroke="${targetColor}" stroke-width="2" stroke-dasharray="6,3"/>
     <text x="${w-pad-2}" y="${targetY-4}" font-size="15" fill="${targetColor}" text-anchor="end">Meta ${opts.targetValue}${opts.unit?' '+opts.unit:''}</text>` : '';
   const maPath = opts.maValues ? `<path d="${svgPathThroughValid(opts.maValues.map((v,i)=> v==null ? null : [pad+i*stepX, h-pad-((v-min)/range)*(h-pad*2)]))}" fill="none" stroke="${opts.maColor||opts.color}" stroke-width="1.6" stroke-dasharray="5,4" opacity="0.8"/>` : '';
   return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:${h}px;">
-    ${grid}
+    ${grid.lines}
     <line x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="var(--line)"/>
-    ${targetLine}
     ${maPath}
     <path d="${validPts}" fill="none" stroke="${opts.color}" stroke-width="2.5" stroke-linejoin="round"/>
-    ${dots}${labels}
+    ${dots}${grid.labels}${labels}${targetLine}
   </svg>`;
 }
 function multiLineChartSVG(points, series, opts){
@@ -1367,11 +1371,11 @@ function multiLineChartSVG(points, series, opts){
     return `${maPath}<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.5"/>${dots}`;
   }).join('');
   const labels = points.map((p,i)=>`<text x="${pad+i*stepX}" y="${h-6}" font-size="15" fill="var(--muted)" text-anchor="middle">${p.label}</text>`).join('');
-  const grid = opts.gridLines ? refGridSVG(min, range, w, h, pad, opts.gridSteps||4, opts.unit) : '';
+  const grid = opts.gridLines ? refGridSVG(min, range, w, h, pad, opts.gridSteps||4, opts.unit) : {lines:'',labels:''};
   return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:${h}px;">
-    ${grid}
+    ${grid.lines}
     <line x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="var(--line)"/>
-    ${paths}${labels}
+    ${paths}${grid.labels}${labels}
   </svg>`;
 }
 function barChartSVG(points, opts){
@@ -1399,11 +1403,11 @@ function barChartSVG(points, opts){
   // matching the bar (a same-color dashed line on a same-color bar has poor contrast).
   const maPath = opts.maValues ? `<path d="${svgPathThroughValid(opts.maValues.map((v,i)=> v==null ? null : [pad+i*stepX+stepX/2, h-pad-(v/max)*(h-pad*2)]))}" fill="none" stroke="${opts.maColor||'var(--text)'}" stroke-width="1.6" stroke-dasharray="5,4" opacity="0.85"/>` : '';
   const labels = points.map((p,i)=>`<text x="${pad+i*stepX+stepX/2}" y="${h-6}" font-size="15" fill="var(--muted)" text-anchor="middle">${p.label}</text>`).join('');
-  const grid = opts.gridLines ? refGridSVG(0, max, w, h, pad, opts.gridSteps||4, opts.unit) : '';
+  const grid = opts.gridLines ? refGridSVG(0, max, w, h, pad, opts.gridSteps||4, opts.unit) : {lines:'',labels:''};
   return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:${h}px;">
-    ${grid}
+    ${grid.lines}
     <line x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="var(--line)"/>
-    ${goalLine}${bars}${maPath}${labels}
+    ${goalLine}${bars}${maPath}${grid.labels}${labels}
   </svg>`;
 }
 function dialSVG(calPct, waterPct, exPct, size, responsive, animate){
@@ -1715,7 +1719,7 @@ function microCard(meals){
   return `<div class="card">
     <div class="label" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:${state.microOpen?'10px':'0'};" onclick="toggleMicroOpen()">
       <span>${tr('micro_title')}</span>
-      <span style="font-size:13px;color:var(--muted);">${state.microOpen?'▾':'▸'}</span>
+      <span style="font-size:20px;color:var(--muted);">${state.microOpen?'▾':'▸'}</span>
     </div>
     ${state.microOpen ? `
     <div class="grid2" style="gap:8px;">
@@ -2177,7 +2181,7 @@ function renderComposicion(){
     <div class="card">
       <div class="label" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:${state.bodyCompFormOpen?'10px':'0'};" onclick="toggleBodyCompForm()">
         <span>${tr('comp_registrar')}</span>
-        <span style="font-size:13px;color:var(--muted);">${state.bodyCompFormOpen?'▾':'▸'}</span>
+        <span style="font-size:20px;color:var(--muted);">${state.bodyCompFormOpen?'▾':'▸'}</span>
       </div>
       ${state.bodyCompFormOpen ? `
         ${groupedBodyCompFields().map((g,gi)=>`
@@ -2270,7 +2274,7 @@ function renderCalendario(){
         <button class="btn btn-ghost" style="padding:12px 18px;" onclick="shiftMonth(-1)">${navIcon('chevl',22)}</button>
         <div class="display" style="font-weight:700;text-transform:capitalize;cursor:pointer;display:flex;align-items:center;gap:6px;" onclick="toggleCalendarView()">
           ${monthLabels()[m]} ${y}
-          <span style="font-size:13px;color:var(--muted);">${state.calendarOpen?'▾':'▸'}</span>
+          <span style="font-size:20px;color:var(--muted);">${state.calendarOpen?'▾':'▸'}</span>
         </div>
         <button class="btn btn-ghost" style="padding:12px 18px;" onclick="shiftMonth(1)">${navIcon('chevr',22)}</button>
       </div>
