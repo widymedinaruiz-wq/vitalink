@@ -33,6 +33,13 @@
        points at --text instead. Kept as its own token so both callers update
        together instead of drifting. */
     --on-accent:#0E2723;
+    /* Dial/ring tracks (Hoy's calorie/water/exercise rings, the weekly-goals
+       mini-dials, the Vitality score ring) need a decorative stroke thick and
+       visible enough to read as "the unfilled part of a ring" — --line works
+       for that on dark, but light theme's --line is a near-invisible hairline
+       border color (fine for 1px borders, not for a 10px ring) so it needs
+       its own value there instead of reusing --line. */
+    --ring-track:#2A5049;
   }
   /* Light mode: same 15 category/status/macro/neutral tokens, independently
      darkened and contrast-checked against a white ground (not copy-pasted
@@ -47,6 +54,7 @@
       --status-good:#358D4E; --status-warn:#AD7E1F;
       --macro-protein:#6C3DB8; --macro-carbs:#B03B8F; --macro-fat:#325AAE;
       --on-accent:#132A25;
+      --ring-track:#C4D2CC;
     }
   }
   :root[data-theme="light"]{
@@ -56,6 +64,7 @@
     --status-good:#358D4E; --status-warn:#AD7E1F;
     --macro-protein:#6C3DB8; --macro-carbs:#B03B8F; --macro-fat:#325AAE;
     --on-accent:#132A25;
+    --ring-track:#C4D2CC;
   }
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
@@ -368,6 +377,11 @@ const I18N = {
     err_bp_requerido:'Ingresa al menos la presión sistólica y diastólica',
     err_bodycomp_requerido:'Ingresa al menos un valor antes de agregar',
     err_med_requerido:'Ingresa un nombre y al menos un horario',
+    err_bp_rango:'Los valores de presión o pulso están fuera de un rango fisiológico posible',
+    err_ejercicio_rango:'Minutos o calorías fuera de un rango posible',
+    err_peso_rango:'Ingresa un peso entre 15 y 500 kg',
+    err_goals_rango:'Revisa que tus metas estén en un rango razonable',
+    err_bodycomp_rango:'{field}: fuera de un rango posible ({min}–{max})',
     set_sync_title:'Sincronización entre dispositivos', set_cancelar:'Cancelar', set_ajustes_guardados:'Ajustes guardados',
     invite_titulo:'Invita a un amigo', invite_boton:'Compartir invitación', invite_copiado:'Enlace copiado al portapapeles',
     invite_asunto:'Invitación a VitaLinks',
@@ -548,6 +562,11 @@ const I18N = {
     err_bp_requerido:'Enter at least the systolic and diastolic pressure',
     err_bodycomp_requerido:'Enter at least one value before adding',
     err_med_requerido:'Enter a name and at least one time',
+    err_bp_rango:'The pressure or pulse values are outside a physiologically possible range',
+    err_ejercicio_rango:'Minutes or calories are outside a possible range',
+    err_peso_rango:'Enter a weight between 15 and 500 kg',
+    err_goals_rango:'Check that your goals are within a reasonable range',
+    err_bodycomp_rango:'{field}: outside a possible range ({min}–{max})',
     set_sync_title:'Cross-device sync', set_cancelar:'Cancel', set_ajustes_guardados:'Settings saved',
     invite_titulo:'Invite a friend', invite_boton:'Share invite', invite_copiado:'Link copied to clipboard',
     invite_asunto:'Invitation to VitaLinks',
@@ -716,6 +735,16 @@ function groupedBodyCompFields(){
 }
 function bcUnit(f){ return f.key==='bodyAge' ? (state.lang==='en'?'years':'años') : f.unit; }
 function bcInfo(f){ return state.lang==='en' ? (f.infoEn||f.info) : f.info; }
+// Physically-possible bounds for hard input validation — deliberately much wider
+// than BODYCOMP_RANGES above, which flags "unhealthy," not "impossible." These
+// only exist to catch typos/garbage (a stray digit, a missing decimal point),
+// never to reject a real, if concerning, reading.
+const BODYCOMP_LIMITS = {
+  bmi:[8,100], bodyFatPct:[2,70], bodyWaterPct:[20,85], skeletalMusclePct:[5,70],
+  bmr:[300,6000], fatLossKg:[-100,150], subcutaneousFatPct:[0,60], heartRate:[25,250],
+  cardiacIndex:[0.5,12], visceralFat:[1,60], muscleMassKg:[5,150], skeletalMassKg:[1,80],
+  proteinPct:[3,40], bodyAge:[1,120],
+};
 // General adult reference bands, not personalized by sex/age. Fields without a
 // universally-agreed target (bmr, fatLossKg, muscleMassKg, skeletalMassKg,
 // bodyAge) are intentionally omitted — no color is more honest than a fake one.
@@ -1454,7 +1483,7 @@ function dialSVG(calPct, waterPct, exPct, size, responsive, animate){
   const circles = rings.map(ring=>{
     const c = 2*Math.PI*ring.r; const clamped = Math.max(0, Math.min(1, ring.pct||0));
     const targetOffset = c*(1-clamped);
-    return `<circle cx="${cx}" cy="${cx}" r="${ring.r}" fill="none" stroke="var(--line)" stroke-width="${strokeW}"/>
+    return `<circle cx="${cx}" cy="${cx}" r="${ring.r}" fill="none" stroke="var(--ring-track)" stroke-width="${strokeW}"/>
     <circle class="${animate?'ring-fill-animate':''}" data-target-offset="${targetOffset}" cx="${cx}" cy="${cx}" r="${ring.r}" fill="none" stroke="${ring.color}" stroke-width="${strokeW}" stroke-linecap="round"
       stroke-dasharray="${c} ${c}" stroke-dashoffset="${animate?c:targetOffset}" transform="rotate(-90 ${cx} ${cx})"/>`;
   }).join('');
@@ -1631,7 +1660,7 @@ function renderHoy(){
       <div class="label" style="margin-bottom:12px;">${tr('hoy_vitality')}</div>
       <div style="position:relative;width:120px;height:120px;margin:0 auto;">
         <svg width="120" height="120" viewBox="0 0 120 120">
-          <circle cx="60" cy="60" r="52" fill="none" stroke="var(--line)" stroke-width="10"/>
+          <circle cx="60" cy="60" r="52" fill="none" stroke="var(--ring-track)" stroke-width="10"/>
           <circle class="${animateHoy?'ring-fill-animate':''}" data-target-offset="${vTargetOffset}" cx="60" cy="60" r="52" fill="none" stroke="${vScore>=75?'var(--status-good)':vScore>=50?'var(--status-warn)':'var(--danger)'}" stroke-width="10"
             stroke-dasharray="${vCirc} ${vCirc}" stroke-dashoffset="${animateHoy?vCirc:vTargetOffset}" stroke-linecap="round" transform="rotate(-90 60 60)"/>
         </svg>
@@ -2190,7 +2219,7 @@ function bodyCompEntryHTML(bc, onDelete){
   return `<div style="padding:10px 0;border-bottom:1px solid var(--line);">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
       <span style="font-size:12px;color:var(--muted);">${bc.time}</span>
-      ${onDelete?`<button onclick="${onDelete}" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;">✕</button>`:''}
+      ${onDelete?`<button onclick="${onDelete}" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>`:''}
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;">${chips || `<span style="font-size:11px;color:var(--muted);">${tr('comp_sin_valores')}</span>`}</div>
   </div>`;
@@ -3032,7 +3061,7 @@ function rowItem(left, sub, right, onDelete, badge){
     <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
       ${badge||''}
       ${right?`<span class="display" style="font-size:12px;color:var(--muted);">${esc(right)}</span>`:''}
-      <button onclick="${onDelete}" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;">✕</button>
+      <button onclick="${onDelete}" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
     </div>
   </div>`;
 }
@@ -3162,11 +3191,13 @@ function openSettings(){ window._modal='settings'; render(); }
 function openBodyCompInfo(key){ window._modal='bodycomp-info'; window._infoKey=key; render(); }
 function closeModal(e){ if(e && e.target!==e.currentTarget) return; window._modal=null; render(); }
 function saveSettings(){
-  state.goals = {
-    calorieGoal: Number(document.getElementById('g-cal').value)||DEFAULT_GOALS.calorieGoal,
-    waterGoal: Number(document.getElementById('g-water').value)||DEFAULT_GOALS.waterGoal,
-    exerciseGoal: Number(document.getElementById('g-ex').value)||DEFAULT_GOALS.exerciseGoal,
-  };
+  const calorieGoal = Number(document.getElementById('g-cal').value)||DEFAULT_GOALS.calorieGoal;
+  const waterGoal = Number(document.getElementById('g-water').value)||DEFAULT_GOALS.waterGoal;
+  const exerciseGoal = Number(document.getElementById('g-ex').value)||DEFAULT_GOALS.exerciseGoal;
+  if(calorieGoal<500 || calorieGoal>10000 || waterGoal<0.5 || waterGoal>20 || exerciseGoal<0 || exerciseGoal>600){
+    toast(tr('err_goals_rango'), true); return;
+  }
+  state.goals = { calorieGoal, waterGoal, exerciseGoal };
   setGoals(state.goals);
   setApiKey(document.getElementById('g-apikey').value.trim());
   window._modal=null;
@@ -3218,7 +3249,12 @@ function setRange(r){ state.progressRange=r; render(); }
 function setNutritionRange(r){ state.nutritionRange=r; render(); }
 
 function setWater(v){ state.day.water = v; saveDay(); render(); }
-function setWeight(v){ state.day.weight = v===''?null:Number(v); saveDay(); }
+function setWeight(v){
+  if(v===''){ state.day.weight = null; saveDay(); return; }
+  const n = Number(v);
+  if(!isFinite(n) || n<15 || n>500){ toast(tr('err_peso_rango'), true); render(); return; }
+  state.day.weight = n; saveDay();
+}
 function setSleep(v){ state.day.sleepHours = v===''?null:Number(v); saveDay(); }
 
 function checkCacheHint(){
@@ -3619,6 +3655,7 @@ function addExercise(){
   if(!name){ toast(tr('ejercicio_actividad_requerida'), true); return; }
   const minutes = Number(document.getElementById('ex-min').value)||0;
   const calories = Number(document.getElementById('ex-cal').value)||0;
+  if(minutes<0 || minutes>1440 || calories<0 || calories>10000){ toast(tr('err_ejercicio_rango'), true); return; }
   state.day.exercises.push({ id: uid(), name, minutes, calories, time: nowHM(), type: window._exerciseType || null });
   rememberExercise(name, minutes, calories);
   window._exerciseType = null;
@@ -3643,6 +3680,9 @@ function addBP(){
   const dia = Number(document.getElementById('bp-dia').value);
   const pulse = Number(document.getElementById('bp-pulse').value) || null;
   if(!sys || !dia){ toast(tr('err_bp_requerido'), true); return; }
+  if(sys<50 || sys>260 || dia<30 || dia>200 || (pulse!=null && (pulse<20 || pulse>250))){
+    toast(tr('err_bp_rango'), true); return;
+  }
   state.day.bp.push({ id:uid(), systolic:sys, diastolic:dia, pulse, time: nowHM() });
   saveDay(); render();
 }
@@ -3653,6 +3693,15 @@ function addBodyComp(){
   BODYCOMP_FIELDS.forEach(f=>{ const v = document.getElementById('bc-'+f.key).value; vals[f.key] = v===''?null:Number(v); });
   const hasAny = Object.values(vals).some(v=>v!=null);
   if(!hasAny){ toast(tr('err_bodycomp_requerido'), true); return; }
+  for(const f of BODYCOMP_FIELDS){
+    const v = vals[f.key];
+    const lim = BODYCOMP_LIMITS[f.key];
+    if(v==null || !lim) continue;
+    if(v<lim[0] || v>lim[1]){
+      toast(trf('err_bodycomp_rango', { field: tr('bc_'+f.key), min: lim[0], max: lim[1] }), true);
+      return;
+    }
+  }
   state.day.bodyComp.push({ id:uid(), time: nowHM(), ...vals });
   saveDay(); render();
 }
@@ -3912,7 +3961,10 @@ function setSleepForDay(iso){
 }
 function setWeightForDay(iso){
   const v = document.getElementById('cal-weight').value;
-  mutateDay(iso, day=>{ day.weight = v===''?null:Number(v); });
+  if(v===''){ mutateDay(iso, day=>{ day.weight = null; }); return; }
+  const n = Number(v);
+  if(!isFinite(n) || n<15 || n>500){ toast(tr('err_peso_rango'), true); return; }
+  mutateDay(iso, day=>{ day.weight = n; });
 }
 
 /* ================= backup export/import ================= */
@@ -4468,6 +4520,30 @@ function resyncFromStorage(){
 window.addEventListener('storage', (e)=>{ if(!e.key || e.key.startsWith('vl:')) resyncFromStorage(); });
 window.addEventListener('focus', resyncFromStorage);
 document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') resyncFromStorage(); });
+
+/* ================= back/Escape handling ================= */
+// Closes whatever overlay is topmost (scanner needs its own path to release the
+// camera). Returns true if something was actually closed, so callers can tell
+// "we handled this" from "there was nothing open."
+function handleBackAction(){
+  if(window._modal==='scanner'){ closeScanner(); return true; }
+  if(window._modal){ closeModal(); return true; }
+  if(window._pmView){ closePersonalMealBuilder(); return true; }
+  return false;
+}
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') handleBackAction(); });
+if(window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins.App){
+  // Without this, Android's back button/gesture has nothing to fall back to (this
+  // is a single-page app with no real navigation history) and exits the app
+  // outright from inside Settings, the scanner, or the personal-meal builder --
+  // closing the open overlay first, exactly like every native Android app does,
+  // needs this explicit opt-in per Capacitor's own recommended pattern.
+  window.Capacitor.Plugins.App.addListener('backButton', ({canGoBack}) => {
+    if(handleBackAction()) return;
+    if(canGoBack) window.history.back();
+    else window.Capacitor.Plugins.App.exitApp();
+  });
+}
 
 /* ================= init ================= */
 checkInviteParam();
