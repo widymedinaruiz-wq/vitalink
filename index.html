@@ -1307,21 +1307,44 @@ function svgPathThroughValid(xy){
     return `${cmd}${pt[0]},${pt[1]}`;
   }).join(' ');
 }
-function refGridSVG(min, range, w, h, pad, steps, unit){
+function gridDecimals(range, steps){
   // When the gap between gridlines is small, rounding every value to an integer can
   // make neighboring gridlines collapse to the same displayed label (e.g. two "141 kg"
   // lines in a row) — so scale decimal precision to how fine the steps actually are.
   const stepSize = range/(steps-1 || 1);
-  const decimals = stepSize===0 ? 0 : stepSize < 0.1 ? 2 : stepSize < 1 ? 1 : 0;
+  return stepSize===0 ? 0 : stepSize < 0.1 ? 2 : stepSize < 1 ? 1 : 0;
+}
+// A rough (font isn't measured directly, but close enough to size a margin) estimate
+// of how wide the widest Y-axis label will render, so callers can give the axis
+// numbers their own gutter instead of sharing space with the plotted line/bars —
+// a fixed left margin was only ever wide enough for the short *day* labels, not
+// for values like "1877", so the line visibly cut through the numbers. The unit
+// itself isn't part of this: it's printed once near the top of the axis instead
+// of on every tick, precisely so it doesn't add to this width.
+function estimateAxisLabelWidth(min, range, steps){
+  const decimals = gridDecimals(range, steps);
+  let maxLen = 0;
+  for(let i=0;i<steps;i++){
+    const val = min + (i/(steps-1||1))*range;
+    maxLen = Math.max(maxLen, val.toFixed(decimals).length);
+  }
+  return maxLen * 15 * 0.58; // font-size 15, ~0.58 average character width
+}
+function refGridSVG(min, range, w, h, padL, pad, steps, unit){
+  const decimals = gridDecimals(range, steps);
   const lines = [];
   const labels = [];
   for(let i=0;i<steps;i++){
     const frac = i/(steps-1);
     const val = min + frac*range;
     const y = h-pad-frac*(h-pad*2);
-    lines.push(`<line x1="${pad}" y1="${y}" x2="${w-pad}" y2="${y}" stroke="var(--line)" stroke-dasharray="3,3"/>`);
-    labels.push(`<text x="2" y="${y+3}" font-size="15" fill="var(--muted)">${val.toFixed(decimals)}${unit?' '+unit:''}</text>`);
+    lines.push(`<line x1="${padL}" y1="${y}" x2="${w-pad}" y2="${y}" stroke="var(--line)" stroke-dasharray="3,3"/>`);
+    labels.push(`<text x="2" y="${y+3}" font-size="15" fill="var(--muted)">${val.toFixed(decimals)}</text>`);
   }
+  // The unit prints once, near the top of the axis, instead of repeating on
+  // every tick — that repetition was most of what made these labels wide
+  // enough to collide with the plotted line in the first place.
+  if(unit) labels.push(`<text x="2" y="14" font-size="11" fill="var(--muted)">${unit}</text>`);
   // Split so callers can draw the dashed reference lines behind the plotted data
   // but the numeric labels after it — otherwise the line/dots paint over the
   // numbers wherever a value happens to pass near the left edge.
@@ -1335,23 +1358,26 @@ function lineChartSVG(points, opts){
   if(opts.targetValue!=null){ min = Math.min(min, opts.targetValue); max = Math.max(max, opts.targetValue); }
   if(opts.maValues){ const maVals = opts.maValues.filter(v=>v!=null); if(maVals.length){ min = Math.min(min, ...maVals); max = Math.max(max, ...maVals); } }
   const range = (max-min)||1;
-  const stepX = (w-pad*2)/(points.length-1);
-  const xy = points.map((p,i)=> p.v==null ? null : [pad+i*stepX, h-pad-((p.v-min)/range)*(h-pad*2)]);
+  // A dedicated left gutter, sized to the actual Y-axis text, so the plotted line
+  // starts to the right of the numbers instead of passing behind/through them.
+  const padL = opts.gridLines ? Math.max(pad, estimateAxisLabelWidth(min, range, opts.gridSteps||4)+10) : pad;
+  const stepX = (w-padL-pad)/(points.length-1);
+  const xy = points.map((p,i)=> p.v==null ? null : [padL+i*stepX, h-pad-((p.v-min)/range)*(h-pad*2)]);
   const validPts = svgPathThroughValid(xy);
   const dots = xy.map((p,i)=> p ? `<circle cx="${p[0]}" cy="${p[1]}" r="3.2" fill="${opts.color}"/>` : '').join('');
-  // The leftmost label sits right where the Y-axis numbers are left-anchored (x=2) —
-  // center-anchoring it would straddle both directions and collide with them, so it
-  // alone anchors from the start (extends rightward only) instead of centering.
-  const labels = points.map((p,i)=>`<text x="${pad+i*stepX}" y="${h-6}" font-size="15" fill="var(--muted)" text-anchor="${i===0?'start':'middle'}">${p.label}</text>`).join('');
-  const grid = opts.gridLines ? refGridSVG(min, range, w, h, pad, opts.gridSteps||4, opts.unit) : {lines:'',labels:''};
+  // The leftmost label sits right at the edge of the Y-axis gutter — center-anchoring
+  // it would extend back into that gutter, so it alone anchors from the start
+  // (extends rightward only) instead of centering.
+  const labels = points.map((p,i)=>`<text x="${padL+i*stepX}" y="${h-6}" font-size="15" fill="var(--muted)" text-anchor="${i===0?'start':'middle'}">${p.label}</text>`).join('');
+  const grid = opts.gridLines ? refGridSVG(min, range, w, h, padL, pad, opts.gridSteps||4, opts.unit) : {lines:'',labels:''};
   const targetColor = opts.targetColor||'var(--accent2)';
   const targetY = opts.targetValue!=null ? h-pad-((opts.targetValue-min)/range)*(h-pad*2) : null;
-  const targetLine = targetY!=null ? `<line x1="${pad}" y1="${targetY}" x2="${w-pad}" y2="${targetY}" stroke="${targetColor}" stroke-width="2" stroke-dasharray="6,3"/>
+  const targetLine = targetY!=null ? `<line x1="${padL}" y1="${targetY}" x2="${w-pad}" y2="${targetY}" stroke="${targetColor}" stroke-width="2" stroke-dasharray="6,3"/>
     <text x="${w-pad-2}" y="${targetY-4}" font-size="15" fill="${targetColor}" text-anchor="end">Meta ${opts.targetValue}${opts.unit?' '+opts.unit:''}</text>` : '';
-  const maPath = opts.maValues ? `<path d="${svgPathThroughValid(opts.maValues.map((v,i)=> v==null ? null : [pad+i*stepX, h-pad-((v-min)/range)*(h-pad*2)]))}" fill="none" stroke="${opts.maColor||opts.color}" stroke-width="1.6" stroke-dasharray="5,4" opacity="0.8"/>` : '';
+  const maPath = opts.maValues ? `<path d="${svgPathThroughValid(opts.maValues.map((v,i)=> v==null ? null : [padL+i*stepX, h-pad-((v-min)/range)*(h-pad*2)]))}" fill="none" stroke="${opts.maColor||opts.color}" stroke-width="1.6" stroke-dasharray="5,4" opacity="0.8"/>` : '';
   return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:${h}px;">
     ${grid.lines}
-    <line x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="var(--line)"/>
+    <line x1="${padL}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="var(--line)"/>
     ${maPath}
     <path d="${validPts}" fill="none" stroke="${opts.color}" stroke-width="2.5" stroke-linejoin="round"/>
     ${dots}${grid.labels}${labels}${targetLine}
@@ -1365,19 +1391,20 @@ function multiLineChartSVG(points, series, opts){
   const combined = allVals.concat(maVals);
   const min = Math.min(...combined), max = Math.max(...combined);
   const range = (max-min)||1;
-  const stepX = (w-pad*2)/(points.length-1);
+  const padL = opts.gridLines ? Math.max(pad, estimateAxisLabelWidth(min, range, opts.gridSteps||4)+10) : pad;
+  const stepX = (w-padL-pad)/(points.length-1);
   const paths = series.map(s=>{
-    const xy = points.map((p,i)=> p[s.key]==null ? null : [pad+i*stepX, h-pad-((p[s.key]-min)/range)*(h-pad*2)]);
+    const xy = points.map((p,i)=> p[s.key]==null ? null : [padL+i*stepX, h-pad-((p[s.key]-min)/range)*(h-pad*2)]);
     const d = svgPathThroughValid(xy);
     const dots = xy.map(pt=> pt?`<circle cx="${pt[0]}" cy="${pt[1]}" r="3" fill="${s.color}"/>`:'').join('');
-    const maPath = s.ma ? `<path d="${svgPathThroughValid(s.ma.map((v,i)=> v==null ? null : [pad+i*stepX, h-pad-((v-min)/range)*(h-pad*2)]))}" fill="none" stroke="${s.color}" stroke-width="1.6" stroke-dasharray="5,4" opacity="0.8"/>` : '';
+    const maPath = s.ma ? `<path d="${svgPathThroughValid(s.ma.map((v,i)=> v==null ? null : [padL+i*stepX, h-pad-((v-min)/range)*(h-pad*2)]))}" fill="none" stroke="${s.color}" stroke-width="1.6" stroke-dasharray="5,4" opacity="0.8"/>` : '';
     return `${maPath}<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.5"/>${dots}`;
   }).join('');
-  const labels = points.map((p,i)=>`<text x="${pad+i*stepX}" y="${h-6}" font-size="15" fill="var(--muted)" text-anchor="${i===0?'start':'middle'}">${p.label}</text>`).join('');
-  const grid = opts.gridLines ? refGridSVG(min, range, w, h, pad, opts.gridSteps||4, opts.unit) : {lines:'',labels:''};
+  const labels = points.map((p,i)=>`<text x="${padL+i*stepX}" y="${h-6}" font-size="15" fill="var(--muted)" text-anchor="${i===0?'start':'middle'}">${p.label}</text>`).join('');
+  const grid = opts.gridLines ? refGridSVG(min, range, w, h, padL, pad, opts.gridSteps||4, opts.unit) : {lines:'',labels:''};
   return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:${h}px;">
     ${grid.lines}
-    <line x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="var(--line)"/>
+    <line x1="${padL}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="var(--line)"/>
     ${paths}${grid.labels}${labels}
   </svg>`;
 }
@@ -1392,24 +1419,25 @@ function barChartSVG(points, opts){
   const vals = points.map(p=>p.v||0);
   const maVals = opts.maValues ? opts.maValues.filter(v=>v!=null) : [];
   const max = Math.max(...vals, ...maVals, opts.goal||0, 1);
-  const stepX = (w-pad*2)/points.length;
+  const padL = opts.gridLines ? Math.max(pad, estimateAxisLabelWidth(0, max, opts.gridSteps||4)+10) : pad;
+  const stepX = (w-padL-pad)/points.length;
   const barW = stepX*0.55;
   const bars = points.map((p,i)=>{
     const bh = ((p.v||0)/max)*(h-pad*2);
-    const x = pad+i*stepX + (stepX-barW)/2;
+    const x = padL+i*stepX + (stepX-barW)/2;
     const y = h-pad-bh;
     return `<rect x="${x}" y="${y}" width="${barW}" height="${bh}" rx="4" fill="${opts.color}"/>`;
   }).join('');
   const goalY = opts.goal ? h-pad-(opts.goal/max)*(h-pad*2) : null;
-  const goalLine = goalY!=null ? `<line x1="${pad}" y1="${goalY}" x2="${w-pad}" y2="${goalY}" stroke="var(--muted)" stroke-dasharray="4,4"/>` : '';
+  const goalLine = goalY!=null ? `<line x1="${padL}" y1="${goalY}" x2="${w-pad}" y2="${goalY}" stroke="var(--muted)" stroke-dasharray="4,4"/>` : '';
   // Bars are solid fills, so the MA overlay defaults to a neutral color rather than
   // matching the bar (a same-color dashed line on a same-color bar has poor contrast).
-  const maPath = opts.maValues ? `<path d="${svgPathThroughValid(opts.maValues.map((v,i)=> v==null ? null : [pad+i*stepX+stepX/2, h-pad-(v/max)*(h-pad*2)]))}" fill="none" stroke="${opts.maColor||'var(--text)'}" stroke-width="1.6" stroke-dasharray="5,4" opacity="0.85"/>` : '';
-  const labels = points.map((p,i)=>`<text x="${pad+i*stepX+stepX/2}" y="${h-6}" font-size="15" fill="var(--muted)" text-anchor="${i===0?'start':'middle'}">${p.label}</text>`).join('');
-  const grid = opts.gridLines ? refGridSVG(0, max, w, h, pad, opts.gridSteps||4, opts.unit) : {lines:'',labels:''};
+  const maPath = opts.maValues ? `<path d="${svgPathThroughValid(opts.maValues.map((v,i)=> v==null ? null : [padL+i*stepX+stepX/2, h-pad-(v/max)*(h-pad*2)]))}" fill="none" stroke="${opts.maColor||'var(--text)'}" stroke-width="1.6" stroke-dasharray="5,4" opacity="0.85"/>` : '';
+  const labels = points.map((p,i)=>`<text x="${padL+i*stepX+stepX/2}" y="${h-6}" font-size="15" fill="var(--muted)" text-anchor="${i===0?'start':'middle'}">${p.label}</text>`).join('');
+  const grid = opts.gridLines ? refGridSVG(0, max, w, h, padL, pad, opts.gridSteps||4, opts.unit) : {lines:'',labels:''};
   return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:${h}px;">
     ${grid.lines}
-    <line x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="var(--line)"/>
+    <line x1="${padL}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="var(--line)"/>
     ${goalLine}${bars}${maPath}${grid.labels}${labels}
   </svg>`;
 }
