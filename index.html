@@ -1339,7 +1339,10 @@ function lineChartSVG(points, opts){
   const xy = points.map((p,i)=> p.v==null ? null : [pad+i*stepX, h-pad-((p.v-min)/range)*(h-pad*2)]);
   const validPts = svgPathThroughValid(xy);
   const dots = xy.map((p,i)=> p ? `<circle cx="${p[0]}" cy="${p[1]}" r="3.2" fill="${opts.color}"/>` : '').join('');
-  const labels = points.map((p,i)=>`<text x="${pad+i*stepX}" y="${h-6}" font-size="15" fill="var(--muted)" text-anchor="middle">${p.label}</text>`).join('');
+  // The leftmost label sits right where the Y-axis numbers are left-anchored (x=2) —
+  // center-anchoring it would straddle both directions and collide with them, so it
+  // alone anchors from the start (extends rightward only) instead of centering.
+  const labels = points.map((p,i)=>`<text x="${pad+i*stepX}" y="${h-6}" font-size="15" fill="var(--muted)" text-anchor="${i===0?'start':'middle'}">${p.label}</text>`).join('');
   const grid = opts.gridLines ? refGridSVG(min, range, w, h, pad, opts.gridSteps||4, opts.unit) : {lines:'',labels:''};
   const targetColor = opts.targetColor||'var(--accent2)';
   const targetY = opts.targetValue!=null ? h-pad-((opts.targetValue-min)/range)*(h-pad*2) : null;
@@ -1370,7 +1373,7 @@ function multiLineChartSVG(points, series, opts){
     const maPath = s.ma ? `<path d="${svgPathThroughValid(s.ma.map((v,i)=> v==null ? null : [pad+i*stepX, h-pad-((v-min)/range)*(h-pad*2)]))}" fill="none" stroke="${s.color}" stroke-width="1.6" stroke-dasharray="5,4" opacity="0.8"/>` : '';
     return `${maPath}<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.5"/>${dots}`;
   }).join('');
-  const labels = points.map((p,i)=>`<text x="${pad+i*stepX}" y="${h-6}" font-size="15" fill="var(--muted)" text-anchor="middle">${p.label}</text>`).join('');
+  const labels = points.map((p,i)=>`<text x="${pad+i*stepX}" y="${h-6}" font-size="15" fill="var(--muted)" text-anchor="${i===0?'start':'middle'}">${p.label}</text>`).join('');
   const grid = opts.gridLines ? refGridSVG(min, range, w, h, pad, opts.gridSteps||4, opts.unit) : {lines:'',labels:''};
   return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:${h}px;">
     ${grid.lines}
@@ -1402,7 +1405,7 @@ function barChartSVG(points, opts){
   // Bars are solid fills, so the MA overlay defaults to a neutral color rather than
   // matching the bar (a same-color dashed line on a same-color bar has poor contrast).
   const maPath = opts.maValues ? `<path d="${svgPathThroughValid(opts.maValues.map((v,i)=> v==null ? null : [pad+i*stepX+stepX/2, h-pad-(v/max)*(h-pad*2)]))}" fill="none" stroke="${opts.maColor||'var(--text)'}" stroke-width="1.6" stroke-dasharray="5,4" opacity="0.85"/>` : '';
-  const labels = points.map((p,i)=>`<text x="${pad+i*stepX+stepX/2}" y="${h-6}" font-size="15" fill="var(--muted)" text-anchor="middle">${p.label}</text>`).join('');
+  const labels = points.map((p,i)=>`<text x="${pad+i*stepX+stepX/2}" y="${h-6}" font-size="15" fill="var(--muted)" text-anchor="${i===0?'start':'middle'}">${p.label}</text>`).join('');
   const grid = opts.gridLines ? refGridSVG(0, max, w, h, pad, opts.gridSteps||4, opts.unit) : {lines:'',labels:''};
   return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:${h}px;">
     ${grid.lines}
