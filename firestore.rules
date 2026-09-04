@@ -1,0 +1,28 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // VitaLinks Plus entitlement + AI usage tracking. Deliberately kept off the
+      // parent users/{userId} document (which the client's own whole-document sync
+      // overwrites on every push) and writable only by Cloud Functions via the Admin
+      // SDK, which bypasses these rules entirely. The client can read its own status
+      // to render the paywall/settings UI, but can never set its own entitlement.
+      match /private/{document=**} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false;
+      }
+    }
+    match /foods/{foodId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if false;
+    }
+    match /barcodeFoods/{barcodeId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if false;
+    }
+  }
+}
