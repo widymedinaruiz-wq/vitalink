@@ -260,6 +260,8 @@ const I18N = {
     hoy_agua:'Agua (L)', hoy_peso:'Peso (kg)', hoy_sueno:'Sueño (h)', hoy_ajustar_metas:'Ajustar metas diarias',
     aria_water_drop:'Registrar {n} L de agua', aria_eliminar:'Eliminar {name}',
     aria_eliminar_medicion:'Eliminar medición de las {time}',
+    aria_mes_anterior:'Mes anterior', aria_mes_siguiente:'Mes siguiente',
+    aria_agregar_presion:'Agregar lectura de presión arterial',
     err_auth_popup_blocked:'No se pudo abrir la ventana de inicio de sesión — revisa el bloqueador de ventanas emergentes e inténtalo de nuevo',
     err_auth_popup_closed:'Inicio de sesión cancelado',
     err_auth_network:'Error de conexión — revisa tu internet e inténtalo de nuevo',
@@ -455,6 +457,8 @@ const I18N = {
     hoy_agua:'Water (L)', hoy_peso:'Weight (kg)', hoy_sueno:'Sleep (h)', hoy_ajustar_metas:'Adjust daily goals',
     aria_water_drop:'Log {n} L of water', aria_eliminar:'Delete {name}',
     aria_eliminar_medicion:'Delete the {time} measurement',
+    aria_mes_anterior:'Previous month', aria_mes_siguiente:'Next month',
+    aria_agregar_presion:'Add blood pressure reading',
     err_auth_popup_blocked:"Couldn't open the sign-in window — check your popup blocker and try again",
     err_auth_popup_closed:'Sign-in cancelled',
     err_auth_network:'Connection error — check your internet and try again',
@@ -2000,7 +2004,7 @@ function renderSalud(){
         <input id="bp-sys" type="number" placeholder="${tr('salud_sistolica')}" style="flex:1;min-width:0;">
         <input id="bp-dia" type="number" placeholder="${tr('salud_diastolica')}" style="flex:1;min-width:0;">
         <input id="bp-pulse" type="number" placeholder="${tr('salud_pulso_corto')}" style="flex:1;min-width:0;">
-        <button class="btn btn-primary" onclick="addBP()">+</button>
+        <button class="btn btn-primary" onclick="addBP()" aria-label="${esc(tr('aria_agregar_presion'))}">+</button>
       </div>
       ${d.bp.length===0 ? emptyState('salud', tr('salud_sin_lecturas')) :
         `<div class="stack" style="gap:8px;">${d.bp.map(b=>rowItem(b.systolic+'/'+b.diastolic+' mmHg', b.time, b.pulse?b.pulse+' bpm':'', `removeBP('${b.id}')`, bpBadge(b.systolic,b.diastolic))).join('')}</div>`}
@@ -2352,12 +2356,12 @@ function renderCalendario(){
   <div class="stack">
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${state.calendarOpen?'14px':'0'};">
-        <button class="btn btn-ghost" style="padding:12px 18px;" onclick="shiftMonth(-1)">${navIcon('chevl',22)}</button>
+        <button class="btn btn-ghost" style="padding:12px 18px;" onclick="shiftMonth(-1)" aria-label="${esc(tr('aria_mes_anterior'))}">${navIcon('chevl',22)}</button>
         <div class="display" style="font-weight:700;text-transform:capitalize;cursor:pointer;display:flex;align-items:center;gap:6px;" onclick="toggleCalendarView()">
           ${monthLabels()[m]} ${y}
           <span style="font-size:20px;color:var(--muted);">${state.calendarOpen?'▾':'▸'}</span>
         </div>
-        <button class="btn btn-ghost" style="padding:12px 18px;" onclick="shiftMonth(1)">${navIcon('chevr',22)}</button>
+        <button class="btn btn-ghost" style="padding:12px 18px;" onclick="shiftMonth(1)" aria-label="${esc(tr('aria_mes_siguiente'))}">${navIcon('chevr',22)}</button>
       </div>
       ${state.calendarOpen ? `
         <div class="cal-grid" style="margin-bottom:6px;">${dowRow}</div>
@@ -3693,7 +3697,7 @@ function bpCategory(sys, dia){
 }
 function bpBadge(sys, dia){
   const cat = bpCategory(sys, dia);
-  return `<span onclick="event.stopPropagation();openBPInfo();" style="cursor:pointer;font-size:10px;font-weight:700;color:${cat.color};border:1px solid ${cat.color};border-radius:10px;padding:2px 8px;display:inline-flex;align-items:center;gap:4px;">${cat.label}<span style="opacity:.75;">ⓘ</span></span>`;
+  return `<button type="button" onclick="event.stopPropagation();openBPInfo();" style="background:none;font:inherit;cursor:pointer;font-size:10px;font-weight:700;color:${cat.color};border:1px solid ${cat.color};border-radius:10px;padding:2px 8px;display:inline-flex;align-items:center;gap:4px;">${cat.label}<span style="opacity:.75;" aria-hidden="true">ⓘ</span></button>`;
 }
 function openBPInfo(){ window._modal='bp-info'; render(); }
 function addBP(){
