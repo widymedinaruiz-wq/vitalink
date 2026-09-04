@@ -270,6 +270,23 @@ const I18N = {
     err_auth_generic:'No se pudo iniciar sesión — inténtalo de nuevo',
     err_sync_permission:'No tienes permiso para sincronizar — intenta cerrar sesión y volver a iniciarla',
     err_sync_generic:'No se pudo sincronizar — inténtalo de nuevo',
+    err_plus_cap_reached:'Has alcanzado el límite diario de estimaciones con IA de VitaLinks Plus. Inténtalo de nuevo mañana.',
+    err_plus_required:'Tu suscripción a VitaLinks Plus no está activa. Ve a Ajustes para revisarla.',
+    err_plus_offerings_failed:'No se pudieron cargar los planes de VitaLinks Plus. Inténtalo de nuevo más tarde.',
+    err_plus_purchase_failed:'No se pudo completar la compra. Inténtalo de nuevo.',
+    plus_settings_title:'VitaLinks Plus',
+    plus_active_label:'VitaLinks Plus está activo',
+    plus_renews_on:'Se renueva el {date}',
+    plus_manage_subscription:'Gestionar suscripción',
+    plus_web_only_note:'VitaLinks Plus solo se puede activar desde la app de Android.',
+    plus_upsell_note:'Estima calorías con IA sin necesidad de tu propia API key.',
+    plus_upgrade_button:'Mejorar a Plus',
+    plus_paywall_title:'VitaLinks Plus',
+    plus_paywall_subtitle:'Estimación de calorías con IA incluida, sin necesidad de tu propia API key.',
+    plus_feature_ai:'Hasta 15 estimaciones con IA al día, sin configurar nada',
+    plus_feature_everything:'Todo lo que ya incluye VitaLinks gratis',
+    plus_plan_yearly:'Anual', plus_plan_monthly:'Mensual',
+    plus_purchase_success:'¡Bienvenido a VitaLinks Plus!',
     hoy_metas_titulo:'Tus metas diarias', hoy_ultimos_7_dias:'Últimos 7 días',
     comidas_tipo:'Tipo de comida', comidas_agregar_a:'Agregar a', comidas_placeholder:'Ej. "lata atún 6oz", "plátano mediano"',
     comidas_descripcion_requerida:'Escribe qué comiste antes de agregar',
@@ -467,6 +484,23 @@ const I18N = {
     err_auth_generic:"Couldn't sign in — please try again",
     err_sync_permission:"You don't have permission to sync — try signing out and back in",
     err_sync_generic:"Couldn't sync — please try again",
+    err_plus_cap_reached:"You've reached today's VitaLinks Plus AI estimate limit. Try again tomorrow.",
+    err_plus_required:"Your VitaLinks Plus subscription isn't active. Check Settings to review it.",
+    err_plus_offerings_failed:"Couldn't load VitaLinks Plus plans. Please try again later.",
+    err_plus_purchase_failed:"Couldn't complete the purchase. Please try again.",
+    plus_settings_title:'VitaLinks Plus',
+    plus_active_label:'VitaLinks Plus is active',
+    plus_renews_on:'Renews on {date}',
+    plus_manage_subscription:'Manage subscription',
+    plus_web_only_note:'VitaLinks Plus can only be activated from the Android app.',
+    plus_upsell_note:'Get AI calorie estimates without needing your own API key.',
+    plus_upgrade_button:'Upgrade to Plus',
+    plus_paywall_title:'VitaLinks Plus',
+    plus_paywall_subtitle:'AI calorie estimation included, no personal API key needed.',
+    plus_feature_ai:'Up to 15 AI estimates a day, zero setup',
+    plus_feature_everything:'Everything already included in VitaLinks free',
+    plus_plan_yearly:'Yearly', plus_plan_monthly:'Monthly',
+    plus_purchase_success:'Welcome to VitaLinks Plus!',
     hoy_metas_titulo:'Your daily goals', hoy_ultimos_7_dias:'Last 7 days',
     comidas_tipo:'Meal type', comidas_agregar_a:'Add to', comidas_placeholder:'E.g. "6oz tuna can", "medium banana"',
     comidas_descripcion_requerida:'Write down what you ate before adding',
@@ -1091,7 +1125,22 @@ function toast(msg, isError){
 }
 
 /* ================= nutrition AI estimate ================= */
+function friendlyPlusAiError(e){
+  const code = ((e && e.code) || '').replace('functions/','');
+  const map = {
+    'resource-exhausted': 'err_plus_cap_reached',
+    'permission-denied': 'err_plus_required',
+    'unauthenticated': 'err_auth_generic',
+  };
+  return tr(map[code] || 'err_ai_bad_response');
+}
 async function estimateNutrition(desc){
+  if(window._planState && window._planState.plan === 'plus'){
+    try{
+      const result = await window.callEstimateNutritionPlus({desc});
+      return result.data;
+    }catch(e){ throw new Error(friendlyPlusAiError(e)); }
+  }
   const key = getApiKey();
   if(!key) throw new Error(tr('err_ai_key_missing'));
   const prompt = `Eres un nutricionista. Estima el contenido nutricional para el siguiente alimento, considerando la cantidad/porción indicada, usando valores nutricionales típicos (USDA u equivalente). Si la porción no se especifica, asume una porción individual estándar. Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional, sin markdown, sin backticks:
@@ -1106,7 +1155,7 @@ Alimento: "${desc}"`;
       'anthropic-version':'2023-06-01',
       'anthropic-dangerous-direct-browser-access':'true'
     },
-    body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:300, messages:[{role:'user', content:prompt}] })
+    body: JSON.stringify({ model:'claude-sonnet-5', max_tokens:300, messages:[{role:'user', content:prompt}] })
   });
   if(!res.ok){ const t = await res.text(); throw new Error('API error: '+t.slice(0,200)); }
   const data = await res.json();
@@ -1142,8 +1191,9 @@ async function generateDailyInsight(force){
   const iso = todayISO();
   const cache = getDailyInsightCache();
   if(!force && cache[iso]) return cache[iso];
+  const isPlus = window._planState && window._planState.plan === 'plus';
   const key = getApiKey();
-  if(!key) throw new Error(tr('err_ai_key_missing'));
+  if(!isPlus && !key) throw new Error(tr('err_ai_key_missing'));
 
   const d = state.day, g = state.goals;
   const calEaten = d.meals.reduce((s,m)=>s+(Number(m.calories)||0),0);
@@ -1172,19 +1222,27 @@ ${context}
 
 Responde solo con la frase, sin comillas ni explicación adicional.`;
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'x-api-key': key,
-      'anthropic-version':'2023-06-01',
-      'anthropic-dangerous-direct-browser-access':'true'
-    },
-    body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:100, messages:[{role:'user', content:prompt}] })
-  });
-  if(!res.ok){ const t = await res.text(); throw new Error('API error: '+t.slice(0,200)); }
-  const data = await res.json();
-  const text = (data.content||[]).map(b=>b.text||'').join('').trim();
+  let text;
+  if(isPlus){
+    try{
+      const result = await window.callGenerateDailyInsightPlus({prompt});
+      text = ((result.data && result.data.text) || '').trim();
+    }catch(e){ throw new Error(friendlyPlusAiError(e)); }
+  }else{
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key': key,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body: JSON.stringify({ model:'claude-sonnet-5', max_tokens:100, messages:[{role:'user', content:prompt}] })
+    });
+    if(!res.ok){ const t = await res.text(); throw new Error('API error: '+t.slice(0,200)); }
+    const data = await res.json();
+    text = (data.content||[]).map(b=>b.text||'').join('').trim();
+  }
   cache[iso] = text;
   setDailyInsightCache(cache);
   return text;
@@ -3106,6 +3164,25 @@ function emptyState(key,text){
   return `<div style="text-align:center;padding:24px 10px;color:var(--muted);font-size:13px;"><div style="display:flex;justify-content:center;margin-bottom:12px;">${navIcon(key,30)}</div>${text}</div>`;
 }
 
+function plusSectionHTML(){
+  const p = window._planState || {plan:'free'};
+  const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform());
+  if(p.plan === 'plus'){
+    const until = p.planExpiresAt ? new Date(p.planExpiresAt).toLocaleDateString(state.lang==='en'?'en-US':'es-ES') : '';
+    return `<div>
+      <div style="font-size:12px;color:var(--accent3);font-weight:700;margin-bottom:4px;">✨ ${tr('plus_active_label')}</div>
+      ${until?`<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">${trf('plus_renews_on',{date:until})}</div>`:''}
+      <a href="https://play.google.com/store/account/subscriptions" target="_blank" class="btn btn-ghost" style="width:100%;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;">${tr('plus_manage_subscription')}</a>
+    </div>`;
+  }
+  if(!isNative){
+    return `<div style="font-size:11px;color:var(--muted);">${tr('plus_web_only_note')}</div>`;
+  }
+  return `<div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">${tr('plus_upsell_note')}</div>
+    <button class="btn btn-primary" style="width:100%;" onclick="openPlusPaywall()">${tr('plus_upgrade_button')}</button>
+  </div>`;
+}
 function syncSectionHTML(){
   const s = window._syncState;
   if(!s.ready){
@@ -3154,6 +3231,8 @@ function modalHTML(){
         <div style="font-size:11px;color:var(--muted);margin-bottom:16px;">${tr('set_apikey_note')}</div>
         <div class="label">${tr('set_sync_title')}</div>
         <div style="margin-bottom:16px;">${syncSectionHTML()}</div>
+        <div class="label">${tr('plus_settings_title')}</div>
+        <div style="margin-bottom:16px;">${plusSectionHTML()}</div>
         <div class="label">${tr('invite_titulo')}</div>
         <button class="btn btn-ghost" style="width:100%;margin-bottom:16px;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="shareInvite()">${navIcon('exportar',14)}${tr('invite_boton')}</button>
         <div style="display:flex;gap:8px;">
@@ -3210,10 +3289,60 @@ function modalHTML(){
       </div>
     </div>`;
   }
+  if(window._modal==='plus-paywall'){
+    const offering = window._plusOffering;
+    const monthly = offering && offering.monthly;
+    const annual = offering && offering.annual;
+    return `<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;" onclick="closeModal(event)">
+      <div class="card" style="width:400px;max-width:100%;" onclick="event.stopPropagation()">
+        <div class="display" style="font-weight:700;font-size:18px;margin-bottom:6px;">✨ ${tr('plus_paywall_title')}</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:18px;">${tr('plus_paywall_subtitle')}</div>
+        <ul style="margin:0 0 18px;padding-left:20px;font-size:13px;color:var(--text);display:grid;gap:6px;">
+          <li>${tr('plus_feature_ai')}</li>
+          <li>${tr('plus_feature_everything')}</li>
+        </ul>
+        ${annual?`<button class="btn btn-primary" style="width:100%;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;" onclick="purchasePlusPackage('annual')">
+          <span>${tr('plus_plan_yearly')}</span><span>${esc(annual.product.priceString)}</span>
+        </button>`:''}
+        ${monthly?`<button class="btn btn-ghost" style="width:100%;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;" onclick="purchasePlusPackage('monthly')">
+          <span>${tr('plus_plan_monthly')}</span><span>${esc(monthly.product.priceString)}</span>
+        </button>`:''}
+        ${!(monthly||annual)?`<div style="font-size:12px;color:var(--muted);margin-bottom:14px;">${tr('err_plus_offerings_failed')}</div>`:''}
+        <button class="btn btn-ghost" style="width:100%;" onclick="closeModal()">${tr('set_cancelar')}</button>
+      </div>
+    </div>`;
+  }
   return '';
 }
 function openSettings(){ window._modal='settings'; render(); }
 function openBodyCompInfo(key){ window._modal='bodycomp-info'; window._infoKey=key; render(); }
+async function openPlusPaywall(){
+  if(!(window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins.Purchases)){
+    toast(tr('plus_web_only_note'), true);
+    return;
+  }
+  try{
+    const offerings = await window.Capacitor.Plugins.Purchases.getOfferings();
+    window._plusOffering = offerings.current;
+  }catch(e){
+    window._plusOffering = null;
+  }
+  window._modal = 'plus-paywall';
+  render();
+}
+async function purchasePlusPackage(which){
+  const offering = window._plusOffering;
+  const pkg = offering && offering[which];
+  if(!pkg) return;
+  try{
+    await window.Capacitor.Plugins.Purchases.purchasePackage({ aPackage: pkg });
+    closeModal();
+    toast(tr('plus_purchase_success'));
+  }catch(e){
+    if(e && e.userCancelled) return;
+    toast(tr('err_plus_purchase_failed'), true);
+  }
+}
 function closeModal(e){ if(e && e.target!==e.currentTarget) return; window._modal=null; render(); }
 function saveSettings(){
   const calorieGoal = Number(document.getElementById('g-cal').value)||DEFAULT_GOALS.calorieGoal;
@@ -4581,6 +4710,7 @@ syncNativeMedAlerts();
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithCredential, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-functions.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCa-OtYw9PP02-f7maZ3WSKkYEkpRnHPIc",
@@ -4595,10 +4725,45 @@ syncNativeMedAlerts();
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
+  // Region must match where functions/index.js is deployed (europe-west1, co-located
+  // with the eur3 Firestore instance) — getFunctions defaults to us-central1 otherwise.
+  const functions = getFunctions(app, 'europe-west1');
   const provider = new GoogleAuthProvider();
+
+  window._planState = { plan:'free', planExpiresAt:null };
+  window.callEstimateNutritionPlus = httpsCallable(functions, 'estimateNutritionPlus');
+  window.callGenerateDailyInsightPlus = httpsCallable(functions, 'generateDailyInsightPlus');
+
+  // RevenueCat public SDK key — this is a Test Store key, safe to ship in client code
+  // (like Firebase's own apiKey above, it's a public identifier, not a secret). Swap
+  // to the real Google Play app's key once Play Console Monetization is set up and a
+  // Google Play app is added in the RevenueCat dashboard.
+  const REVENUECAT_ANDROID_API_KEY = 'test_DkYMeYfQREZJggLBKbukGPLPxyo';
+  let purchasesConfigured = false;
+  async function syncPurchasesIdentity(user){
+    if(!(window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins.Purchases)) return;
+    const Purchases = window.Capacitor.Plugins.Purchases;
+    try{
+      if(user){
+        if(!purchasesConfigured){
+          await Purchases.configure({ apiKey: REVENUECAT_ANDROID_API_KEY, appUserID: user.uid });
+          purchasesConfigured = true;
+        }else{
+          await Purchases.logIn({ appUserID: user.uid });
+        }
+      }else if(purchasesConfigured){
+        await Purchases.logOut();
+      }
+    }catch(e){
+      // Non-fatal: a purchase-identity hiccup shouldn't block the rest of sign-in/out,
+      // but log it — a silently-never-configured Purchases SDK is otherwise invisible.
+      console.error('syncPurchasesIdentity failed:', e);
+    }
+  }
 
   let currentUser = null;
   let unsubscribeSnapshot = null;
+  let unsubscribeBilling = null;
   let pushTimer = null;
   let lastPushedAt = 0;
   // Set true the first time we've actually seen the cloud's current state for
@@ -4761,15 +4926,31 @@ syncNativeMedAlerts();
     currentUser = user;
     window._syncState.user = user ? { email: user.email, uid: user.uid } : null;
     window._syncState.ready = true;
+    syncPurchasesIdentity(user);
     if(unsubscribeSnapshot){ unsubscribeSnapshot(); unsubscribeSnapshot=null; }
+    if(unsubscribeBilling){ unsubscribeBilling(); unsubscribeBilling=null; }
     // Reset per-session sync-safety state on every auth change (sign-in, sign-out,
     // or switching accounts without a full page reload) — each new subscription
     // must earn its own "we've seen the real cloud state" before it's allowed to push.
     remoteSnapshotSeen = false;
     lastKnownRemoteDayCount = 0;
+    window._planState = { plan:'free', planExpiresAt:null };
     if(user){
       unsubscribeSnapshot = onSnapshot(doc(db,'users',user.uid), applyRemoteSnapshot, (err)=>{
         window._syncState.error = friendlyFirebaseError(err); safeRender();
+      });
+      // Read-only subscription to the Cloud-Function-only-writable entitlement doc —
+      // the client can observe its own plan but never set it (see firestore.rules).
+      unsubscribeBilling = onSnapshot(doc(db,'users',user.uid,'private','billing'), (snap) => {
+        const billing = snap.exists() ? snap.data() : null;
+        const isPlus = billing && billing.plan === 'plus' && billing.planExpiresAt && billing.planExpiresAt.toMillis() > Date.now();
+        window._planState = {
+          plan: isPlus ? 'plus' : 'free',
+          planExpiresAt: billing && billing.planExpiresAt ? billing.planExpiresAt.toMillis() : null
+        };
+        safeRender();
+      }, () => {
+        // Entitlement read failures shouldn't surface as sync errors — fail closed to 'free'.
       });
     }
     safeRender();
