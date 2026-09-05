@@ -14,6 +14,30 @@
       },
       "oauth_client": [
         {
+          "client_id": "830173192907-0aui1hjc0jiohk9derfu8dt45adcrv6s.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.widymedina.vitalinks",
+            "certificate_hash": "ef7abb3decaf0f272f1ef47c71a4e051d32d2a08"
+          }
+        },
+        {
+          "client_id": "830173192907-gdm2nl2dqnf53f3rid4jkfiukhi0cgj4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.widymedina.vitalinks",
+            "certificate_hash": "f8e584e3fd3da357a84a4ca90802a1702a99627b"
+          }
+        },
+        {
+          "client_id": "830173192907-li3u6k29vep6a8cvp5anmun4t0a959r9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.widymedina.vitalinks",
+            "certificate_hash": "6cae3fc7dc13a27be8cc6c876de957085b833831"
+          }
+        },
+        {
           "client_id": "830173192907-n8lkq0nravnubrnc35nou75feldptjlo.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
