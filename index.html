@@ -4734,11 +4734,9 @@ syncNativeMedAlerts();
   window.callEstimateNutritionPlus = httpsCallable(functions, 'estimateNutritionPlus');
   window.callGenerateDailyInsightPlus = httpsCallable(functions, 'generateDailyInsightPlus');
 
-  // RevenueCat public SDK key — this is a Test Store key, safe to ship in client code
-  // (like Firebase's own apiKey above, it's a public identifier, not a secret). Swap
-  // to the real Google Play app's key once Play Console Monetization is set up and a
-  // Google Play app is added in the RevenueCat dashboard.
-  const REVENUECAT_ANDROID_API_KEY = 'test_DkYMeYfQREZJggLBKbukGPLPxyo';
+  // RevenueCat public SDK key for the real "Vitalinks (Play Store)" app — safe to ship
+  // in client code, like Firebase's own apiKey above (a public identifier, not a secret).
+  const REVENUECAT_ANDROID_API_KEY = 'goog_QMRwVufcfrIeKhnBTwuRrhkkvdX';
   let purchasesConfigured = false;
   async function syncPurchasesIdentity(user){
     if(!(window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins.Purchases)) return;
