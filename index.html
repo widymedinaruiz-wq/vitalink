@@ -222,7 +222,14 @@ const LS = {
       // vl:apikey is device-local by design (never synced) — it must not bump the
       // change timestamp either, or a device with no real data but a freshly-typed
       // key can look "newer" than the cloud and overwrite it with near-empty state.
-      if(k!=='vl:_lastChangeAt' && k!=='vl:apikey'){
+      // vl:welcome-shown hits the exact same failure mode from a different angle:
+      // it's a UI-only flag, still fine to sweep into the normal sync payload (so it
+      // cross-device-syncs), but dismissing the welcome modal is often the very first
+      // thing that happens on a brand-new device signing into an account with real
+      // history — if that alone bumped the timestamp, the empty new device would look
+      // newer than the cloud and the safety guard in pushToCloud() would (correctly)
+      // refuse to push, but also never triggers the pull that should happen instead.
+      if(k!=='vl:_lastChangeAt' && k!=='vl:apikey' && k!=='vl:welcome-shown'){
         localStorage.setItem('vl:_lastChangeAt', String(Date.now()));
         if(typeof window._scheduleCloudPush==='function') window._scheduleCloudPush();
       }
