@@ -287,6 +287,9 @@ const I18N = {
     plus_feature_everything:'Todo lo que ya incluye VitaLinks gratis',
     plus_plan_yearly:'Anual', plus_plan_monthly:'Mensual',
     plus_purchase_success:'¡Bienvenido a VitaLinks Plus!',
+    welcome_title:'¡Bienvenido a VitaLinks!',
+    welcome_subtitle:'Registra tu nutrición, ejercicio, presión arterial y más — todo en un solo lugar.',
+    welcome_skip_button:'Tal vez luego',
     hc_settings_title:'Health Connect',
     hc_web_only_note:'Health Connect solo está disponible en la app de Android.',
     hc_not_installed_note:'No se encontró la app Health Connect en este dispositivo.',
@@ -523,6 +526,9 @@ const I18N = {
     plus_feature_everything:'Everything already included in VitaLinks free',
     plus_plan_yearly:'Yearly', plus_plan_monthly:'Monthly',
     plus_purchase_success:'Welcome to VitaLinks Plus!',
+    welcome_title:'Welcome to VitaLinks!',
+    welcome_subtitle:'Track your nutrition, exercise, blood pressure, and more — all in one place.',
+    welcome_skip_button:'Maybe later',
     hc_settings_title:'Health Connect',
     hc_web_only_note:'Health Connect is only available in the Android app.',
     hc_not_installed_note:"The Health Connect app wasn't found on this device.",
@@ -3467,6 +3473,21 @@ function modalHTML(){
       </div>
     </div>`;
   }
+  if(window._modal==='welcome'){
+    // Reuses healthConnectSectionHTML() verbatim rather than re-deriving its
+    // not-installed/not-connected/connected branches here — this modal only ever
+    // shows on a fresh install (see shouldShowWelcome()), so it inherits whatever
+    // that function already does, including its window._hcState-not-ready race.
+    return `<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;" onclick="closeWelcomeModal(event)">
+      <div class="card" style="width:400px;max-width:100%;" onclick="event.stopPropagation()">
+        <div class="display" style="font-weight:700;font-size:18px;margin-bottom:6px;">${tr('welcome_title')}</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:18px;">${tr('welcome_subtitle')}</div>
+        <div class="label">${tr('hc_settings_title')}</div>
+        <div style="margin-bottom:16px;">${healthConnectSectionHTML()}</div>
+        <button class="btn btn-ghost" style="width:100%;" onclick="closeWelcomeModal()">${tr('welcome_skip_button')}</button>
+      </div>
+    </div>`;
+  }
   return '';
 }
 function openSettings(){ window._modal='settings'; render(); }
@@ -3499,6 +3520,24 @@ async function purchasePlusPackage(which){
   }
 }
 function closeModal(e){ if(e && e.target!==e.currentTarget) return; window._modal=null; render(); }
+// Mirrors checkInviteParam()'s own isFreshInstall definition (index.html ~4425) for
+// consistency — an existing user updating to the version that introduces this modal
+// already has vl:_lastChangeAt set, so they never see it, only genuinely new installs
+// do. vl:welcome-shown is checked separately (not just inferred from _lastChangeAt)
+// so a user who dismisses without touching anything else in the app doesn't see it
+// again next launch — and since it's set via LS.set(), it cross-device-syncs once
+// they eventually sign in, so a second device on the same account won't re-show it.
+function shouldShowWelcome(){
+  return !!(window.Capacitor && window.Capacitor.isNativePlatform())
+    && !localStorage.getItem('vl:_lastChangeAt') && !localStorage.getItem('vl:invite-code')
+    && !localStorage.getItem('vl:welcome-shown');
+}
+function closeWelcomeModal(e){
+  if(e && e.target!==e.currentTarget) return;
+  LS.set('vl:welcome-shown', true);
+  window._modal = null;
+  render();
+}
 function saveSettings(){
   const calorieGoal = Number(document.getElementById('g-cal').value)||DEFAULT_GOALS.calorieGoal;
   const waterGoal = Number(document.getElementById('g-water').value)||DEFAULT_GOALS.waterGoal;
@@ -4836,6 +4875,7 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
 // "we handled this" from "there was nothing open."
 function handleBackAction(){
   if(window._modal==='scanner'){ closeScanner(); return true; }
+  if(window._modal==='welcome'){ closeWelcomeModal(); return true; }
   if(window._modal){ closeModal(); return true; }
   if(window._pmView){ closePersonalMealBuilder(); return true; }
   return false;
@@ -4863,6 +4903,7 @@ if(window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.P
 
 /* ================= init ================= */
 checkInviteParam();
+if(shouldShowWelcome()) window._modal = 'welcome';
 if(state.tab==='hoy') window._hoyAnimate = true;
 render();
 syncNativeMedAlerts();
