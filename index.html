@@ -287,6 +287,26 @@ const I18N = {
     plus_feature_everything:'Todo lo que ya incluye VitaLinks gratis',
     plus_plan_yearly:'Anual', plus_plan_monthly:'Mensual',
     plus_purchase_success:'¡Bienvenido a VitaLinks Plus!',
+    hc_settings_title:'Health Connect',
+    hc_web_only_note:'Health Connect solo está disponible en la app de Android.',
+    hc_not_installed_note:'No se encontró la app Health Connect en este dispositivo.',
+    hc_install_button:'Instalar Health Connect',
+    hc_connect_explainer:'Conecta Health Connect para traer tus pasos, ritmo cardíaco y presión arterial de otras apps y dispositivos a VitaLinks.',
+    hc_connect_button:'Conectar Health Connect',
+    hc_connected_label:'Health Connect conectado',
+    hc_last_sync:'Última sincronización: {time}',
+    hc_last_sync_never:'Aún no se ha sincronizado',
+    hc_sync_now_button:'Sincronizar ahora',
+    hc_scope_steps:'Pasos', hc_scope_heartrate:'Ritmo cardíaco', hc_scope_bp:'Presión arterial',
+    hc_scope_granted:'concedido', hc_scope_denied:'permiso denegado',
+    hc_manage_permissions_note:'Para cambiar estos permisos, ábrelos en la app Health Connect.',
+    hc_steps_label:'Pasos (Health Connect)',
+    hc_heartrate_label:'Ritmo cardíaco (Health Connect)',
+    hc_bp_synced_label:'Sincronizado desde Health Connect',
+    hc_bp_synced_badge:'Health Connect',
+    err_hc_not_installed:'Instala la app Health Connect para conectar tus dispositivos.',
+    err_hc_permission_denied:'VitaLinks no tiene permiso para leer estos datos de Health Connect.',
+    err_hc_sync_failed:'No se pudo sincronizar con Health Connect. Inténtalo de nuevo.',
     hoy_metas_titulo:'Tus metas diarias', hoy_ultimos_7_dias:'Últimos 7 días',
     comidas_tipo:'Tipo de comida', comidas_agregar_a:'Agregar a', comidas_placeholder:'Ej. "lata atún 6oz", "plátano mediano"',
     comidas_descripcion_requerida:'Escribe qué comiste antes de agregar',
@@ -501,6 +521,26 @@ const I18N = {
     plus_feature_everything:'Everything already included in VitaLinks free',
     plus_plan_yearly:'Yearly', plus_plan_monthly:'Monthly',
     plus_purchase_success:'Welcome to VitaLinks Plus!',
+    hc_settings_title:'Health Connect',
+    hc_web_only_note:'Health Connect is only available in the Android app.',
+    hc_not_installed_note:"The Health Connect app wasn't found on this device.",
+    hc_install_button:'Install Health Connect',
+    hc_connect_explainer:'Connect Health Connect to bring your steps, heart rate, and blood pressure from other apps and devices into VitaLinks.',
+    hc_connect_button:'Connect Health Connect',
+    hc_connected_label:'Health Connect connected',
+    hc_last_sync:'Last synced: {time}',
+    hc_last_sync_never:'Not synced yet',
+    hc_sync_now_button:'Sync now',
+    hc_scope_steps:'Steps', hc_scope_heartrate:'Heart rate', hc_scope_bp:'Blood pressure',
+    hc_scope_granted:'granted', hc_scope_denied:'permission denied',
+    hc_manage_permissions_note:'To change these permissions, open them in the Health Connect app.',
+    hc_steps_label:'Steps (Health Connect)',
+    hc_heartrate_label:'Heart rate (Health Connect)',
+    hc_bp_synced_label:'Synced from Health Connect',
+    hc_bp_synced_badge:'Health Connect',
+    err_hc_not_installed:'Install the Health Connect app to connect your devices.',
+    err_hc_permission_denied:"VitaLinks doesn't have permission to read this data from Health Connect.",
+    err_hc_sync_failed:'Could not sync with Health Connect. Please try again.',
     hoy_metas_titulo:'Your daily goals', hoy_ultimos_7_dias:'Last 7 days',
     comidas_tipo:'Meal type', comidas_agregar_a:'Add to', comidas_placeholder:'E.g. "6oz tuna can", "medium banana"',
     comidas_descripcion_requerida:'Write down what you ate before adding',
@@ -831,6 +871,27 @@ function statusColor(status){
 function emptyDay(){ return { meals:[], exercises:[], weight:null, sleepHours:null, water:0, bp:[], medsTaken:[], bodyComp:[] }; }
 function getDay(iso){ return { ...emptyDay(), ...(LS.get('vl:day:'+iso) || {}) }; }
 function setDayData(iso, data){ return LS.set('vl:day:'+iso, data); }
+
+// Health Connect synced data lives in its own 'hc:' namespace, deliberately never
+// touching 'vl:' localStorage keys or state.day — collectLocalData()'s cloud-push
+// sweep only picks up 'vl:' keys, and manual entries (weight/sleepHours/bp) must
+// never be silently overwritten by a device sync. Health Connect has its own
+// separate Firestore path (users/{uid}/healthConnect/{iso}), written directly by
+// the module script's hc* functions further down — never via LS.set, which would
+// pull this data into the fragile whole-document users/{uid} sync.
+function emptyHCDay(){ return { steps:null, heartRate:null, bp:[] }; }
+function getHealthConnectDay(iso){
+  try{ return { ...emptyHCDay(), ...(JSON.parse(localStorage.getItem('hc:day:'+iso)||'null') || {}) }; }
+  catch{ return emptyHCDay(); }
+}
+function setHealthConnectDay(iso, data){ localStorage.setItem('hc:day:'+iso, JSON.stringify(data)); }
+function hcDayAt(iso){ return getHealthConnectDay(iso); }
+function getHCMeta(){
+  const defaults = { connected:false, grantedScopes:[], lastSyncAt:null, lastSyncError:null, cloudSyncedOnce:false };
+  try{ return { ...defaults, ...(JSON.parse(localStorage.getItem('hc:meta')||'null')||{}) }; }
+  catch{ return { ...defaults }; }
+}
+function setHCMeta(m){ localStorage.setItem('hc:meta', JSON.stringify(m)); }
 function getGoals(){ return { ...DEFAULT_GOALS, ...(LS.get('vl:goals') || {}) }; }
 function setGoals(g){ return LS.set('vl:goals', g); }
 function getMeds(){ return LS.get('vl:meds') || []; }
@@ -2652,6 +2713,11 @@ function renderProgreso(){
   const rawByDaysAgo = Array.from({length:lookbackDays}).map((_,daysAgo)=>{
     const d = dayAt(isoDaysAgo(daysAgo));
     const lastBP = d.bp[d.bp.length-1];
+    // Health Connect data is deliberately read from its own hc:day:* namespace, never
+    // merged into d.bp/d.weight/etc — see hcDayAt() and the "never silently overwrite"
+    // decision near emptyHCDay(). Steps/heart rate have no manual equivalent to conflict
+    // with, so they're plotted directly; blood pressure stays presented separately below.
+    const hc = hcDayAt(isoDaysAgo(daysAgo));
     return {
       weight: d.weight,
       sys: lastBP ? lastBP.systolic : null,
@@ -2661,6 +2727,8 @@ function renderProgreso(){
       exercise: d.exercises.reduce((s,e)=>s+(Number(e.minutes)||0),0),
       water: d.water||0,
       sleep: d.sleepHours,
+      steps: hc.steps ? hc.steps.value : null,
+      hrAvg: hc.heartRate ? hc.heartRate.avgBpm : null,
     };
   });
   // Averages only over samples that actually exist in each trailing window — correct
@@ -2695,8 +2763,12 @@ function renderProgreso(){
   const sleepPts = isos.map((iso,i)=>({ label:axisLabel(iso,i), v: rawAt(i).sleep }));
   const bpPts = isos.map((iso,i)=>({ label:axisLabel(iso,i), sys: rawAt(i).sys, dia: rawAt(i).dia }));
   const pulsePts = isos.map((iso,i)=>({ label:axisLabel(iso,i), v: rawAt(i).pulse }));
+  const stepsPts = isos.map((iso,i)=>({ label:axisLabel(iso,i), v: rawAt(i).steps }));
+  const hrPts = isos.map((iso,i)=>({ label:axisLabel(iso,i), v: rawAt(i).hrAvg }));
   const weightMA = ma30('weight'), sysMA = ma30('sys'), diaMA = ma30('dia'), pulseMA = ma30('pulse');
   const calMA = ma30('calories'), exMA = ma30('exercise'), waterMA = ma30('water'), sleepMA = ma30('sleep');
+  const stepsMA = ma30('steps'), hrMA = ma30('hrAvg');
+  const todayHCBp = hcDayAt(todayISO()).bp;
   const isExp = key => window._expandedProgresoChart===key;
   const pexp = key => isExp(key) ? 'expanded' : '';
 
@@ -2724,6 +2796,14 @@ function renderProgreso(){
           ${bpSummaryHTML()}
         </div>
         <div class="chart-box">${multiLineChartSVG(bpPts,[{key:'sys',color:'var(--accent)', ma:sysMA},{key:'dia',color:'var(--accent3)', ma:diaMA}],{gridLines:true, gridSteps:isExp('bp')?5:4, unit:'mmHg', h:isExp('bp')?320:150})}</div>
+        ${todayHCBp.length ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);" onclick="event.stopPropagation()">
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">${tr('hc_bp_synced_label')}</div>
+          ${todayHCBp.map(r=>`<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:3px 0;">
+            <span style="color:var(--muted);">${esc(r.time)}</span>
+            <span>${r.systolic}/${r.diastolic} mmHg</span>
+            <span style="font-size:10px;color:var(--accent2);border:1px solid var(--accent2);border-radius:4px;padding:1px 5px;">${tr('hc_bp_synced_badge')}</span>
+          </div>`).join('')}
+        </div>` : ''}
       </div>
       <div class="card expand-card ${pexp('pulse')}" onclick="toggleChartExpand('progreso','pulse')">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
@@ -2731,6 +2811,14 @@ function renderProgreso(){
           ${pulseSummaryHTML()}
         </div>
         <div class="chart-box">${lineChartSVG(pulsePts,{color:'var(--danger)', gridLines:true, gridSteps:isExp('pulse')?5:4, unit:'bpm', maValues:pulseMA, h:isExp('pulse')?320:150})}</div>
+      </div>
+      <div class="card expand-card ${pexp('steps')}" onclick="toggleChartExpand('progreso','steps')">
+        <div class="label">${tr('hc_steps_label')}</div>
+        <div class="chart-box">${barChartSVG(stepsPts,{color:'var(--accent2)', gridLines:true, gridSteps:isExp('steps')?5:4, unit:'pasos', maValues:stepsMA, h:isExp('steps')?320:150})}</div>
+      </div>
+      <div class="card expand-card ${pexp('heartrate')}" onclick="toggleChartExpand('progreso','heartrate')">
+        <div class="label">${tr('hc_heartrate_label')}</div>
+        <div class="chart-box">${lineChartSVG(hrPts,{color:'var(--accent)', gridLines:true, gridSteps:isExp('heartrate')?5:4, unit:'bpm', maValues:hrMA, h:isExp('heartrate')?320:150})}</div>
       </div>
       <div class="card expand-card ${pexp('calories')}" onclick="toggleChartExpand('progreso','calories')"><div class="label">${trf('prog_calorias_meta',{goal:state.goals.calorieGoal})}</div><div class="chart-box">${barChartSVG(calPts,{color:'var(--accent)',goal:state.goals.calorieGoal, gridLines:true, gridSteps:isExp('calories')?5:4, unit:'kcal', maValues:calMA, h:isExp('calories')?320:150})}</div></div>
       <div class="card expand-card ${pexp('exercise')}" onclick="toggleChartExpand('progreso','exercise')">
@@ -3183,6 +3271,59 @@ function plusSectionHTML(){
     <button class="btn btn-primary" style="width:100%;" onclick="openPlusPaywall()">${tr('plus_upgrade_button')}</button>
   </div>`;
 }
+function healthConnectSectionHTML(){
+  const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform());
+  if(!isNative){
+    return `<div style="font-size:11px;color:var(--muted);">${tr('hc_web_only_note')}</div>`;
+  }
+  const hc = window._hcState || {};
+  if(hc.availability==='not-installed' || hc.availability==='not-supported'){
+    return `<div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">${tr('hc_not_installed_note')}</div>
+      <button class="btn btn-ghost" style="width:100%;" onclick="openHealthConnectSettingsOrInstall()">${tr('hc_install_button')}</button>
+    </div>`;
+  }
+  const meta = getHCMeta();
+  if(!meta.connected){
+    return `<div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">${tr('hc_connect_explainer')}</div>
+      <button class="btn btn-primary" style="width:100%;" onclick="connectHealthConnect()">${tr('hc_connect_button')}</button>
+    </div>`;
+  }
+  const lastSync = meta.lastSyncAt ? new Date(meta.lastSyncAt).toLocaleTimeString(state.lang==='en'?'en-US':'es-ES',{hour:'2-digit',minute:'2-digit'}) : tr('hc_last_sync_never');
+  const scopeRow = (key,labelKey) => {
+    const granted = (meta.grantedScopes||[]).includes(key);
+    return `<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);padding:2px 0;">
+      <span>${tr(labelKey)}</span><span style="color:${granted?'var(--status-good)':'var(--danger)'};">${granted?tr('hc_scope_granted'):tr('hc_scope_denied')}</span>
+    </div>`;
+  };
+  return `<div>
+    <div style="font-size:12px;color:var(--accent3);font-weight:700;margin-bottom:4px;">✅ ${tr('hc_connected_label')}</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">${meta.lastSyncAt?trf('hc_last_sync',{time:lastSync}):tr('hc_last_sync_never')}</div>
+    <div style="margin-bottom:10px;">
+      ${scopeRow('steps','hc_scope_steps')}
+      ${scopeRow('heartRate','hc_scope_heartrate')}
+      ${scopeRow('bloodPressure','hc_scope_bp')}
+    </div>
+    ${meta.lastSyncError?`<div style="font-size:11px;color:var(--danger);margin-bottom:8px;">${esc(meta.lastSyncError)}</div>`:''}
+    <button class="btn btn-ghost" style="width:100%;margin-bottom:6px;" onclick="syncHealthConnectNowUI()">${tr('hc_sync_now_button')}</button>
+    <div style="font-size:10px;color:var(--muted);">${tr('hc_manage_permissions_note')}</div>
+  </div>`;
+}
+function openHealthConnectSettingsOrInstall(){
+  const Health = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Health;
+  if(Health && Health.openHealthConnectSettings) Health.openHealthConnectSettings();
+}
+async function connectHealthConnect(){
+  if(typeof window.hcConnect !== 'function') return;
+  try{ await window.hcConnect(); render(); }
+  catch(e){ toast(tr('err_hc_permission_denied'), true); }
+}
+async function syncHealthConnectNowUI(){
+  if(typeof window.hcSyncNow !== 'function') return;
+  try{ await window.hcSyncNow(false); }
+  catch(e){ toast(tr('err_hc_sync_failed'), true); }
+}
 function syncSectionHTML(){
   const s = window._syncState;
   if(!s.ready){
@@ -3233,6 +3374,8 @@ function modalHTML(){
         <div style="margin-bottom:16px;">${syncSectionHTML()}</div>
         <div class="label">${tr('plus_settings_title')}</div>
         <div style="margin-bottom:16px;">${plusSectionHTML()}</div>
+        <div class="label">${tr('hc_settings_title')}</div>
+        <div style="margin-bottom:16px;">${healthConnectSectionHTML()}</div>
         <div class="label">${tr('invite_titulo')}</div>
         <button class="btn btn-ghost" style="width:100%;margin-bottom:16px;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="shareInvite()">${navIcon('exportar',14)}${tr('invite_boton')}</button>
         <div style="display:flex;gap:8px;">
@@ -4697,6 +4840,13 @@ if(window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.P
     if(canGoBack) window.history.back();
     else window.Capacitor.Plugins.App.exitApp();
   });
+  // No reliable way to sync Health Connect data while fully backgrounded/killed on a
+  // WebView-based Capacitor app without a native foreground service (out of scope for
+  // v1) — foreground/resume plus a manual "sync now" button (see Settings) is the sync
+  // model. hcMaybeSync() throttles itself, so this is safe to call on every resume.
+  window.Capacitor.Plugins.App.addListener('appStateChange', ({isActive}) => {
+    if(isActive && typeof window.hcMaybeSync==='function') window.hcMaybeSync();
+  });
 }
 
 /* ================= init ================= */
@@ -4780,6 +4930,184 @@ syncNativeMedAlerts();
   let lastKnownRemoteDayCount = 0;
 
   function safeRender(){ if(typeof window.render==='function') window.render(); }
+
+  /* ================= Health Connect (steps/heart rate/blood pressure) =================
+     Deliberately isolated from the users/{uid} whole-document sync above: writes go to
+     users/{uid}/healthConnect/{iso} (see firestore.rules) via direct client setDoc({merge:true})
+     calls, never through collectLocalData()/pushToCloud(). Local cache lives under 'hc:'
+     keys (see emptyHCDay/getHealthConnectDay/etc. near emptyDay(), earlier in this file),
+     never 'vl:' keys, so a device sync can never race the fragile main-doc sync. No live
+     onSnapshot for this data — v1 only needs a one-shot reinstall/new-device backfill. */
+  const HC_READ_TYPES = ['steps','heartRate','restingHeartRate','bloodPressure'];
+  const HC_SYNC_THROTTLE_MS = 15*60*1000;
+
+  function hcPlugin(){
+    return (window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins.Health) ? window.Capacitor.Plugins.Health : null;
+  }
+
+  window.hcCheckAvailability = async function(){
+    const Health = hcPlugin();
+    if(!Health){ window._hcState = { availability:'not-supported' }; safeRender(); return; }
+    try{
+      const res = await Health.isAvailable();
+      window._hcState = { availability: res.available ? 'available' : 'not-installed' };
+    }catch(e){
+      window._hcState = { availability:'not-supported' };
+    }
+    safeRender();
+  };
+
+  async function hcSyncNowImpl(isFirstConnect){
+    // Deliberately does NOT require currentUser: the local hc:day:* cache (and thus
+    // the Progreso tiles) must populate the same way manual entries work fully offline,
+    // pre-sign-in. Only the Firestore push below is conditional on being signed in.
+    const Health = hcPlugin();
+    if(!Health) return;
+    const meta = getHCMeta();
+    const granted = new Set(meta.grantedScopes||[]);
+    const dayCount = isFirstConnect ? 30 : 1;
+    const touchedDays = new Set();
+    // queryAggregated() was tried first (the natural fit for "sum steps per day") but
+    // was found — via live testing against real Fitbit-sourced data on the physical
+    // test tablet — to silently return empty results even when readSamples() confirms
+    // the underlying data genuinely exists. readSamples() is what's actually proven
+    // reliable, so steps/heart rate are aggregated client-side from it, one calendar
+    // day at a time (bounding each call's result size, since readSamples has no
+    // pagination and defaults to a 100-sample cap — a single high-volume day could
+    // still exceed the explicit limit below and be undercounted; that's a known
+    // plugin-API limitation, not a VitaLinks bug, and worth revisiting if this plugin
+    // adds paginated reads or fixes queryAggregated in a future version).
+    const HC_DAY_SAMPLE_LIMIT = 5000;
+    try{
+      for(let i=0;i<dayCount;i++){
+        const iso = isoDaysAgo(i);
+        const [y,m,d] = iso.split('-').map(Number);
+        const dayStart = new Date(y, m-1, d, 0,0,0).toISOString();
+        const dayEnd = new Date(y, m-1, d, 23,59,59,999).toISOString();
+        if(granted.has('steps')){
+          const { samples } = await Health.readSamples({ dataType:'steps', startDate:dayStart, endDate:dayEnd, limit:HC_DAY_SAMPLE_LIMIT });
+          if(samples.length){
+            const sum = samples.reduce((s,x)=>s+(Number(x.value)||0), 0);
+            const day = getHealthConnectDay(iso);
+            day.steps = { value: Math.round(sum), source:'healthconnect', syncedAt: Date.now() };
+            setHealthConnectDay(iso, day);
+            touchedDays.add(iso);
+          }
+        }
+        if(granted.has('heartRate')){
+          const { samples } = await Health.readSamples({ dataType:'heartRate', startDate:dayStart, endDate:dayEnd, limit:HC_DAY_SAMPLE_LIMIT });
+          if(samples.length){
+            const vals = samples.map(x=>Number(x.value)).filter(v=>isFinite(v));
+            const day = getHealthConnectDay(iso);
+            day.heartRate = { ...(day.heartRate||{}), avgBpm: Math.round(vals.reduce((s,v)=>s+v,0)/vals.length), minBpm: Math.round(Math.min(...vals)), maxBpm: Math.round(Math.max(...vals)), source:'healthconnect', syncedAt: Date.now() };
+            setHealthConnectDay(iso, day);
+            touchedDays.add(iso);
+          }
+        }
+        if(granted.has('restingHeartRate')){
+          const { samples } = await Health.readSamples({ dataType:'restingHeartRate', startDate:dayStart, endDate:dayEnd, limit:100 });
+          if(samples.length){
+            const vals = samples.map(x=>Number(x.value)).filter(v=>isFinite(v));
+            const day = getHealthConnectDay(iso);
+            day.heartRate = { ...(day.heartRate||{}), restingBpm: Math.round(vals.reduce((s,v)=>s+v,0)/vals.length), source:'healthconnect', syncedAt: Date.now() };
+            setHealthConnectDay(iso, day);
+            touchedDays.add(iso);
+          }
+        }
+      }
+      if(granted.has('bloodPressure')){
+        const endDate = new Date();
+        const startDate = new Date(Date.now() - dayCount * 24*60*60*1000);
+        const { samples } = await Health.readSamples({ dataType:'bloodPressure', startDate:startDate.toISOString(), endDate:endDate.toISOString(), limit:500 });
+        const byDay = {};
+        for(const s of samples){ const iso = s.startDate.slice(0,10); (byDay[iso] = byDay[iso]||[]).push(s); }
+        for(const iso of Object.keys(byDay)){
+          const day = getHealthConnectDay(iso);
+          // De-dupe against the plugin's own record id — a sync re-run over an
+          // overlapping range must never append the same reading twice.
+          const existingIds = new Set(day.bp.map(b=>b.externalId));
+          for(const s of byDay[iso]){
+            if(existingIds.has(s.platformId)) continue;
+            day.bp.push({
+              id: uid(), systolic: Math.round(s.systolic), diastolic: Math.round(s.diastolic), pulse: null,
+              time: new Date(s.startDate).toTimeString().slice(0,5),
+              source:'healthconnect', externalId: s.platformId, syncedAt: Date.now()
+            });
+            existingIds.add(s.platformId);
+          }
+          day.bp.sort((a,b)=> a.time < b.time ? -1 : (a.time > b.time ? 1 : 0));
+          setHealthConnectDay(iso, day);
+          touchedDays.add(iso);
+        }
+      }
+      if(currentUser){
+        for(const iso of touchedDays){
+          const day = getHealthConnectDay(iso);
+          await setDoc(doc(db,'users',currentUser.uid,'healthConnect',iso), {
+            steps: day.steps, heartRate: day.heartRate, bp: day.bp, updatedAt: Date.now()
+          }, { merge:true });
+        }
+        // Marks that this account has had at least one real opportunity to push local
+        // history to the cloud. Needed because connecting Health Connect and signing
+        // into Firebase can happen in either order — if a user connects first (this
+        // sync then runs locally-only, currentUser still null) and signs in later,
+        // routine resumes only ever re-sync "today" (see hcMaybeSync's dayCount:1) and
+        // would otherwise never push that pre-sign-in local history at all.
+        meta.cloudSyncedOnce = true;
+      }
+      meta.lastSyncAt = Date.now();
+      meta.lastSyncError = null;
+    }catch(e){
+      meta.lastSyncError = (e && e.message) ? e.message : String(e);
+    }
+    setHCMeta(meta);
+    safeRender();
+  }
+
+  window.hcConnect = async function(){
+    const Health = hcPlugin();
+    if(!Health) throw new Error('Health Connect not available');
+    const status = await Health.requestAuthorization({ read: HC_READ_TYPES, write: [] });
+    const granted = status.readAuthorized || [];
+    const meta = getHCMeta();
+    meta.connected = granted.length>0;
+    meta.grantedScopes = granted;
+    meta.lastSyncError = null;
+    setHCMeta(meta);
+    if(meta.connected) await hcSyncNowImpl(true);
+  };
+  window.hcSyncNow = function(force){ return hcSyncNowImpl(!!force); };
+  window.hcMaybeSync = async function(){
+    const meta = getHCMeta();
+    if(!meta.connected) return;
+    if(meta.lastSyncAt && (Date.now()-meta.lastSyncAt) < HC_SYNC_THROTTLE_MS) return;
+    await hcSyncNowImpl(false);
+  };
+
+  // One-shot reinstall/new-device catch-up: if this device has never synced locally but
+  // the account is already connected, pull the last 30 days directly from Firestore
+  // rather than waiting on a fresh Health Connect read. No live onSnapshot — a single
+  // pass is enough for "don't lose visibility of already-synced history."
+  async function hcBackfillFromCloud(){
+    if(!currentUser) return;
+    const meta = getHCMeta();
+    if(!meta.connected) return;
+    const hasLocal = Object.keys(localStorage).some(k=>k.startsWith('hc:day:'));
+    if(hasLocal) return;
+    for(let i=0;i<30;i++){
+      const iso = isoDaysAgo(i);
+      try{
+        const snap = await getDoc(doc(db,'users',currentUser.uid,'healthConnect',iso));
+        if(snap.exists()) setHealthConnectDay(iso, { ...emptyHCDay(), ...snap.data() });
+      }catch(e){
+        // A single day's read failing (transient network blip, momentary rate limit)
+        // must never abort the whole 30-day catch-up — skip that day and keep going,
+        // so one bad read doesn't silently leave 29 good days unrestored.
+        console.error('hcBackfillFromCloud: failed to read', iso, e);
+      }
+    }
+    safeRender();
+  }
 
   function dayKeyCount(obj){ return Object.keys(obj).filter(k=>k.startsWith('vl:day:')).length; }
 
@@ -4925,6 +5253,17 @@ syncNativeMedAlerts();
     window._syncState.user = user ? { email: user.email, uid: user.uid } : null;
     window._syncState.ready = true;
     syncPurchasesIdentity(user);
+    if(user){
+      hcBackfillFromCloud().then(()=>{
+        // If Health Connect was connected before this account ever signed in (or before
+        // it ever had a chance to push), the local-only backfill from that connect never
+        // reached Firestore — a routine hcMaybeSync only re-syncs "today". Force one real
+        // historical push in that case; otherwise the normal throttled routine sync.
+        const m = getHCMeta();
+        if(m.connected && !m.cloudSyncedOnce) window.hcSyncNow(true);
+        else window.hcMaybeSync();
+      });
+    }
     if(unsubscribeSnapshot){ unsubscribeSnapshot(); unsubscribeSnapshot=null; }
     if(unsubscribeBilling){ unsubscribeBilling(); unsubscribeBilling=null; }
     // Reset per-session sync-safety state on every auth change (sign-in, sign-out,
@@ -4953,6 +5292,8 @@ syncNativeMedAlerts();
     }
     safeRender();
   });
+
+  window.hcCheckAvailability();
 </script>
 </body>
 </html>

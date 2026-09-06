@@ -4,4 +4,7 @@
     <string name="title_activity_main">VitaLinks</string>
     <string name="package_name">com.widymedina.vitalinks</string>
     <string name="custom_url_scheme">com.widymedina.vitalinks</string>
+    <!-- Shown when a user taps "Privacy policy" in the Health Connect permissions dialog
+         (required by Health Connect for any app requesting health-data permissions). -->
+    <string name="health_connect_privacy_policy_url" translatable="false">https://vitalinks.eu/privacy.html</string>
 </resources>
