@@ -297,11 +297,13 @@ const I18N = {
     hc_last_sync:'Última sincronización: {time}',
     hc_last_sync_never:'Aún no se ha sincronizado',
     hc_sync_now_button:'Sincronizar ahora',
-    hc_scope_steps:'Pasos', hc_scope_heartrate:'Ritmo cardíaco', hc_scope_bp:'Presión arterial',
+    hc_grant_more_button:'Conceder acceso adicional',
+    hc_scope_steps:'Pasos', hc_scope_heartrate:'Ritmo cardíaco', hc_scope_bp:'Presión arterial', hc_scope_spo2:'Saturación de oxígeno (SpO2)',
     hc_scope_granted:'concedido', hc_scope_denied:'permiso denegado',
     hc_manage_permissions_note:'Para cambiar estos permisos, ábrelos en la app Health Connect.',
     hc_steps_label:'Pasos (Health Connect)',
     hc_heartrate_label:'Ritmo cardíaco (Health Connect)',
+    hc_spo2_label:'Saturación de oxígeno mín. (Health Connect)',
     hc_bp_synced_label:'Sincronizado desde Health Connect',
     hc_bp_synced_badge:'Health Connect',
     err_hc_not_installed:'Instala la app Health Connect para conectar tus dispositivos.',
@@ -531,11 +533,13 @@ const I18N = {
     hc_last_sync:'Last synced: {time}',
     hc_last_sync_never:'Not synced yet',
     hc_sync_now_button:'Sync now',
-    hc_scope_steps:'Steps', hc_scope_heartrate:'Heart rate', hc_scope_bp:'Blood pressure',
+    hc_grant_more_button:'Grant additional access',
+    hc_scope_steps:'Steps', hc_scope_heartrate:'Heart rate', hc_scope_bp:'Blood pressure', hc_scope_spo2:'Oxygen saturation (SpO2)',
     hc_scope_granted:'granted', hc_scope_denied:'permission denied',
     hc_manage_permissions_note:'To change these permissions, open them in the Health Connect app.',
     hc_steps_label:'Steps (Health Connect)',
     hc_heartrate_label:'Heart rate (Health Connect)',
+    hc_spo2_label:'Min. oxygen saturation (Health Connect)',
     hc_bp_synced_label:'Synced from Health Connect',
     hc_bp_synced_badge:'Health Connect',
     err_hc_not_installed:'Install the Health Connect app to connect your devices.',
@@ -879,7 +883,7 @@ function setDayData(iso, data){ return LS.set('vl:day:'+iso, data); }
 // separate Firestore path (users/{uid}/healthConnect/{iso}), written directly by
 // the module script's hc* functions further down — never via LS.set, which would
 // pull this data into the fragile whole-document users/{uid} sync.
-function emptyHCDay(){ return { steps:null, heartRate:null, bp:[] }; }
+function emptyHCDay(){ return { steps:null, heartRate:null, bp:[], spo2:null }; }
 function getHealthConnectDay(iso){
   try{ return { ...emptyHCDay(), ...(JSON.parse(localStorage.getItem('hc:day:'+iso)||'null') || {}) }; }
   catch{ return emptyHCDay(); }
@@ -2729,6 +2733,7 @@ function renderProgreso(){
       sleep: d.sleepHours,
       steps: hc.steps ? hc.steps.value : null,
       hrAvg: hc.heartRate ? hc.heartRate.avgBpm : null,
+      spo2Min: hc.spo2 ? hc.spo2.minPct : null,
     };
   });
   // Averages only over samples that actually exist in each trailing window — correct
@@ -2765,9 +2770,10 @@ function renderProgreso(){
   const pulsePts = isos.map((iso,i)=>({ label:axisLabel(iso,i), v: rawAt(i).pulse }));
   const stepsPts = isos.map((iso,i)=>({ label:axisLabel(iso,i), v: rawAt(i).steps }));
   const hrPts = isos.map((iso,i)=>({ label:axisLabel(iso,i), v: rawAt(i).hrAvg }));
+  const spo2Pts = isos.map((iso,i)=>({ label:axisLabel(iso,i), v: rawAt(i).spo2Min }));
   const weightMA = ma30('weight'), sysMA = ma30('sys'), diaMA = ma30('dia'), pulseMA = ma30('pulse');
   const calMA = ma30('calories'), exMA = ma30('exercise'), waterMA = ma30('water'), sleepMA = ma30('sleep');
-  const stepsMA = ma30('steps'), hrMA = ma30('hrAvg');
+  const stepsMA = ma30('steps'), hrMA = ma30('hrAvg'), spo2MA = ma30('spo2Min');
   const todayHCBp = hcDayAt(todayISO()).bp;
   const isExp = key => window._expandedProgresoChart===key;
   const pexp = key => isExp(key) ? 'expanded' : '';
@@ -2819,6 +2825,10 @@ function renderProgreso(){
       <div class="card expand-card ${pexp('heartrate')}" onclick="toggleChartExpand('progreso','heartrate')">
         <div class="label">${tr('hc_heartrate_label')}</div>
         <div class="chart-box">${lineChartSVG(hrPts,{color:'var(--accent)', gridLines:true, gridSteps:isExp('heartrate')?5:4, unit:'bpm', maValues:hrMA, h:isExp('heartrate')?320:150})}</div>
+      </div>
+      <div class="card expand-card ${pexp('spo2')}" onclick="toggleChartExpand('progreso','spo2')">
+        <div class="label">${tr('hc_spo2_label')}</div>
+        <div class="chart-box">${lineChartSVG(spo2Pts,{color:'var(--accent3)', gridLines:true, gridSteps:isExp('spo2')?5:4, unit:'%', maValues:spo2MA, h:isExp('spo2')?320:150})}</div>
       </div>
       <div class="card expand-card ${pexp('calories')}" onclick="toggleChartExpand('progreso','calories')"><div class="label">${trf('prog_calorias_meta',{goal:state.goals.calorieGoal})}</div><div class="chart-box">${barChartSVG(calPts,{color:'var(--accent)',goal:state.goals.calorieGoal, gridLines:true, gridSteps:isExp('calories')?5:4, unit:'kcal', maValues:calMA, h:isExp('calories')?320:150})}</div></div>
       <div class="card expand-card ${pexp('exercise')}" onclick="toggleChartExpand('progreso','exercise')">
@@ -3304,8 +3314,10 @@ function healthConnectSectionHTML(){
       ${scopeRow('steps','hc_scope_steps')}
       ${scopeRow('heartRate','hc_scope_heartrate')}
       ${scopeRow('bloodPressure','hc_scope_bp')}
+      ${scopeRow('oxygenSaturation','hc_scope_spo2')}
     </div>
     ${meta.lastSyncError?`<div style="font-size:11px;color:var(--danger);margin-bottom:8px;">${esc(meta.lastSyncError)}</div>`:''}
+    ${(window.HC_READ_TYPES||[]).some(t=>!(meta.grantedScopes||[]).includes(t)) ? `<button class="btn btn-primary" style="width:100%;margin-bottom:6px;" onclick="connectHealthConnect()">${tr('hc_grant_more_button')}</button>` : ''}
     <button class="btn btn-ghost" style="width:100%;margin-bottom:6px;" onclick="syncHealthConnectNowUI()">${tr('hc_sync_now_button')}</button>
     <div style="font-size:10px;color:var(--muted);">${tr('hc_manage_permissions_note')}</div>
   </div>`;
@@ -4938,7 +4950,11 @@ syncNativeMedAlerts();
      keys (see emptyHCDay/getHealthConnectDay/etc. near emptyDay(), earlier in this file),
      never 'vl:' keys, so a device sync can never race the fragile main-doc sync. No live
      onSnapshot for this data — v1 only needs a one-shot reinstall/new-device backfill. */
-  const HC_READ_TYPES = ['steps','heartRate','restingHeartRate','bloodPressure'];
+  const HC_READ_TYPES = ['steps','heartRate','restingHeartRate','bloodPressure','oxygenSaturation'];
+  // Exposed so the Settings UI (non-module script) can detect newly-added scopes an
+  // already-connected user hasn't granted yet, without duplicating this list — see
+  // the "grant additional access" branch in healthConnectSectionHTML().
+  window.HC_READ_TYPES = HC_READ_TYPES;
   const HC_SYNC_THROTTLE_MS = 15*60*1000;
 
   function hcPlugin(){
@@ -5014,6 +5030,23 @@ syncNativeMedAlerts();
             touchedDays.add(iso);
           }
         }
+        if(granted.has('oxygenSaturation')){
+          // Same readSamples-per-day approach as steps/heart rate, not queryAggregated
+          // — oxygenSaturation isn't even in the plugin's own documented list of
+          // aggregatable types, so there's no "efficient path" being skipped here.
+          const { samples } = await Health.readSamples({ dataType:'oxygenSaturation', startDate:dayStart, endDate:dayEnd, limit:HC_DAY_SAMPLE_LIMIT });
+          if(samples.length){
+            const vals = samples.map(x=>Number(x.value)).filter(v=>isFinite(v));
+            const day = getHealthConnectDay(iso);
+            // Minimum SpO2 is kept alongside the average deliberately — a single low
+            // reading is the clinically relevant signal for respiratory concerns
+            // (per the team's stated COVID/respiratory motivation for adding this),
+            // and would otherwise get smoothed away by an average alone.
+            day.spo2 = { avgPct: Math.round(vals.reduce((s,v)=>s+v,0)/vals.length), minPct: Math.round(Math.min(...vals)), source:'healthconnect', syncedAt: Date.now() };
+            setHealthConnectDay(iso, day);
+            touchedDays.add(iso);
+          }
+        }
       }
       if(granted.has('bloodPressure')){
         const endDate = new Date();
@@ -5044,7 +5077,7 @@ syncNativeMedAlerts();
         for(const iso of touchedDays){
           const day = getHealthConnectDay(iso);
           await setDoc(doc(db,'users',currentUser.uid,'healthConnect',iso), {
-            steps: day.steps, heartRate: day.heartRate, bp: day.bp, updatedAt: Date.now()
+            steps: day.steps, heartRate: day.heartRate, bp: day.bp, spo2: day.spo2, updatedAt: Date.now()
           }, { merge:true });
         }
         // Marks that this account has had at least one real opportunity to push local
