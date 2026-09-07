@@ -453,6 +453,10 @@ const I18N = {
     set_sync_title:'Sincronización entre dispositivos', set_cancelar:'Cancelar', set_ajustes_guardados:'Ajustes guardados',
     invite_titulo:'Invita a un amigo', invite_boton:'Compartir invitación', invite_copiado:'Enlace copiado al portapapeles',
     invite_asunto:'Invitación a VitaLinks',
+    feedback_title:'Enviar comentarios', feedback_explainer:'¿Algo no funciona bien o tienes una idea? Cuéntanoslo — incluimos automáticamente la versión de la app y la pantalla actual para ayudarnos a investigar.',
+    feedback_placeholder:'Describe lo que viste...', feedback_send_button:'Enviar comentarios', feedback_sent:'¡Gracias! Comentarios enviados.',
+    err_feedback_empty:'Escribe un mensaje antes de enviar.', err_feedback_failed:'No se pudo enviar. Inténtalo de nuevo.',
+    err_feedback_signin_required:'Inicia sesión para enviar comentarios.',
     invite_texto:'Estoy usando VitaLinks para seguir mi salud — pruébalo:',
     share_boton:'Compartir progreso', share_sin_datos:'Registra al menos dos pesos para poder compartir tu progreso',
     share_texto:'Mi progreso en VitaLinks', share_descargada:'Imagen descargada', share_en_dias:'en {days} días',
@@ -698,6 +702,10 @@ const I18N = {
     set_sync_title:'Cross-device sync', set_cancelar:'Cancel', set_ajustes_guardados:'Settings saved',
     invite_titulo:'Invite a friend', invite_boton:'Share invite', invite_copiado:'Link copied to clipboard',
     invite_asunto:'Invitation to VitaLinks',
+    feedback_title:'Send feedback', feedback_explainer:"Something not working right, or have an idea? Let us know — we automatically include the app version and current screen to help us investigate.",
+    feedback_placeholder:'Describe what you saw...', feedback_send_button:'Send feedback', feedback_sent:'Thanks! Feedback sent.',
+    err_feedback_empty:'Write a message before sending.', err_feedback_failed:"Couldn't send it. Try again.",
+    err_feedback_signin_required:'Sign in to send feedback.',
     invite_texto:"I'm using VitaLinks to track my health — check it out:",
     share_boton:'Share progress', share_sin_datos:'Log at least two weights to share your progress',
     share_texto:'My progress on VitaLinks', share_descargada:'Image downloaded', share_en_dias:'in {days} days',
@@ -3475,6 +3483,10 @@ function modalHTML(){
         <div style="margin-bottom:16px;">${healthConnectSectionHTML()}</div>
         <div class="label">${tr('invite_titulo')}</div>
         <button class="btn btn-ghost" style="width:100%;margin-bottom:16px;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="shareInvite()">${navIcon('exportar',14)}${tr('invite_boton')}</button>
+        <div class="label">${tr('feedback_title')}</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">${tr('feedback_explainer')}</div>
+        <textarea id="feedback-message" rows="3" style="width:100%;margin-bottom:8px;resize:vertical;" placeholder="${tr('feedback_placeholder')}"></textarea>
+        <button class="btn btn-primary" style="width:100%;margin-bottom:16px;" onclick="sendFeedback()">${tr('feedback_send_button')}</button>
         <div style="display:flex;gap:8px;">
           <button class="btn btn-ghost" style="flex:1;" onclick="closeModal()">${tr('set_cancelar')}</button>
           <button class="btn btn-primary" style="flex:1;" onclick="saveSettings()">${tr('cal_guardar')}</button>
@@ -4991,6 +5003,65 @@ if(window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.P
   });
 }
 
+/* ================= feedback + client error reporting ================= */
+let _appInfoCache = null;
+async function getAppInfo(){
+  if(_appInfoCache) return _appInfoCache;
+  try{
+    if(window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins.App){
+      const info = await window.Capacitor.Plugins.App.getInfo();
+      _appInfoCache = { version: info.version, build: info.build };
+    } else {
+      _appInfoCache = { version: 'web', build: 'web' };
+    }
+  }catch(e){ _appInfoCache = { version: 'unknown', build: 'unknown' }; }
+  return _appInfoCache;
+}
+function diagnosticContextBase(){
+  return {
+    tab: state.tab, lang: state.lang,
+    nativePlatform: !!(window.Capacitor && window.Capacitor.isNativePlatform()),
+    platform: window.Capacitor ? window.Capacitor.getPlatform() : 'web',
+    userAgent: navigator.userAgent, url: location.href,
+  };
+}
+// Each distinct error message is only ever sent once per app session -- without this,
+// a single bug that throws on every render() call (this app's most common render
+// trigger) could fire hundreds of writes to Firestore in seconds.
+const _reportedErrorKeys = new Set();
+async function reportClientError(message, extra){
+  if(!message || typeof window.submitFeedback!=='function') return;
+  const key = String(message).slice(0,200);
+  if(_reportedErrorKeys.has(key)) return;
+  _reportedErrorKeys.add(key);
+  const info = await getAppInfo();
+  window.submitFeedback({
+    type: 'error', message: key,
+    stack: (extra && extra.stack) ? String(extra.stack).slice(0,2000) : null,
+    appVersion: info.version, appBuild: info.build,
+    ...diagnosticContextBase(),
+  });
+}
+window.addEventListener('error', e=>{ reportClientError(e.message, { stack: e.error && e.error.stack }); });
+window.addEventListener('unhandledrejection', e=>{
+  const reason = e.reason;
+  reportClientError(reason && reason.message ? reason.message : String(reason), { stack: reason && reason.stack });
+});
+async function sendFeedback(){
+  const el = document.getElementById('feedback-message');
+  const message = el ? el.value.trim() : '';
+  if(!message){ toast(tr('err_feedback_empty'), true); return; }
+  if(!(window._syncState && window._syncState.user)){ toast(tr('err_feedback_signin_required'), true); return; }
+  const info = await getAppInfo();
+  const ok = typeof window.submitFeedback==='function' ? await window.submitFeedback({
+    type: 'feedback', message,
+    appVersion: info.version, appBuild: info.build,
+    ...diagnosticContextBase(),
+  }) : false;
+  if(ok){ if(el) el.value=''; toast(tr('feedback_sent')); }
+  else toast(tr('err_feedback_failed'), true);
+}
+
 /* ================= init ================= */
 checkInviteParam();
 if(shouldShowWelcome()) window._modal = 'welcome';
@@ -5002,7 +5073,7 @@ syncNativeMedAlerts();
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithCredential, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-  import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  import { getFirestore, doc, setDoc, getDoc, onSnapshot, addDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
   import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-functions.js";
 
   const firebaseConfig = {
@@ -5316,6 +5387,29 @@ syncNativeMedAlerts();
     }
   };
   window.hcSyncNow = function(force){ return hcSyncNowImpl(!!force); };
+
+  // Unified feedback + client-error pipeline, ahead of the 12-tester closed-testing
+  // round. One Firestore collection ('feedback', write-only from the client, see
+  // firestore.rules) backs both a manual "Send Feedback" box in Settings and the
+  // automatic window.onerror/unhandledrejection capture wired up in the classic
+  // script below — same shape, same place to review reports, no external form tool.
+  // Requires sign-in (matches this collection's Firestore rule); silently no-ops
+  // otherwise rather than surfacing an error about the reporting mechanism itself.
+  window.submitFeedback = async function(payload){
+    if(!currentUser) return false;
+    try{
+      await addDoc(collection(db, 'feedback'), {
+        ...payload,
+        uid: currentUser.uid,
+        email: currentUser.email || null,
+        createdAt: serverTimestamp(),
+      });
+      return true;
+    }catch(e){
+      console.error('submitFeedback failed', e);
+      return false;
+    }
+  };
   window.hcMaybeSync = async function(){
     const meta = getHCMeta();
     if(!meta.connected) return;

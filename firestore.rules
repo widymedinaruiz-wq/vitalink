@@ -23,6 +23,16 @@ service cloud.firestore {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }
+    // In-app feedback + automatic client error reports (2026-09-07, ahead of the
+    // 12-tester closed-testing round). Write-only from the client by design — these
+    // are reviewed directly in the Firebase console, never read back by the app —
+    // and gated on sign-in like foods/barcodeFoods below, the same tradeoff: a report
+    // that happens to occur before a user ever signs in is silently dropped rather
+    // than opening an unauthenticated write surface on a real production project.
+    match /feedback/{reportId} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if false;
+    }
     match /foods/{foodId} {
       allow read: if true;
       allow create: if request.auth != null;
