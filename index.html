@@ -310,12 +310,18 @@ const I18N = {
     hc_grant_more_button:'Conceder acceso adicional',
     hc_scope_steps:'Pasos', hc_scope_heartrate:'Ritmo cardíaco', hc_scope_bp:'Presión arterial', hc_scope_spo2:'Saturación de oxígeno (SpO2)',
     hc_scope_granted:'concedido', hc_scope_denied:'permiso denegado',
+    hc_scopes_toggle:'Ver permisos concedidos',
     hc_manage_permissions_note:'Para cambiar estos permisos, ábrelos en la app Health Connect.',
     hc_steps_label:'Pasos (Health Connect)',
     hc_heartrate_label:'Ritmo cardíaco (Health Connect)',
     hc_spo2_label:'Saturación de oxígeno mín. (Health Connect)',
     hc_bp_synced_label:'Sincronizado desde Health Connect',
     hc_bp_synced_badge:'Health Connect',
+    hc_ex_synced_badge:'Health Connect',
+    hc_scope_workouts:'Entrenamientos',
+    hc_workout_running:'Correr', hc_workout_walking:'Caminar', hc_workout_cycling:'Ciclismo',
+    hc_workout_swimming:'Natación', hc_workout_strength:'Entrenamiento de fuerza',
+    hc_workout_hiking:'Senderismo', hc_workout_yoga:'Yoga', hc_workout_elliptical:'Elíptica',
     err_hc_not_installed:'Instala la app Health Connect para conectar tus dispositivos.',
     err_hc_permission_denied:'VitaLinks no tiene permiso para leer estos datos de Health Connect.',
     err_hc_sync_failed:'No se pudo sincronizar con Health Connect. Inténtalo de nuevo.',
@@ -549,12 +555,18 @@ const I18N = {
     hc_grant_more_button:'Grant additional access',
     hc_scope_steps:'Steps', hc_scope_heartrate:'Heart rate', hc_scope_bp:'Blood pressure', hc_scope_spo2:'Oxygen saturation (SpO2)',
     hc_scope_granted:'granted', hc_scope_denied:'permission denied',
+    hc_scopes_toggle:'View granted permissions',
     hc_manage_permissions_note:'To change these permissions, open them in the Health Connect app.',
     hc_steps_label:'Steps (Health Connect)',
     hc_heartrate_label:'Heart rate (Health Connect)',
     hc_spo2_label:'Min. oxygen saturation (Health Connect)',
     hc_bp_synced_label:'Synced from Health Connect',
     hc_bp_synced_badge:'Health Connect',
+    hc_ex_synced_badge:'Health Connect',
+    hc_scope_workouts:'Workouts',
+    hc_workout_running:'Running', hc_workout_walking:'Walking', hc_workout_cycling:'Cycling',
+    hc_workout_swimming:'Swimming', hc_workout_strength:'Strength training',
+    hc_workout_hiking:'Hiking', hc_workout_yoga:'Yoga', hc_workout_elliptical:'Elliptical',
     err_hc_not_installed:'Install the Health Connect app to connect your devices.',
     err_hc_permission_denied:"VitaLinks doesn't have permission to read this data from Health Connect.",
     err_hc_sync_failed:'Could not sync with Health Connect. Please try again.',
@@ -731,6 +743,17 @@ function getLang(){ return LS.get('vl:lang') || 'es'; }
 function setLang(l){ LS.set('vl:lang', l); state.lang = l; render(); }
 function getTheme(){ return LS.get('vl:theme') || 'system'; }
 function setTheme(t){ LS.set('vl:theme', t); state.theme = t; applyTheme(); render(); }
+function getProgressRange(){ return LS.get('vl:progressRange') || 7; }
+// Called once, the moment a user connects Health Connect for the very first time (not on a
+// later "grant additional access" for an already-connected user) — that first connect backfills
+// 30 days of history, so the Progress charts' day-range default is bumped to 30 as well, otherwise
+// the default 7-day view would hide most of what was just imported. Persisted like any other
+// preference, so it's their default going forward too, not just for this one session.
+function applyFirstHealthConnectDefaults(){
+  state.progressRange = 30;
+  LS.set('vl:progressRange', 30);
+  render();
+}
 function applyTheme(){
   if(state.theme==='light' || state.theme==='dark') document.documentElement.dataset.theme = state.theme;
   else delete document.documentElement.dataset.theme;
@@ -888,6 +911,28 @@ function statusColor(status){
 function emptyDay(){ return { meals:[], exercises:[], weight:null, sleepHours:null, water:0, bp:[], medsTaken:[], bodyComp:[] }; }
 function getDay(iso){ return { ...emptyDay(), ...(LS.get('vl:day:'+iso) || {}) }; }
 function setDayData(iso, data){ return LS.set('vl:day:'+iso, data); }
+// Quiet variants for Health Connect's exercise merge only: write the data immediately
+// (so the goal ring/Forecast reflect it right away, even offline) but deliberately
+// never bump 'vl:_lastChangeAt' or schedule a cloud push. Unlike steps/HR/BP/SpO2,
+// synced exercise entries live in state.day.exercises itself (so they count toward
+// the real goal), which means a naive LS.set() here would let device-observed data
+// unilaterally claim "this device is newest" — the exact mechanism that caused the
+// welcome-modal sync-deadlock bug. The Health Connect sync module explicitly bumps
+// the timestamp itself, but only once it has confirmed doing so is safe.
+function setDayDataQuiet(iso, data){ try{ localStorage.setItem('vl:day:'+iso, JSON.stringify(data)); return true; }catch(e){ return false; } }
+function mutateDayQuiet(iso, fn){
+  if(iso===todayISO()){ fn(state.day); setDayDataQuiet(iso, state.day); }
+  else { const day = getDay(iso); fn(day); setDayDataQuiet(iso, day); }
+}
+// Tombstone for exercise entries the user explicitly deleted, so a later Health
+// Connect resync (which re-reads the same workout from the OS) doesn't silently
+// bring a deleted entry back.
+function getHCExcludedExerciseIds(){ return new Set(LS.get('vl:hc-ex-excluded') || []); }
+function excludeHCExerciseId(externalId){
+  const ids = Array.from(getHCExcludedExerciseIds());
+  ids.push(externalId);
+  LS.set('vl:hc-ex-excluded', ids);
+}
 
 // Health Connect synced data lives in its own 'hc:' namespace, deliberately never
 // touching 'vl:' localStorage keys or state.day — collectLocalData()'s cloud-push
@@ -1177,16 +1222,18 @@ const state = {
   selectedDate: todayISO(),
   toast: null,
   alertsOn: false,
-  progressRange: 7,
+  progressRange: getProgressRange(),
   nutritionRange: 30,
   bodyCompFormOpen: false,
   calendarOpen: true,
   microOpen: false,
+  hcScopesOpen: false,
   lang: getLang(),
   theme: getTheme(),
 };
 applyTheme();
 function toggleBodyCompForm(){ state.bodyCompFormOpen = !state.bodyCompFormOpen; render(); }
+function toggleHcScopesOpen(){ state.hcScopesOpen = !state.hcScopesOpen; render(); }
 function toggleCalendarView(){ state.calendarOpen = !state.calendarOpen; render(); }
 function toggleMicroOpen(){ state.microOpen = !state.microOpen; render(); }
 
@@ -2123,7 +2170,7 @@ function renderEjercicio(){
         <span class="display" style="color:var(--accent2);font-weight:700;font-size:13px;">${totalMin} min</span>
       </div>
       ${d.exercises.length===0 ? emptyState('ejercicio', tr('ejercicio_empty')) :
-        `<div class="stack" style="gap:8px;">${d.exercises.map(e=>rowItem(e.name, `${e.time} · ${e.minutes} min`, e.calories?e.calories+' kcal':'', `removeExercise('${e.id}')`)).join('')}</div>`}
+        `<div class="stack" style="gap:8px;">${d.exercises.map(e=>rowItem(e.name, `${e.time} · ${e.minutes} min`, e.calories?e.calories+' kcal':'', `removeExercise('${e.id}')`, hcExerciseBadgeHTML(e))).join('')}</div>`}
     </div>
   </div>`;
 }
@@ -2574,7 +2621,7 @@ function renderDayDetail(iso){
       </div>
       <div style="min-width:0;">
         <div class="label">${tr('cal_ejercicio')}</div>
-        ${d.exercises.length? `<div class="stack" style="gap:6px;margin-bottom:10px;">${d.exercises.map(e=>rowItem(e.name, e.time, e.minutes+' min', `removeExerciseForDay('${iso}','${e.id}')`)).join('')}</div>` : `<div style="color:var(--muted);font-size:12px;margin-bottom:10px;">${tr('cal_sin_registros')}</div>`}
+        ${d.exercises.length? `<div class="stack" style="gap:6px;margin-bottom:10px;">${d.exercises.map(e=>rowItem(e.name, e.time, e.minutes+' min', `removeExerciseForDay('${iso}','${e.id}')`, hcExerciseBadgeHTML(e))).join('')}</div>` : `<div style="color:var(--muted);font-size:12px;margin-bottom:10px;">${tr('cal_sin_registros')}</div>`}
         <div style="display:flex;gap:6px;margin-bottom:6px;">
           <div style="flex:2;min-width:0;position:relative;">
             <input id="cal-ex-name" placeholder="${tr('cal_actividad')}" style="width:100%;" autocomplete="off" oninput="onExerciseNameInputForDay()" onfocus="onExerciseNameInputForDay()" onblur="hideExerciseSuggestForDay()">
@@ -3259,6 +3306,26 @@ function rowItem(left, sub, right, onDelete, badge){
     </div>
   </div>`;
 }
+function hcExerciseBadgeHTML(e){
+  if(e.source!=='healthconnect') return '';
+  return `<span style="font-size:10px;color:var(--accent2);border:1px solid var(--accent2);border-radius:4px;padding:1px 5px;">${tr('hc_ex_synced_badge')}</span>`;
+}
+// Curated labels for the handful of most common Health Connect workout types (so the
+// common case reads naturally translated); the other ~90 WorkoutType values fall back
+// to a humanized version of the raw camelCase string rather than being hand-translated.
+const HC_WORKOUT_TYPE_LABELS = {
+  running:'hc_workout_running', walking:'hc_workout_walking', cycling:'hc_workout_cycling',
+  swimming:'hc_workout_swimming', strengthTraining:'hc_workout_strength',
+  hiking:'hc_workout_hiking', yoga:'hc_workout_yoga', elliptical:'hc_workout_elliptical',
+};
+function humanizeWorkoutType(type){
+  const s = String(type||'other').replace(/([a-z0-9])([A-Z])/g,'$1 $2');
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+function workoutTypeLabel(type){
+  const key = HC_WORKOUT_TYPE_LABELS[type];
+  return key ? tr(key) : humanizeWorkoutType(type);
+}
 function rowItemStatic(left, sub, right, badge){
   return `<div class="row-item">
     <div style="min-width:0;">
@@ -3323,12 +3390,17 @@ function healthConnectSectionHTML(){
   return `<div>
     <div style="font-size:12px;color:var(--accent3);font-weight:700;margin-bottom:4px;">✅ ${tr('hc_connected_label')}</div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">${meta.lastSyncAt?trf('hc_last_sync',{time:lastSync}):tr('hc_last_sync_never')}</div>
-    <div style="margin-bottom:10px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:${state.hcScopesOpen?'6px':'10px'};" onclick="toggleHcScopesOpen()">
+      <span style="font-size:11px;color:var(--muted);">${tr('hc_scopes_toggle')}</span>
+      <span style="font-size:16px;color:var(--muted);">${state.hcScopesOpen?'▾':'▸'}</span>
+    </div>
+    ${state.hcScopesOpen ? `<div style="margin-bottom:10px;">
       ${scopeRow('steps','hc_scope_steps')}
       ${scopeRow('heartRate','hc_scope_heartrate')}
       ${scopeRow('bloodPressure','hc_scope_bp')}
       ${scopeRow('oxygenSaturation','hc_scope_spo2')}
-    </div>
+      ${scopeRow('workouts','hc_scope_workouts')}
+    </div>` : ''}
     ${meta.lastSyncError?`<div style="font-size:11px;color:var(--danger);margin-bottom:8px;">${esc(meta.lastSyncError)}</div>`:''}
     ${(window.HC_READ_TYPES||[]).some(t=>!(meta.grantedScopes||[]).includes(t)) ? `<button class="btn btn-primary" style="width:100%;margin-bottom:6px;" onclick="connectHealthConnect()">${tr('hc_grant_more_button')}</button>` : ''}
     <button class="btn btn-ghost" style="width:100%;margin-bottom:6px;" onclick="syncHealthConnectNowUI()">${tr('hc_sync_now_button')}</button>
@@ -3600,7 +3672,7 @@ function runHoyEntranceAnimation(){
   }
 }
 function setMealType(t){ window._mealType=t; render(); }
-function setRange(r){ state.progressRange=r; render(); }
+function setRange(r){ state.progressRange=r; LS.set('vl:progressRange', r); render(); }
 function setNutritionRange(r){ state.nutritionRange=r; render(); }
 
 function setWater(v){ state.day.water = v; saveDay(); render(); }
@@ -4016,7 +4088,12 @@ function addExercise(){
   window._exerciseType = null;
   saveDay(); render();
 }
-function removeExercise(id){ state.day.exercises = state.day.exercises.filter(e=>e.id!==id); saveDay(); render(); }
+function removeExercise(id){
+  const target = state.day.exercises.find(e=>e.id===id);
+  if(target && target.source==='healthconnect' && target.externalId) excludeHCExerciseId(target.externalId);
+  state.day.exercises = state.day.exercises.filter(e=>e.id!==id);
+  saveDay(); render();
+}
 
 function bpCategory(sys, dia){
   if(sys>180 || dia>120) return { label:'Crisis hipertensiva', color:'var(--danger)' };
@@ -4309,7 +4386,13 @@ function addExerciseForDay(iso){
   rememberExercise(name, minutes, calories);
   mutateDay(iso, day=>day.exercises.push(ex));
 }
-function removeExerciseForDay(iso, id){ mutateDay(iso, day=>{ day.exercises = day.exercises.filter(e=>e.id!==id); }); }
+function removeExerciseForDay(iso, id){
+  mutateDay(iso, day=>{
+    const target = day.exercises.find(e=>e.id===id);
+    if(target && target.source==='healthconnect' && target.externalId) excludeHCExerciseId(target.externalId);
+    day.exercises = day.exercises.filter(e=>e.id!==id);
+  });
+}
 function setSleepForDay(iso){
   const v = document.getElementById('cal-sleep').value;
   mutateDay(iso, day=>{ day.sleepHours = v===''?null:Number(v); });
@@ -4998,7 +5081,7 @@ syncNativeMedAlerts();
      keys (see emptyHCDay/getHealthConnectDay/etc. near emptyDay(), earlier in this file),
      never 'vl:' keys, so a device sync can never race the fragile main-doc sync. No live
      onSnapshot for this data — v1 only needs a one-shot reinstall/new-device backfill. */
-  const HC_READ_TYPES = ['steps','heartRate','restingHeartRate','bloodPressure','oxygenSaturation'];
+  const HC_READ_TYPES = ['steps','heartRate','restingHeartRate','bloodPressure','oxygenSaturation','workouts'];
   // Exposed so the Settings UI (non-module script) can detect newly-added scopes an
   // already-connected user hasn't granted yet, without duplicating this list — see
   // the "grant additional access" branch in healthConnectSectionHTML().
@@ -5121,6 +5204,74 @@ syncNativeMedAlerts();
           touchedDays.add(iso);
         }
       }
+      if(granted.has('workouts')){
+        // Unlike steps/HR/BP/SpO2 (isolated hc:day:* cache, never touches vl:*),
+        // workouts merge directly into state.day.exercises so they count toward the
+        // real exercise goal and Forecast calorie math — the same field manual
+        // entries use. That means this write goes through vl:day:* and therefore
+        // CAN affect the main cross-device sync's last-write-wins timestamp, unlike
+        // every other Health Connect metric. To avoid reopening the welcome-modal
+        // sync-deadlock class of bug, this block writes quietly (mutateDayQuiet,
+        // never bumps vl:_lastChangeAt) and only explicitly publishes the change
+        // (bumping the timestamp + scheduling a cloud push) once it has confirmed
+        // the current session has already reconciled with the cloud at least once
+        // (currentUser && remoteSnapshotSeen) — otherwise a pre-reconciliation
+        // write could make an otherwise-empty device look "newest" and either block
+        // a legitimate pull, or (worse, since exercise entries create real day
+        // records) actually push over real cloud history. It also gets its own
+        // try/catch: Health.queryWorkouts() is unproven in this codebase (unlike
+        // readSamples, already proven reliable) and must not be able to abort the
+        // steps/HR/BP/SpO2 sync or their cloud push above if it throws.
+        try{
+          const endDate = new Date();
+          const startDate = new Date(Date.now() - dayCount * 24*60*60*1000);
+          const { workouts: rawWorkouts } = await Health.queryWorkouts({ startDate: startDate.toISOString(), endDate: endDate.toISOString(), limit: 200, ascending: true });
+          // Confirmed via live device testing: Health Connect can return multiple distinct
+          // records (different platformId each) for the SAME real-world workout — e.g. both
+          // "Fit" and "Health" independently mirroring the same Fitbit session into Health
+          // Connect. platformId-based dedup alone doesn't catch this, since the duplicates
+          // are genuinely different records by that key. Collapse by (start,end) — two truly
+          // distinct real workouts starting and ending at the exact same instant is not a
+          // real-world case worth worrying about — before any per-day/externalId dedup runs.
+          const seenWindows = new Set();
+          const workouts = rawWorkouts.filter(w=>{
+            const windowKey = `${w.startDate}|${w.endDate}`;
+            if(seenWindows.has(windowKey)) return false;
+            seenWindows.add(windowKey);
+            return true;
+          });
+          const excludedIds = getHCExcludedExerciseIds();
+          const touchedWorkoutDays = new Set();
+          for(let i=0;i<dayCount;i++){
+            const iso = isoDaysAgo(i);
+            const [y,m,d] = iso.split('-').map(Number);
+            const dayStartMs = new Date(y, m-1, d, 0,0,0).getTime();
+            const dayEndMs = new Date(y, m-1, d, 23,59,59,999).getTime();
+            const dayWorkouts = workouts.filter(w=>{ const t = new Date(w.startDate).getTime(); return t>=dayStartMs && t<=dayEndMs; });
+            if(!dayWorkouts.length) continue;
+            mutateDayQuiet(iso, day=>{
+              const existingIds = new Set(day.exercises.map(e=>e.externalId));
+              for(const w of dayWorkouts){
+                const externalId = w.platformId || `${w.workoutType}|${w.startDate}|${w.endDate}`;
+                if(existingIds.has(externalId) || excludedIds.has(externalId)) continue;
+                day.exercises.push({
+                  id: uid(), name: workoutTypeLabel(w.workoutType),
+                  minutes: Math.round((Number(w.duration)||0)/60),
+                  calories: Math.round(Number(w.totalEnergyBurned)||0),
+                  time: new Date(w.startDate).toTimeString().slice(0,5),
+                  type: null, source:'healthconnect', externalId, syncedAt: Date.now()
+                });
+                existingIds.add(externalId);
+              }
+            });
+            touchedWorkoutDays.add(iso);
+          }
+          if(touchedWorkoutDays.size && currentUser && remoteSnapshotSeen){
+            localStorage.setItem('vl:_lastChangeAt', String(Date.now()));
+            window._scheduleCloudPush();
+          }
+        }catch(e){ /* isolated on purpose — must not affect steps/HR/BP/SpO2 sync above */ }
+      }
       if(currentUser){
         for(const iso of touchedDays){
           const day = getHealthConnectDay(iso);
@@ -5148,6 +5299,10 @@ syncNativeMedAlerts();
   window.hcConnect = async function(){
     const Health = hcPlugin();
     if(!Health) throw new Error('Health Connect not available');
+    // Captured before this call's own requestAuthorization/setHCMeta below, so a later "grant
+    // additional access" for an already-connected user (which also runs this same function and
+    // also triggers a 30-day backfill) is correctly distinguished from a genuine first connect.
+    const wasConnected = getHCMeta().connected;
     const status = await Health.requestAuthorization({ read: HC_READ_TYPES, write: [] });
     const granted = status.readAuthorized || [];
     const meta = getHCMeta();
@@ -5155,7 +5310,10 @@ syncNativeMedAlerts();
     meta.grantedScopes = granted;
     meta.lastSyncError = null;
     setHCMeta(meta);
-    if(meta.connected) await hcSyncNowImpl(true);
+    if(meta.connected){
+      if(!wasConnected && typeof window.applyFirstHealthConnectDefaults==='function') window.applyFirstHealthConnectDefaults();
+      await hcSyncNowImpl(true);
+    }
   };
   window.hcSyncNow = function(force){ return hcSyncNowImpl(!!force); };
   window.hcMaybeSync = async function(){
