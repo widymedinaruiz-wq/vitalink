@@ -470,6 +470,14 @@ const I18N = {
     sync_sincronizando:'Sincronizando…', sync_ultima:'Última sincronización:',
     sync_force_pull_button:'Forzar descarga desde la nube',
     sync_force_pull_confirm:'Esto reemplazará los datos de este dispositivo con los de la nube. Los cambios hechos aquí desde la última sincronización se perderán. ¿Continuar?',
+    delete_account_title:'Eliminar cuenta',
+    delete_account_explainer:'Elimina permanentemente tu cuenta y todos tus datos sincronizados en la nube. Esta acción no se puede deshacer.',
+    delete_account_button:'Eliminar mi cuenta',
+    delete_account_confirm_title:'¿Eliminar tu cuenta permanentemente?',
+    delete_account_confirm_body:'Esto eliminará tu cuenta de Firebase y todos tus datos sincronizados: comidas, ejercicio, presión arterial, medicamentos, composición corporal, peso, sueño, agua y datos de Health Connect. También se borrarán los datos guardados en este dispositivo.\n\nSi tienes una suscripción activa de VitaLinks Plus a través de Google Play, cancélala por separado en Google Play — esta acción no la cancela automáticamente.',
+    delete_account_type_prompt:'Escribe DELETE para confirmar',
+    delete_account_confirm_button:'Eliminar permanentemente',
+    delete_account_deleting:'Eliminando…',
     comp_sin_info:'Sin información disponible.',
     report_boton:'Reporte PDF (30 días)', report_generando:'Generando reporte…', report_listo:'Reporte descargado',
     report_error_lib:'No se pudo cargar el generador de PDF. Revisa tu conexión e intenta de nuevo.',
@@ -721,6 +729,14 @@ const I18N = {
     sync_sincronizando:'Syncing…', sync_ultima:'Last synced:',
     sync_force_pull_button:'Force pull from cloud',
     sync_force_pull_confirm:"This will replace this device's data with the cloud's version. Any changes made here since the last sync will be lost. Continue?",
+    delete_account_title:'Delete account',
+    delete_account_explainer:'Permanently delete your account and all your synced cloud data. This action cannot be undone.',
+    delete_account_button:'Delete my account',
+    delete_account_confirm_title:'Permanently delete your account?',
+    delete_account_confirm_body:"This will delete your Firebase account and all synced data: meals, exercise, blood pressure, medications, body composition, weight, sleep, water, and Health Connect data. Data stored on this device will also be cleared.\n\nIf you have an active VitaLinks Plus subscription through Google Play, cancel it separately in Google Play — this action does not cancel it automatically.",
+    delete_account_type_prompt:'Type DELETE to confirm',
+    delete_account_confirm_button:'Permanently delete',
+    delete_account_deleting:'Deleting…',
     comp_sin_info:'No information available.',
     report_boton:'PDF Report (30 days)', report_generando:'Generating report…', report_listo:'Report downloaded',
     report_error_lib:'Could not load the PDF generator. Check your connection and try again.',
@@ -3492,6 +3508,9 @@ function modalHTML(){
         <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">${tr('feedback_explainer')}</div>
         <textarea id="feedback-message" rows="3" style="width:100%;margin-bottom:8px;resize:vertical;" placeholder="${tr('feedback_placeholder')}"></textarea>
         <button class="btn btn-primary" style="width:100%;margin-bottom:16px;" onclick="sendFeedback()">${tr('feedback_send_button')}</button>
+        ${window._syncState && window._syncState.user ? `<div class="label" style="color:var(--danger);">${tr('delete_account_title')}</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">${tr('delete_account_explainer')}</div>
+        <button class="btn btn-danger" style="width:100%;margin-bottom:16px;" onclick="openDeleteAccountConfirm()">${tr('delete_account_button')}</button>` : ''}
         <div style="display:flex;gap:8px;">
           <button class="btn btn-ghost" style="flex:1;" onclick="closeModal()">${tr('set_cancelar')}</button>
           <button class="btn btn-primary" style="flex:1;" onclick="saveSettings()">${tr('cal_guardar')}</button>
@@ -3584,9 +3603,46 @@ function modalHTML(){
       </div>
     </div>`;
   }
+  if(window._modal==='delete-account-confirm'){
+    return `<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;" onclick="closeModal(event)">
+      <div class="card" style="width:420px;max-width:100%;max-height:85vh;overflow-y:auto;" onclick="event.stopPropagation()">
+        <div class="display" style="font-weight:700;font-size:16px;margin-bottom:10px;color:var(--danger);">⚠️ ${tr('delete_account_confirm_title')}</div>
+        <div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:14px;white-space:pre-line;">${tr('delete_account_confirm_body')}</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">${tr('delete_account_type_prompt')}</div>
+        <input id="delete-account-confirm-input" type="text" autocomplete="off" style="width:100%;margin-bottom:10px;" oninput="document.getElementById('delete-account-confirm-btn').disabled = this.value.trim().toUpperCase() !== 'DELETE'">
+        <div id="delete-account-confirm-error" style="font-size:11px;color:var(--danger);margin-bottom:8px;"></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost" style="flex:1;" onclick="closeModal()">${tr('set_cancelar')}</button>
+          <button id="delete-account-confirm-btn" class="btn btn-danger" style="flex:1;" disabled onclick="confirmDeleteAccount()">${tr('delete_account_confirm_button')}</button>
+        </div>
+      </div>
+    </div>`;
+  }
   return '';
 }
 function openSettings(){ window._modal='settings'; render(); }
+function openDeleteAccountConfirm(){ window._modal='delete-account-confirm'; render(); }
+async function confirmDeleteAccount(){
+  const input = document.getElementById('delete-account-confirm-input');
+  if(!input || input.value.trim().toUpperCase() !== 'DELETE') return;
+  const btn = document.getElementById('delete-account-confirm-btn');
+  const errEl = document.getElementById('delete-account-confirm-error');
+  if(errEl) errEl.textContent = '';
+  if(btn){ btn.disabled = true; btn.textContent = tr('delete_account_deleting'); }
+  try{
+    if(typeof window.callDeleteAccount !== 'function') throw new Error('deleteAccount not wired');
+    await window.callDeleteAccount();
+    // firebaseSignOut() triggers onAuthStateChanged(null), which already resets the
+    // Firestore snapshot/billing subscriptions declared inside the module script —
+    // no need to reach into that module-scoped state from here.
+    if(typeof window.firebaseSignOut === 'function'){ try{ await window.firebaseSignOut(); }catch(e){} }
+    localStorage.clear();
+    location.reload();
+  }catch(e){
+    if(btn){ btn.disabled = false; btn.textContent = tr('delete_account_confirm_button'); }
+    if(errEl) errEl.textContent = tr('err_sync_generic');
+  }
+}
 function openBodyCompInfo(key){ window._modal='bodycomp-info'; window._infoKey=key; render(); }
 async function openPlusPaywall(){
   if(!(window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins.Purchases)){
@@ -5102,6 +5158,7 @@ syncNativeMedAlerts();
   window._planState = { plan:'free', planExpiresAt:null };
   window.callEstimateNutritionPlus = httpsCallable(functions, 'estimateNutritionPlus');
   window.callGenerateDailyInsightPlus = httpsCallable(functions, 'generateDailyInsightPlus');
+  window.callDeleteAccount = httpsCallable(functions, 'deleteAccount');
 
   // RevenueCat public SDK key for the real "Vitalinks (Play Store)" app — safe to ship
   // in client code, like Firebase's own apiKey above (a public identifier, not a secret).
