@@ -4,6 +4,7 @@ const { defineSecret } = require('firebase-functions/params');
 const logger = require('firebase-functions/logger');
 const admin = require('firebase-admin');
 const { getFirestore, Timestamp, FieldValue } = require('firebase-admin/firestore');
+const { getAuth } = require('firebase-admin/auth');
 
 admin.initializeApp();
 const db = getFirestore();
@@ -179,6 +180,35 @@ async function fetchRevenueCatEntitlement(appUserId, secretKey) {
  * RevenueCat's app_user_id (Purchases.configure({ appUserID: firebaseUid })), so no
  * separate id-mapping table is needed.
  */
+/**
+ * Self-service account deletion. Deletes the Firestore data subtree, the user's own
+ * feedback/error reports (a separate top-level collection, not under users/{uid}, but
+ * still carries uid+email per submitFeedback in index.html), then the Auth user itself.
+ * Firestore first, Auth last: recursiveDelete is idempotent, so a retry after a partial
+ * failure is safe, whereas deleting the Auth user first would strand orphaned data this
+ * function could no longer be called (as that uid) to clean up.
+ */
+exports.deleteAccount = onCall(async (request) => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Sign in required.');
+  const uid = request.auth.uid;
+  try {
+    await db.recursiveDelete(db.doc(`users/${uid}`));
+
+    const feedbackSnap = await db.collection('feedback').where('uid', '==', uid).get();
+    if (!feedbackSnap.empty) {
+      const batch = db.batch();
+      feedbackSnap.forEach((d) => batch.delete(d.ref));
+      await batch.commit();
+    }
+
+    await getAuth().deleteUser(uid);
+    return { success: true };
+  } catch (e) {
+    logger.error('deleteAccount failed', { uid, error: String(e) });
+    throw new HttpsError('internal', 'Account deletion failed.');
+  }
+});
+
 exports.revenueCatWebhook = onRequest(
   // RevenueCat's servers can't present a Google-issued IAM token, so this endpoint
   // must be publicly invokable — the Authorization-header check below is the real
