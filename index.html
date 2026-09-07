@@ -468,6 +468,8 @@ const I18N = {
     sync_conecta:'Conecta tu cuenta para que tus datos se sincronicen automáticamente entre tu computadora y tu celular.',
     sync_error:'Error:', sync_nunca:'nunca', sync_cerrar_sesion:'Cerrar sesión',
     sync_sincronizando:'Sincronizando…', sync_ultima:'Última sincronización:',
+    sync_force_pull_button:'Forzar descarga desde la nube',
+    sync_force_pull_confirm:'Esto reemplazará los datos de este dispositivo con los de la nube. Los cambios hechos aquí desde la última sincronización se perderán. ¿Continuar?',
     comp_sin_info:'Sin información disponible.',
     report_boton:'Reporte PDF (30 días)', report_generando:'Generando reporte…', report_listo:'Reporte descargado',
     report_error_lib:'No se pudo cargar el generador de PDF. Revisa tu conexión e intenta de nuevo.',
@@ -717,6 +719,8 @@ const I18N = {
     sync_conecta:'Connect your account so your data syncs automatically between your computer and phone.',
     sync_error:'Error:', sync_nunca:'never', sync_cerrar_sesion:'Sign out',
     sync_sincronizando:'Syncing…', sync_ultima:'Last synced:',
+    sync_force_pull_button:'Force pull from cloud',
+    sync_force_pull_confirm:"This will replace this device's data with the cloud's version. Any changes made here since the last sync will be lost. Continue?",
     comp_sin_info:'No information available.',
     report_boton:'PDF Report (30 days)', report_generando:'Generating report…', report_listo:'Report downloaded',
     report_error_lib:'Could not load the PDF generator. Check your connection and try again.',
@@ -3448,6 +3452,7 @@ function syncSectionHTML(){
       <button class="btn btn-ghost" style="padding:6px 10px;font-size:11px;" onclick="firebaseSignOut()">${tr('sync_cerrar_sesion')}</button>
     </div>
     <div style="font-size:11px;color:var(--muted);">${s.syncing?tr('sync_sincronizando'):tr('sync_ultima')+' '+lastSync}${s.error?' — '+tr('sync_error')+' '+esc(s.error):''}</div>
+    ${s.error?`<button class="btn btn-ghost" style="width:100%;margin-top:8px;font-size:11px;" onclick="forcePullFromCloud()">${tr('sync_force_pull_button')}</button>`:''}
   </div>`;
 }
 /* ================= modal (settings) ================= */
@@ -3457,8 +3462,8 @@ function modalHTML(){
   if(!window._modal) return '';
   if(window._modal==='settings'){
     const g = state.goals;
-    return `<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;" onclick="closeModal(event)">
-      <div class="card" style="width:360px;max-width:90vw;" onclick="event.stopPropagation()">
+    return `<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;" onclick="closeModal(event)">
+      <div class="card" style="width:360px;max-width:100%;max-height:85vh;overflow-y:auto;" onclick="event.stopPropagation()">
         <div class="display" style="font-weight:700;font-size:16px;margin-bottom:16px;">${tr('nav_ajustes')}</div>
         <div class="label">${tr('set_metas_diarias')}</div>
         <div class="grid2" style="margin-bottom:14px;">
@@ -3570,7 +3575,7 @@ function modalHTML(){
     // shows on a fresh install (see shouldShowWelcome()), so it inherits whatever
     // that function already does, including its window._hcState-not-ready race.
     return `<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;" onclick="closeWelcomeModal(event)">
-      <div class="card" style="width:400px;max-width:100%;" onclick="event.stopPropagation()">
+      <div class="card" style="width:400px;max-width:100%;max-height:85vh;overflow-y:auto;" onclick="event.stopPropagation()">
         <div class="display" style="font-weight:700;font-size:18px;margin-bottom:6px;">${tr('welcome_title')}</div>
         <div style="font-size:13px;color:var(--muted);margin-bottom:18px;">${tr('welcome_subtitle')}</div>
         <div class="label">${tr('hc_settings_title')}</div>
@@ -5443,6 +5448,14 @@ syncNativeMedAlerts();
   }
 
   function dayKeyCount(obj){ return Object.keys(obj).filter(k=>k.startsWith('vl:day:')).length; }
+  // Cheap local-only counterpart to dayKeyCount(collectLocalData()) -- scans localStorage
+  // keys directly instead of materializing a full copy of every vl:* value, since this
+  // runs on the applyRemoteSnapshot hot path (every incoming snapshot).
+  function localDayKeyCount(){
+    let c=0;
+    for(let i=0;i<localStorage.length;i++){ if(localStorage.key(i).startsWith('vl:day:')) c++; }
+    return c;
+  }
 
   function collectLocalData(){
     const all = {};
@@ -5522,16 +5535,57 @@ syncNativeMedAlerts();
     if(remote.updatedAt === lastPushedAt) return; // echo of our own push
     const remoteUpdatedAt = remote.updatedAt || 0;
     const localUpdatedAt = Number(localStorage.getItem('vl:_lastChangeAt')||0);
-    if(remoteUpdatedAt > localUpdatedAt){
+    // A local device with genuinely fewer recorded days than the cloud must never be
+    // treated as "newest" just because some ordinary edit happened to bump the timestamp
+    // more recently -- that's exactly the class of bug that stranded devices with a
+    // permanent, unrecoverable "Sync blocked" error (pushToCloud's own day-count guard
+    // could only block the resulting push, never redirect it into a pull). Whenever local
+    // is thinner, pull the richer remote data unconditionally regardless of which side's
+    // timestamp looks newer; once local has caught up (or ties/exceeds the cloud), the
+    // existing timestamp-based decision below is completely unchanged. localDayKeyCount()
+    // only runs when the timestamp check alone wouldn't already decide to pull (|| short-
+    // circuits), so this adds no extra cost to the common already-reconciled case.
+    const shouldPull = remoteUpdatedAt > localUpdatedAt ||
+      (lastKnownRemoteDayCount > 0 && localDayKeyCount() < lastKnownRemoteDayCount);
+    if(shouldPull){
       Object.keys(remoteData).forEach(k=>localStorage.setItem(k, remoteData[k]));
       localStorage.setItem('vl:_lastChangeAt', String(remoteUpdatedAt));
       window._syncState.lastSyncAt = Date.now();
+      window._syncState.error = null;
       if(typeof window.resyncFromStorage === 'function') window.resyncFromStorage();
       else safeRender();
     } else if(localUpdatedAt > remoteUpdatedAt){
       pushToCloud();
     }
   }
+  // Manual recovery escape hatch: deliberately does NOT reuse applyRemoteSnapshot's own
+  // heuristic above -- the whole point is to have a way out if that heuristic is ever
+  // wrong or unreachable in some future/unanticipated case. Unconditionally overwrites
+  // this device with the cloud's version, no timestamp/day-count comparison at all. The
+  // confirm() below is a deliberate one-off: nothing else in this app confirms a
+  // destructive action (even single-item deletes fire immediately), but this button can
+  // discard the device's entire local dataset at once, which is categorically more
+  // destructive than anything else currently in the app.
+  window.forcePullFromCloud = async function(){
+    if(!currentUser) return;
+    if(!confirm(tr('sync_force_pull_confirm'))) return;
+    try{
+      const snap = await getDoc(doc(db,'users',currentUser.uid));
+      if(!snap.exists()) return;
+      const remote = snap.data();
+      const remoteData = remote.data || {};
+      Object.keys(remoteData).forEach(k=>localStorage.setItem(k, remoteData[k]));
+      localStorage.setItem('vl:_lastChangeAt', String(remote.updatedAt||Date.now()));
+      lastKnownRemoteDayCount = dayKeyCount(remoteData);
+      window._syncState.error = null;
+      window._syncState.lastSyncAt = Date.now();
+      if(typeof window.resyncFromStorage === 'function') window.resyncFromStorage();
+      else safeRender();
+    }catch(e){
+      window._syncState.error = friendlyFirebaseError(e);
+      safeRender();
+    }
+  };
 
   // Maps a Firebase (Auth or Firestore) error code to translated, actionable
   // copy instead of leaking the SDK's raw English message (e.g. "Firebase:
