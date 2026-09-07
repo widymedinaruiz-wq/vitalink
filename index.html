@@ -5460,10 +5460,14 @@ syncNativeMedAlerts();
   window.submitFeedback = async function(payload){
     if(!currentUser) return false;
     try{
+      // Email is only included for user-initiated feedback (the manual Settings
+      // box, which discloses what's sent) — automatic error reports (type
+      // 'error', armed at app init with no user action) must not silently
+      // transmit it. uid alone is enough to correlate an error report to a user.
       await addDoc(collection(db, 'feedback'), {
         ...payload,
         uid: currentUser.uid,
-        email: currentUser.email || null,
+        email: payload.type === 'feedback' ? (currentUser.email || null) : null,
         createdAt: serverTimestamp(),
       });
       return true;
