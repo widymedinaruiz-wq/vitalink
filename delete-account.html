@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Delete Your Account & Data — VitaLinks</title>
+<title>Eliminar tu cuenta y datos — VitaLinks</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' rx='26' fill='%230E2723'/%3E%3Cdefs%3E%3Cmask id='t' maskUnits='userSpaceOnUse' x='0' y='0' width='120' height='120'%3E%3Crect width='120' height='120' fill='white'/%3E%3Ccircle cx='60' cy='80' r='34.641' fill='none' stroke='black' stroke-width='16'/%3E%3C/mask%3E%3Cmask id='o' maskUnits='userSpaceOnUse' x='0' y='0' width='120' height='120'%3E%3Crect width='120' height='120' fill='white'/%3E%3Ccircle cx='77.32' cy='50' r='34.641' fill='none' stroke='black' stroke-width='16'/%3E%3C/mask%3E%3Cmask id='y' maskUnits='userSpaceOnUse' x='0' y='0' width='120' height='120'%3E%3Crect width='120' height='120' fill='white'/%3E%3Ccircle cx='42.68' cy='50' r='34.641' fill='none' stroke='black' stroke-width='16'/%3E%3C/mask%3E%3C/defs%3E%3Ccircle cx='77.32' cy='50' r='34.641' fill='none' stroke='%237FC8B0' stroke-width='10' mask='url(%23t)'/%3E%3Ccircle cx='42.68' cy='50' r='34.641' fill='none' stroke='%23F2A65A' stroke-width='10' mask='url(%23o)'/%3E%3Ccircle cx='60' cy='80' r='34.641' fill='none' stroke='%23E8C468' stroke-width='10' mask='url(%23y)'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -19,9 +19,13 @@
   .display{font-family:'Space Grotesk',sans-serif;}
   .page{max-width:760px;margin:0 auto;padding:56px 24px 100px;}
   header{margin-bottom:40px;}
-  .brand{display:flex;align-items:center;gap:12px;margin-bottom:28px;}
+  .brand-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;}
+  .brand{display:flex;align-items:center;gap:12px;}
   .brand svg{width:36px;height:36px;flex-shrink:0;}
   .brand span{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;}
+  .lang-toggle{display:flex;gap:6px;}
+  .lang-toggle button{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px;border:1px solid var(--line);background:var(--raised);color:var(--muted);padding:7px 14px;border-radius:8px;cursor:pointer;}
+  .lang-toggle button.active{background:var(--accent);color:#12241f;border-color:var(--accent);}
   h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(26px,4.5vw,34px);font-weight:700;margin:0 0 10px;}
   .meta{font-size:13px;color:var(--muted);}
   h2{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;margin:40px 0 12px;color:var(--accent3);}
@@ -38,66 +42,134 @@
   code{font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:.9em;background:var(--raised);padding:1px 6px;border-radius:5px;color:var(--accent3);}
   footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);}
   footer a{color:var(--accent3);}
+  [data-lang]{display:none;}
+  [data-lang].active-lang{display:block;}
 </style>
 </head>
 <body>
 <div class="page">
   <header>
-    <div class="brand">
-      <svg viewBox="0 0 120 120">
-        <defs>
-          <mask id="bt" maskUnits="userSpaceOnUse" x="0" y="0" width="120" height="120"><rect width="120" height="120" fill="white"/><circle cx="60" cy="80" r="34.641" fill="none" stroke="black" stroke-width="16"/></mask>
-          <mask id="bo" maskUnits="userSpaceOnUse" x="0" y="0" width="120" height="120"><rect width="120" height="120" fill="white"/><circle cx="77.32" cy="50" r="34.641" fill="none" stroke="black" stroke-width="16"/></mask>
-          <mask id="by" maskUnits="userSpaceOnUse" x="0" y="0" width="120" height="120"><rect width="120" height="120" fill="white"/><circle cx="42.68" cy="50" r="34.641" fill="none" stroke="black" stroke-width="16"/></mask>
-        </defs>
-        <circle cx="77.32" cy="50" r="34.641" fill="none" stroke="var(--accent3)" stroke-width="10" mask="url(#bt)"/>
-        <circle cx="42.68" cy="50" r="34.641" fill="none" stroke="var(--accent)" stroke-width="10" mask="url(#bo)"/>
-        <circle cx="60" cy="80" r="34.641" fill="none" stroke="var(--accent2)" stroke-width="10" mask="url(#by)"/>
-      </svg>
-      <span>VitaLinks</span>
+    <div class="brand-row">
+      <div class="brand">
+        <svg viewBox="0 0 120 120">
+          <defs>
+            <mask id="bt" maskUnits="userSpaceOnUse" x="0" y="0" width="120" height="120"><rect width="120" height="120" fill="white"/><circle cx="60" cy="80" r="34.641" fill="none" stroke="black" stroke-width="16"/></mask>
+            <mask id="bo" maskUnits="userSpaceOnUse" x="0" y="0" width="120" height="120"><rect width="120" height="120" fill="white"/><circle cx="77.32" cy="50" r="34.641" fill="none" stroke="black" stroke-width="16"/></mask>
+            <mask id="by" maskUnits="userSpaceOnUse" x="0" y="0" width="120" height="120"><rect width="120" height="120" fill="white"/><circle cx="42.68" cy="50" r="34.641" fill="none" stroke="black" stroke-width="16"/></mask>
+          </defs>
+          <circle cx="77.32" cy="50" r="34.641" fill="none" stroke="var(--accent3)" stroke-width="10" mask="url(#bt)"/>
+          <circle cx="42.68" cy="50" r="34.641" fill="none" stroke="var(--accent)" stroke-width="10" mask="url(#bo)"/>
+          <circle cx="60" cy="80" r="34.641" fill="none" stroke="var(--accent2)" stroke-width="10" mask="url(#by)"/>
+        </svg>
+        <span>VitaLinks</span>
+      </div>
+      <div class="lang-toggle">
+        <button type="button" id="lang-es" onclick="setLang('es')">ES</button>
+        <button type="button" id="lang-en" onclick="setLang('en')">EN</button>
+      </div>
     </div>
-    <h1>Delete Your Account &amp; Data</h1>
-    <div class="meta">Applies to the VitaLinks web app and its Android app</div>
+
+    <div data-lang="es">
+      <h1>Eliminar tu cuenta y datos</h1>
+      <div class="meta">Aplica a la app web de VitaLinks y a la app de Android</div>
+    </div>
+    <div data-lang="en">
+      <h1>Delete Your Account &amp; Data</h1>
+      <div class="meta">Applies to the VitaLinks web app and its Android app</div>
+    </div>
   </header>
 
-  <div class="card good">
-    <p style="margin:0;"><b>The short version:</b> if you've never signed in, your data only ever existed on your own device — uninstalling the app or clearing its storage deletes everything, with nothing further to request. If you signed in with Google to sync across devices, email us to request deletion of that synced copy.</p>
+  <div data-lang="es">
+    <div class="card good">
+      <p style="margin:0;"><b>La versión corta:</b> si nunca has iniciado sesión, tus datos solo existieron en tu propio dispositivo — desinstalar la app o borrar su almacenamiento elimina todo, sin nada más que solicitar. Si iniciaste sesión con Google para sincronizar entre dispositivos, puedes eliminar tu copia sincronizada al instante desde la app.</p>
+    </div>
+
+    <div class="card">
+      <p style="margin:0;"><b>¿Ya iniciaste sesión?</b> Puedes eliminar tu cuenta al instante desde dentro de la app — sin necesidad de correo. Abre VitaLinks → Ajustes → <i>Eliminar mi cuenta</i>, cerca del final de la pantalla.</p>
+    </div>
+
+    <h2>O solicita la eliminación por correo</h2>
+    <p>Usa esta opción si no puedes iniciar sesión — un dispositivo perdido, la app desinstalada, o cualquier otra razón por la que no puedas usar la opción dentro de la app.</p>
+    <ol class="steps">
+      <li>Envía un correo a <a href="mailto:widymedinaruiz@gmail.com?subject=Eliminar%20mi%20cuenta%20de%20VitaLinks">widymedinaruiz@gmail.com</a> desde la dirección asociada a tu inicio de sesión de Google, con el asunto "Eliminar mi cuenta de VitaLinks" (o usa el botón de abajo).</li>
+      <li>Confirmaremos tu identidad contra el correo de inicio de sesión y procesaremos la solicitud.</li>
+      <li>Recibirás una respuesta de confirmación una vez que tu cuenta y datos sincronizados hayan sido eliminados permanentemente — normalmente en unos días hábiles.</li>
+    </ol>
+    <p><a class="btn" href="mailto:widymedinaruiz@gmail.com?subject=Eliminar%20mi%20cuenta%20de%20VitaLinks&body=Por%20favor%20elimina%20mi%20cuenta%20de%20VitaLinks%20y%20todos%20los%20datos%20asociados.%0A%0ACorreo%20de%20la%20cuenta%20de%20Google%20usada%20para%20iniciar%20sesi%C3%B3n%3A%20">Enviar correo para eliminar tu cuenta</a></p>
+
+    <h2>Qué se elimina</h2>
+    <ul>
+      <li>Tu cuenta de Firebase (el inicio de sesión en sí).</li>
+      <li>Tus datos sincronizados en la nube — comidas, ejercicio, presión arterial, medicamentos, composición corporal, peso, sueño, agua, y cualquier dato de Health Connect que se haya sincronizado.</li>
+      <li>El registro de tu suscripción a VitaLinks Plus, si aplica (esto no cancela una suscripción activa de Google Play — cancélala por separado desde la administración de suscripciones de Google Play, el mismo lugar donde te suscribiste).</li>
+    </ul>
+
+    <h2>Qué no se ve afectado</h2>
+    <ul>
+      <li>Los datos guardados solo en tu propio dispositivo (si nunca iniciaste sesión, o en un dispositivo que no sincronizas) nunca son algo que nosotros almacenemos — eliminarlos se hace localmente, en la app, o desinstalándola.</li>
+      <li>Los datos nutricionales anonimizados que hayas podido aportar a la base de datos compartida de alimentos (calorías, proteína, etc. de un alimento) se conservan, ya que nunca están vinculados a tu identidad o cuenta.</li>
+    </ul>
+
+    <h2>Período de retención</h2>
+    <p>Si eliminas tu cuenta desde dentro de la app, sucede <b>de inmediato</b> — tu cuenta de Firebase y tus datos sincronizados desaparecen en cuanto confirmas. Si en cambio solicitas la eliminación por correo, se procesa una vez confirmamos tu identidad — normalmente en unos días hábiles, y nunca más de 30 días.</p>
+
+    <p>Consulta la <a href="/privacy.html">Política de Privacidad</a> completa para saber cómo se maneja tu información mientras tu cuenta está activa.</p>
   </div>
 
-  <div class="card">
-    <p style="margin:0;"><b>Already signed in?</b> You can delete your account instantly from inside the app — no email required. Open VitaLinks → Settings → <i>Delete my account</i>, near the bottom of the screen.</p>
+  <div data-lang="en">
+    <div class="card good">
+      <p style="margin:0;"><b>The short version:</b> if you've never signed in, your data only ever existed on your own device — uninstalling the app or clearing its storage deletes everything, with nothing further to request. If you signed in with Google to sync across devices, you can delete that synced copy instantly from the app.</p>
+    </div>
+
+    <div class="card">
+      <p style="margin:0;"><b>Already signed in?</b> You can delete your account instantly from inside the app — no email required. Open VitaLinks → Settings → <i>Delete my account</i>, near the bottom of the screen.</p>
+    </div>
+
+    <h2>Or request deletion by email</h2>
+    <p>Use this if you can't sign in — a lost device, an uninstalled app, or any other reason you can't reach the in-app option above.</p>
+    <ol class="steps">
+      <li>Email <a href="mailto:widymedinaruiz@gmail.com?subject=Delete%20my%20VitaLinks%20account">widymedinaruiz@gmail.com</a> from the address associated with your Google sign-in, with the subject "Delete my VitaLinks account" (or use the button below).</li>
+      <li>We'll confirm your identity against the sign-in email and process the request.</li>
+      <li>You'll get a confirmation reply once your account and synced data have been permanently deleted — typically within a few business days.</li>
+    </ol>
+    <p><a class="btn" href="mailto:widymedinaruiz@gmail.com?subject=Delete%20my%20VitaLinks%20account&body=Please%20delete%20my%20VitaLinks%20account%20and%20all%20associated%20data.%0A%0AGoogle%20account%20email%20used%20to%20sign%20in%3A%20">Email us to delete your account</a></p>
+
+    <h2>What gets deleted</h2>
+    <ul>
+      <li>Your Firebase account (the sign-in itself).</li>
+      <li>Your synced cloud data — meals, exercise, blood pressure, medications, body composition, weight, sleep, water, and any Health Connect data that was synced.</li>
+      <li>Your VitaLinks Plus subscription status record, if applicable (this does not cancel an active Play Store subscription — cancel that separately from Google Play's own subscription management, the same place you subscribed).</li>
+    </ul>
+
+    <h2>What isn't affected</h2>
+    <ul>
+      <li>Data stored only on your own device (if you never signed in, or on a device you don't sync) is never something we hold — deleting it is done locally, in the app, or by uninstalling.</li>
+      <li>Anonymized nutrition facts you may have contributed to the shared food database (calories, protein, etc. for a food item) are kept, since they're never linked to your identity or account in the first place.</li>
+    </ul>
+
+    <h2>Retention period</h2>
+    <p>If you delete your account from inside the app, it happens <b>immediately</b> — your Firebase account and synced data are gone as soon as you confirm. If you request deletion by email instead, it's processed once we confirm your identity — normally within a few business days, and never longer than 30 days.</p>
+
+    <p>See the full <a href="/privacy.html">Privacy Policy</a> for how your data is handled while your account is active.</p>
   </div>
-
-  <h2>Or request deletion by email</h2>
-  <p>Use this if you can't sign in — a lost device, an uninstalled app, or any other reason you can't reach the in-app option above.</p>
-  <ol class="steps">
-    <li>Email <a href="mailto:widymedinaruiz@gmail.com?subject=Delete%20my%20VitaLinks%20account">widymedinaruiz@gmail.com</a> from the address associated with your Google sign-in, with the subject "Delete my VitaLinks account" (or use the button below).</li>
-    <li>We'll confirm your identity against the sign-in email and process the request.</li>
-    <li>You'll get a confirmation reply once your account and synced data have been permanently deleted — typically within a few business days.</li>
-  </ol>
-  <p><a class="btn" href="mailto:widymedinaruiz@gmail.com?subject=Delete%20my%20VitaLinks%20account&body=Please%20delete%20my%20VitaLinks%20account%20and%20all%20associated%20data.%0A%0AGoogle%20account%20email%20used%20to%20sign%20in%3A%20">Email us to delete your account</a></p>
-
-  <h2>What gets deleted</h2>
-  <ul>
-    <li>Your Firebase account (the sign-in itself).</li>
-    <li>Your synced cloud data — meals, exercise, blood pressure, medications, body composition, weight, sleep, water, and any Health Connect data that was synced.</li>
-    <li>Your VitaLinks Plus subscription status record, if applicable (this does not cancel an active Play Store subscription — cancel that separately from Google Play's own subscription management, the same place you subscribed).</li>
-  </ul>
-
-  <h2>What isn't affected</h2>
-  <ul>
-    <li>Data stored only on your own device (if you never signed in, or on a device you don't sync) is never something we hold — deleting it is done locally, in the app, or by uninstalling.</li>
-    <li>Anonymized nutrition facts you may have contributed to the shared food database (calories, protein, etc. for a food item) are kept, since they're never linked to your identity or account in the first place.</li>
-  </ul>
-
-  <h2>Retention period</h2>
-  <p>If you delete your account from inside the app, it happens <b>immediately</b> — your Firebase account and synced data are gone as soon as you confirm. If you request deletion by email instead, it's processed once we confirm your identity — normally within a few business days, and never longer than 30 days.</p>
-
-  <p>See the full <a href="/privacy.html">Privacy Policy</a> for how your data is handled while your account is active.</p>
 
   <footer>
     <a href="/">← Back to VitaLinks</a>
   </footer>
 </div>
+<script>
+  function setLang(lang){
+    document.querySelectorAll('[data-lang]').forEach(function(el){
+      el.classList.toggle('active-lang', el.getAttribute('data-lang') === lang);
+    });
+    document.getElementById('lang-es').classList.toggle('active', lang === 'es');
+    document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+    document.documentElement.lang = lang;
+    try{ localStorage.setItem('vl:delete-account-lang', lang); }catch(e){}
+  }
+  var saved = 'es';
+  try{ saved = localStorage.getItem('vl:delete-account-lang') || 'es'; }catch(e){}
+  setLang(saved);
+</script>
 </body>
 </html>
