@@ -1,4 +1,5 @@
 const { onCall, onRequest, HttpsError } = require('firebase-functions/v2/https');
+const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const { setGlobalOptions } = require('firebase-functions/v2');
 const { defineSecret } = require('firebase-functions/params');
 const logger = require('firebase-functions/logger');
@@ -330,6 +331,76 @@ exports.revenueCatWebhook = onRequest(
     } catch (e) {
       logger.error('RevenueCat webhook processing failed', { uid, error: String(e) });
       res.status(500).send('Internal error');
+    }
+  }
+);
+
+/**
+ * Feedback triage, Layer 1 (see project memory project_feedback_triage.md for the
+ * broader design — this is deliberately just the per-document classification step,
+ * not the cross-tester clustering/digest layer, which is a separate follow-up).
+ *
+ * Fires on every new feedback/{docId} write (both user-typed 'feedback' and
+ * auto-captured 'error' reports share this collection) and writes a structured
+ * classification back onto the same document: category, a 1-5 priority, whether
+ * it's actionable noise, and whether it looks like a churn risk. This only ever
+ * ADDS fields via .update() and never rewrites existing ones, and onDocumentCreated
+ * doesn't refire on updates, so this can't loop on itself.
+ *
+ * Deliberately does not throw on failure (logs and returns instead) — an
+ * unclassified doc just sits without these fields for manual review; retrying
+ * indefinitely on a bad Claude response would be worse than that.
+ */
+exports.classifyFeedback = onDocumentCreated(
+  { document: 'feedback/{docId}', secrets: [anthropicApiKey] },
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+    const data = snap.data();
+    const message = String(data.message || '').trim();
+    if (!message) return;
+
+    const context = [
+      `Tipo: ${data.type === 'error' ? 'error automático capturado por la app' : 'feedback escrito por el usuario'}`,
+      `Mensaje: "${message.slice(0, 1000)}"`,
+      data.stack ? `Stack trace: ${String(data.stack).slice(0, 500)}` : null,
+      `Pestaña: ${data.tab || 'desconocida'}, plataforma: ${data.platform || 'desconocida'}, versión: ${data.appVersion || 'desconocida'}`,
+    ].filter(Boolean).join('\n');
+
+    const prompt = `Eres un clasificador de feedback para VitaLinks, una app de salud personal (nutrición, ejercicio, presión arterial, sueño, medicamentos). Analiza el siguiente reporte de un usuario o error capturado automáticamente.
+
+${context}
+
+Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional, sin markdown, sin backticks:
+{"category":"<bug|ux-friction|feature-request|praise|noise>","priority":<entero 1-5, 5 es más urgente>,"isNoise":<true o false>,"churnRisk":<true o false>,"summary":"<resumen de una frase en español, máximo 15 palabras>"}
+
+Guía: "noise" es feedback sin contenido accionable (agradecimientos genéricos, pruebas del propio desarrollador, mensajes vacíos o irrelevantes) — en ese caso priority debe ser 1. "churnRisk" es true solo si el problema podría hacer que un usuario abandone la app (bloquea una función central, pérdida de datos, confusión grave que impide usarla), no una molestia cosmética menor.`;
+
+    let parsed;
+    try {
+      const text = await callAnthropic(prompt, 250, anthropicApiKey.value());
+      const clean = text.replace(/```json|```/g, '').trim();
+      parsed = JSON.parse(clean);
+    } catch (e) {
+      logger.error('classifyFeedback: Claude call or parse failed', { docId: event.params.docId, error: String(e) });
+      return;
+    }
+
+    const validCategories = ['bug', 'ux-friction', 'feature-request', 'praise', 'noise'];
+    const category = validCategories.includes(parsed.category) ? parsed.category : 'unclassified';
+    const priority = Number.isInteger(parsed.priority) ? Math.max(1, Math.min(5, parsed.priority)) : null;
+
+    try {
+      await snap.ref.update({
+        category,
+        priority,
+        isNoise: !!parsed.isNoise,
+        churnRisk: !!parsed.churnRisk,
+        classificationSummary: typeof parsed.summary === 'string' ? parsed.summary.slice(0, 200) : null,
+        classifiedAt: FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      logger.error('classifyFeedback: Firestore update failed', { docId: event.params.docId, error: String(e) });
     }
   }
 );
