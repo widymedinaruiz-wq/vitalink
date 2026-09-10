@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prototipo: Calorías por Foto</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#1a1d24; --card2:#22262f; --text:#eef1f6; --muted:#9aa3b2;
+    --accent:#4fd1a5; --danger:#e5555a; --border:#2a2f3a;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text);}
+  .wrap{max-width:480px;margin:0 auto;padding:16px;padding-bottom:80px;}
+  h1{font-size:18px;margin:0 0 4px;}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 20px;}
+  .step{display:none;}
+  .step.active{display:block;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .plate-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 10px;text-align:center;cursor:pointer;}
+  .plate-card.selected{border-color:var(--accent);background:var(--card2);}
+  .plate-card .ic{font-size:28px;}
+  .plate-card .lb{font-size:12px;margin-top:6px;color:var(--text);}
+  .plate-card .meta{font-size:10px;color:var(--muted);}
+  label{font-size:13px;color:var(--muted);display:block;margin:14px 0 4px;}
+  button.primary{background:var(--accent);color:#04231a;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:600;width:100%;cursor:pointer;margin-top:14px;}
+  button.primary:disabled{opacity:.4;cursor:not-allowed;}
+  button.secondary{background:transparent;border:1px solid var(--border);color:var(--text);border-radius:12px;padding:12px;font-size:14px;width:100%;cursor:pointer;margin-top:8px;}
+  .backbtn{background:none;border:none;color:var(--muted);font-size:13px;padding:8px 0;cursor:pointer;width:100%;}
+  .video-wrap{position:relative;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:3/4;}
+  video, canvas.preview{width:100%;height:100%;object-fit:cover;display:block;}
+  .tilt-gauge{position:absolute;left:0;right:0;bottom:0;padding:12px;background:linear-gradient(transparent,rgba(0,0,0,.75));}
+  .tilt-bar{height:10px;border-radius:6px;background:#333;position:relative;overflow:hidden;}
+  .tilt-target{position:absolute;top:0;bottom:0;background:rgba(79,209,165,.35);}
+  .tilt-fill{position:absolute;top:0;bottom:0;width:6px;background:var(--danger);border-radius:3px;transition:left .1s linear,background .15s;}
+  .tilt-label{font-size:12px;color:#fff;margin-top:8px;text-align:center;}
+  .fork-note{background:#2a2410;border:1px solid #6b5a1a;color:#f0d98a;border-radius:10px;padding:10px 12px;font-size:13px;margin-top:14px;}
+  input[type=text], input[type=password], textarea{width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:10px;font-size:14px;font-family:inherit;}
+  .item{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;}
+  .item-top{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+  .item-name{font-weight:600;font-size:14px;}
+  .item-cal{color:var(--accent);font-weight:700;white-space:nowrap;}
+  .item-macros{color:var(--muted);font-size:12px;margin-top:4px;}
+  .del{color:var(--danger);font-size:12px;background:none;border:none;cursor:pointer;padding:0;margin-top:6px;}
+  .total{background:var(--card2);border-radius:14px;padding:14px;text-align:center;margin:14px 0;}
+  .total .n{font-size:26px;font-weight:800;color:var(--accent);}
+  .err{color:var(--danger);font-size:13px;margin-top:8px;min-height:1em;}
+  .debug{color:var(--muted);font-size:11px;text-align:center;margin-top:6px;}
+  .addrow{display:flex;gap:8px;}
+  .addrow input{flex:1;}
+  .addrow button{width:auto;padding:10px 16px;margin-top:0;}
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(0,0,0,.25);border-top-color:#04231a;border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px;margin-right:6px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🍽️ Prototipo — Calorías por foto</h1>
+  <p class="sub">Herramienta de prueba, separada de VitaLinks. No toca el código de la app ni afecta a los usuarios de la beta cerrada.</p>
+
+  <!-- STEP: API KEY -->
+  <div class="step active" id="step-key">
+    <label style="margin-top:0">API key de Anthropic (solo se guarda en este navegador, para esta prueba)</label>
+    <input type="password" id="apikey-input" placeholder="sk-ant-...">
+    <button class="primary" onclick="saveApiKey()">Continuar</button>
+  </div>
+
+  <!-- STEP: PLATE TYPE -->
+  <div class="step" id="step-plate">
+    <label style="margin-top:0">¿Qué tipo de plato es?</label>
+    <div class="grid" id="plate-grid"></div>
+    <div class="fork-note" id="fork-note" style="display:none">
+      Los platos artesanales/únicos varían mucho en tamaño. Para dar una mejor estimación, <b>coloca un tenedor visible en la foto</b> junto al plato — su tamaño cambia poco entre marcas, así que sirve como referencia real de escala.
+    </div>
+    <button class="primary" id="plate-continue" disabled onclick="goToCapture()">Continuar</button>
+    <button class="backbtn" onclick="goToStep('key')">← Cambiar API key</button>
+  </div>
+
+  <!-- STEP: CAPTURE -->
+  <div class="step" id="step-capture">
+    <div class="video-wrap">
+      <video id="cam-video" autoplay playsinline muted></video>
+      <div class="tilt-gauge">
+        <div class="tilt-bar"><div class="tilt-target" id="tilt-target"></div><div class="tilt-fill" id="tilt-fill"></div></div>
+        <div class="tilt-label" id="tilt-label">Buscando sensor de inclinación…</div>
+      </div>
+    </div>
+    <div class="debug" id="tilt-debug"></div>
+    <button class="primary" id="capture-btn" onclick="capturePhoto()">📷 Capturar</button>
+    <button class="backbtn" onclick="goToStep('plate')">← Cambiar tipo de plato</button>
+  </div>
+
+  <!-- STEP: PREVIEW -->
+  <div class="step" id="step-preview">
+    <div class="video-wrap"><canvas id="preview-canvas" class="preview"></canvas></div>
+    <label>Nota opcional (ej. "es una porción doble", "es un plato hondo pequeño")</label>
+    <textarea id="note-input" rows="2" placeholder="Opcional"></textarea>
+    <button class="primary" id="analyze-btn" onclick="analyzePhoto()">Analizar plato</button>
+    <button class="secondary" onclick="retakePhoto()">🔁 Repetir foto</button>
+    <div class="err" id="analyze-err"></div>
+  </div>
+
+  <!-- STEP: RESULTS -->
+  <div class="step" id="step-results">
+    <div id="items-list"></div>
+    <label>Agregar alimento no detectado</label>
+    <div class="addrow">
+      <input type="text" id="manual-desc" placeholder="ej. media taza de arroz">
+      <button class="primary" onclick="addManualItem()">+</button>
+    </div>
+    <div class="err" id="manual-err"></div>
+    <div class="total">
+      <div class="n" id="total-cal">0 kcal</div>
+      <div class="debug">Total estimado del plato</div>
+    </div>
+    <button class="secondary" onclick="resetAll()">🔄 Empezar de nuevo (otro plato)</button>
+  </div>
+</div>
+
+<script>
+const PLATE_TYPES = [
+  {id:'llano',     label:'Plato llano',            ic:'🍽️', meta:'~27cm',  scaleHint:'plato llano estándar, diámetro aproximado 27cm'},
+  {id:'hondo',     label:'Plato hondo / sopero',   ic:'🥣', meta:'~22cm',  scaleHint:'plato hondo/sopero, diámetro aproximado 22cm, con profundidad considerable'},
+  {id:'postre',    label:'Plato de postre / ensalada', ic:'🥗', meta:'~19cm', scaleHint:'plato de postre o ensalada, diámetro aproximado 19cm'},
+  {id:'bowl',      label:'Tazón / bowl',           ic:'🍜', meta:'~15cm',  scaleHint:'tazón (bowl) profundo, diámetro aproximado 15cm'},
+  {id:'mug',       label:'Taza / mug grande',      ic:'☕', meta:'~350ml', scaleHint:'taza o mug grande, volumen aproximado 350ml'},
+  {id:'tupper',    label:'Tupper / lonchera',      ic:'🥡', meta:'estándar', scaleHint:'recipiente tipo tupper/lonchera de tamaño estándar de mercado'},
+  {id:'artesanal', label:'Plato artesanal / único', ic:'🎨', meta:'variable', scaleHint:'plato de forma o tamaño no estándar — hay un tenedor visible en la foto (largo típico 19-20cm); úsalo como referencia real de escala en vez de asumir un diámetro de plato'}
+];
+
+// Rango objetivo de inclinación (grados, sensor beta). Ajustar tras probar en el
+// dispositivo real qué ángulo de foto realmente captura mejor la altura de la comida.
+const TILT_MIN = 35, TILT_MAX = 55;
+
+const state = {
+  apiKey: localStorage.getItem('vl_proto_apikey') || '',
+  plateType: null,
+  photoDataUrl: null,
+  items: [],
+};
+
+function $(id){ return document.getElementById(id); }
+function goToStep(name){
+  document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
+  $('step-'+name).classList.add('active');
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ---------- init ---------- */
+renderPlateGrid();
+(function initTiltTarget(){
+  const t = $('tilt-target');
+  t.style.left = (TILT_MIN/90*100)+'%';
+  t.style.width = ((TILT_MAX-TILT_MIN)/90*100)+'%';
+})();
+if(state.apiKey) goToStep('plate');
+
+/* ---------- step: api key ---------- */
+function saveApiKey(){
+  const v = $('apikey-input').value.trim();
+  if(!v) return;
+  state.apiKey = v;
+  localStorage.setItem('vl_proto_apikey', v);
+  goToStep('plate');
+}
+
+/* ---------- step: plate type ---------- */
+function renderPlateGrid(){
+  $('plate-grid').innerHTML = PLATE_TYPES.map(p=>`
+    <div class="plate-card" data-id="${p.id}" onclick="selectPlate('${p.id}')">
+      <div class="ic">${p.ic}</div>
+      <div class="lb">${p.label}</div>
+      <div class="meta">${p.meta}</div>
+    </div>`).join('');
+}
+function selectPlate(id){
+  state.plateType = PLATE_TYPES.find(p=>p.id===id);
+  document.querySelectorAll('.plate-card').forEach(c=>c.classList.toggle('selected', c.dataset.id===id));
+  $('fork-note').style.display = id==='artesanal' ? 'block' : 'none';
+  $('plate-continue').disabled = false;
+}
+
+/* ---------- step: capture ---------- */
+let stream = null, orientationHandler = null;
+async function goToCapture(){
+  goToStep('capture');
+  $('tilt-label').textContent = 'Buscando sensor de inclinación…';
+  $('tilt-debug').textContent = '';
+  // En iOS Safari, DeviceOrientationEvent.requestPermission() debe llamarse
+  // sincrónicamente dentro del gesto del usuario (este click) o nunca disparará
+  // eventos — por eso va antes que el await de getUserMedia, no después.
+  const orientationPermission = await requestOrientationPermissionIfNeeded();
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:'environment' } }, audio:false });
+    $('cam-video').srcObject = stream;
+  }catch(e){
+    $('tilt-label').textContent = 'No se pudo acceder a la cámara: '+(e.message||e);
+    return;
+  }
+  startTiltSensor(orientationPermission);
+}
+async function requestOrientationPermissionIfNeeded(){
+  const needsPermission = typeof DeviceOrientationEvent !== 'undefined'
+    && typeof DeviceOrientationEvent.requestPermission === 'function';
+  if(!needsPermission) return 'granted'; // Android y navegadores sin este modelo de permiso
+  try{
+    return await DeviceOrientationEvent.requestPermission(); // 'granted' | 'denied'
+  }catch(e){
+    return 'denied';
+  }
+}
+function startTiltSensor(orientationPermission){
+  if(!window.DeviceOrientationEvent){
+    $('tilt-label').textContent = 'Sensor de inclinación no disponible — captura manualmente';
+    return;
+  }
+  if(orientationPermission === 'denied'){
+    $('tilt-label').textContent = 'Permiso de sensor denegado — actívalo en Ajustes > Safari, o captura manualmente';
+    return;
+  }
+  let gotEvent = false;
+  orientationHandler = (ev)=>{
+    if(ev.beta===null || ev.beta===undefined) return;
+    gotEvent = true;
+    const beta = ev.beta;
+    const clamped = Math.max(0, Math.min(90, beta));
+    const inRange = beta>=TILT_MIN && beta<=TILT_MAX;
+    $('tilt-fill').style.left = (clamped/90*100)+'%';
+    $('tilt-fill').style.background = inRange ? 'var(--accent)' : 'var(--danger)';
+    $('tilt-label').textContent = inRange ? '✓ Ángulo correcto — captura ahora' : `Inclina el móvil hacia el plato (objetivo ${TILT_MIN}°-${TILT_MAX}°)`;
+    $('tilt-debug').textContent = `beta: ${beta.toFixed(1)}°`;
+  };
+  window.addEventListener('deviceorientation', orientationHandler);
+  setTimeout(()=>{ if(!gotEvent) $('tilt-label').textContent = 'Sin datos del sensor — captura manualmente cuando quieras'; }, 2500);
+}
+function stopTiltSensor(){
+  if(orientationHandler) window.removeEventListener('deviceorientation', orientationHandler);
+  orientationHandler = null;
+}
+function stopCamera(){
+  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+}
+function capturePhoto(){
+  const video = $('cam-video');
+  if(!video.videoWidth){ return; }
+  const full = document.createElement('canvas');
+  full.width = video.videoWidth; full.height = video.videoHeight;
+  full.getContext('2d').drawImage(video,0,0,full.width,full.height);
+
+  const maxDim = 1024;
+  const scale = Math.min(1, maxDim/Math.max(full.width, full.height));
+  const out = $('preview-canvas');
+  out.width = Math.round(full.width*scale);
+  out.height = Math.round(full.height*scale);
+  out.getContext('2d').drawImage(full,0,0,out.width,out.height);
+  state.photoDataUrl = out.toDataURL('image/jpeg', 0.75);
+
+  stopTiltSensor();
+  stopCamera();
+  $('note-input').value = '';
+  $('analyze-err').textContent = '';
+  goToStep('preview');
+}
+function retakePhoto(){ goToCapture(); }
+
+/* ---------- step: preview / analyze ---------- */
+async function analyzePhoto(){
+  const btn = $('analyze-btn');
+  $('analyze-err').textContent = '';
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Analizando…';
+  try{
+    const note = $('note-input').value.trim();
+    const items = await estimateNutritionFromPhoto(state.photoDataUrl, state.plateType, note);
+    state.items = items.map(it=>({ ...it, id: crypto.randomUUID() }));
+    renderResults();
+    goToStep('results');
+  }catch(e){
+    $('analyze-err').textContent = e.message || 'Error al analizar la foto';
+  }
+  btn.disabled = false; btn.textContent = 'Analizar plato';
+}
+
+async function callClaude(body){
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key': state.apiKey,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true'
+    },
+    body: JSON.stringify(body)
+  });
+  if(!res.ok){ const t = await res.text(); throw new Error('Error de API: '+t.slice(0,200)); }
+  const data = await res.json();
+  return (data.content||[]).map(b=>b.text||'').join('');
+}
+function parseJson(text){
+  return JSON.parse(text.replace(/```json|```/g,'').trim());
+}
+
+async function estimateNutritionFromPhoto(dataUrl, plateType, note){
+  const base64 = dataUrl.split(',')[1];
+  const prompt = `Eres un nutricionista analizando una foto de un plato de comida real, tomada para estimar calorías.
+Contexto de escala: ${plateType.scaleHint}.
+${note ? 'Nota del usuario: '+note+'\n' : ''}
+Identifica cada alimento visible por separado. Para cada uno, estima la porción (en gramos) usando el contexto de escala dado, y calcula su contenido nutricional usando valores típicos (USDA o equivalente). Considera la altura/volumen aparente de cada alimento en la imagen, no solo el área que ocupa en el plato.
+
+Responde ÚNICAMENTE con un array JSON válido, sin texto adicional, sin markdown, sin backticks:
+[{"name":"<nombre en español>","gramos":<entero>,"calories":<entero kcal>,"protein":<entero g>,"carbs":<entero g>,"fat":<entero g>}]`;
+
+  const text = await callClaude({
+    model:'claude-sonnet-5',
+    max_tokens: 1024,
+    messages:[{ role:'user', content:[
+      { type:'image', source:{ type:'base64', media_type:'image/jpeg', data: base64 } },
+      { type:'text', text: prompt }
+    ]}]
+  });
+  const parsed = parseJson(text);
+  if(!Array.isArray(parsed)) throw new Error('Respuesta inesperada del modelo');
+  return parsed;
+}
+
+async function estimateNutritionFromText(desc){
+  const prompt = `Eres un nutricionista. Estima el contenido nutricional para el siguiente alimento, considerando la cantidad/porción indicada, usando valores nutricionales típicos (USDA o equivalente). Si la porción no se especifica, asume una porción individual estándar. Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional, sin markdown, sin backticks:
+{"name":"<nombre corto>","gramos":<entero o null>,"calories":<entero kcal>,"protein":<entero g>,"carbs":<entero g>,"fat":<entero g>}
+
+Alimento: "${desc}"`;
+  const text = await callClaude({ model:'claude-sonnet-5', max_tokens:300, messages:[{role:'user', content:prompt}] });
+  const parsed = parseJson(text);
+  if(typeof parsed.calories !== 'number') throw new Error('Respuesta inesperada del modelo');
+  return parsed;
+}
+
+/* ---------- step: results ---------- */
+function renderResults(){
+  const list = $('items-list');
+  list.innerHTML = state.items.map(it=>`
+    <div class="item">
+      <div class="item-top">
+        <div class="item-name">${escapeHtml(it.name)}</div>
+        <div class="item-cal">${it.calories} kcal</div>
+      </div>
+      <div class="item-macros">${it.gramos?it.gramos+'g · ':''}P ${it.protein}g · C ${it.carbs}g · G ${it.fat}g</div>
+      <button class="del" onclick="removeItem('${it.id}')">Eliminar</button>
+    </div>`).join('') || '<p class="sub">No se detectaron alimentos.</p>';
+  updateTotal();
+}
+function removeItem(id){
+  state.items = state.items.filter(it=>it.id!==id);
+  renderResults();
+}
+function updateTotal(){
+  const total = state.items.reduce((s,it)=>s+(Number(it.calories)||0),0);
+  $('total-cal').textContent = total+' kcal';
+}
+async function addManualItem(){
+  const input = $('manual-desc');
+  const desc = input.value.trim();
+  if(!desc) return;
+  $('manual-err').textContent = '';
+  try{
+    const it = await estimateNutritionFromText(desc);
+    it.id = crypto.randomUUID();
+    state.items.push(it);
+    input.value = '';
+    renderResults();
+  }catch(e){
+    $('manual-err').textContent = e.message || 'Error al estimar';
+  }
+}
+function resetAll(){
+  state.plateType = null; state.photoDataUrl = null; state.items = [];
+  document.querySelectorAll('.plate-card').forEach(c=>c.classList.remove('selected'));
+  $('plate-continue').disabled = true;
+  $('fork-note').style.display = 'none';
+  goToStep('plate');
+}
+</script>
+</body>
+</html>

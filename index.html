@@ -181,9 +181,23 @@
   .scanner-video-wrap video{width:100%;height:100%;object-fit:cover;}
   .scanner-frame{position:absolute;inset:18% 12%;border:3px solid var(--accent);border-radius:12px;box-shadow:0 0 0 999px rgba(0,0,0,.35);pointer-events:none;}
 
+  .foto-step{display:none;}
+  .foto-step.active{display:block;}
+  .foto-video-wrap{position:relative;width:100%;aspect-ratio:3/4;background:#000;border-radius:14px;overflow:hidden;}
+  .foto-video-wrap video, .foto-video-wrap canvas{width:100%;height:100%;object-fit:cover;display:block;}
+  .foto-tilt-gauge{position:absolute;left:0;right:0;bottom:0;padding:10px;background:linear-gradient(transparent,rgba(0,0,0,.75));}
+  .foto-tilt-bar{height:8px;border-radius:5px;background:rgba(255,255,255,.25);position:relative;overflow:hidden;}
+  .foto-tilt-target{position:absolute;top:0;bottom:0;background:rgba(95,184,120,.4);}
+  .foto-tilt-fill{position:absolute;top:0;bottom:0;width:5px;background:var(--danger);border-radius:3px;transition:left .1s linear,background .15s;}
+  .foto-tilt-label{font-size:11px;color:#fff;margin-top:6px;text-align:center;}
+  .foto-plate-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+
   @media (max-width: 820px){
     #app{flex-direction:column;}
-    nav.side{width:100%;height:auto;position:sticky;top:0;flex-direction:row;overflow-x:auto;padding:12px;border-right:none;border-bottom:1px solid var(--line);z-index:20;background:var(--bg);}
+    /* Edge-to-edge Android (see syncNativeStatusBar) draws this bar behind the
+       status bar / camera cutout — pad the top so tabs don't render under it
+       (e.g. Pixel's centered punch-hole camera, reported by testers). */
+    nav.side{width:100%;height:auto;position:sticky;top:0;flex-direction:row;overflow-x:auto;padding:calc(12px + env(safe-area-inset-top)) 12px 12px;border-right:none;border-bottom:1px solid var(--line);z-index:20;background:var(--bg);}
     /* The OS/WebView scrollbar this row relies on for a "more to scroll" signal
        doesn't reliably render on touch — a custom-styled scrollbar in particular
        is usually suppressed outside an active drag. This chevron is a signal
@@ -194,6 +208,11 @@
       display:flex; align-items:center; justify-content:flex-end; padding-right:4px;
       color:var(--muted); font-size:18px; font-weight:700; pointer-events:none;
     }
+    /* Hidden once there's nothing left to scroll to (see syncNavScrollFade) --
+       otherwise this hint permanently covers whatever icon ends up at the
+       right edge once the user has actually scrolled all the way, since it
+       has no way to know scroll position from CSS alone. */
+    nav.side.at-scroll-end::after{ display:none; }
     nav.side .brand{display:none;}
     nav.side .navbtn{flex-direction:column;font-size:10px;gap:4px;white-space:nowrap;}
     /* Settings/Export/Import are actions, not tabs — riding along in the same
@@ -258,7 +277,7 @@ const I18N = {
     ejtipo_senderismo:'Senderismo', ejtipo_golf:'Golf', ejtipo_biciEstatica:'Bici estática', ejtipo_yoga:'Yoga', ejtipo_pilates:'Pilates',
     ejtipo_pesas:'Pesas', ejtipo_remo:'Remo',
     hoy_vitality:'Vitalidad de hoy', hoy_vitality_sub:'Combina comida, agua, ejercicio, sueño, presión y medicamentos de hoy',
-    hoy_insight:'Insight de hoy', hoy_regenerar:'Regenerar', hoy_generar_insight:'Generar insight',
+    hoy_insight:'Insight de hoy', hoy_regenerar:'Regenerar', hoy_generar_insight:'Generar insight', hoy_generando_insight:'Generando…', err_insight_failed:'No se pudo generar el insight',
     hoy_de:'de', legend_comida:'Comida', legend_agua:'Agua', legend_ejercicio:'Ejercicio',
     stat_quemadas:'Quemadas', stat_ejercicio:'Ejercicio', stat_peso:'Peso', stat_presion:'Presión',
     macro_title:'Macronutrientes', macro_proteina:'Proteína', macro_carbohidratos:'Carbohidratos', macro_grasas:'Grasas',
@@ -329,6 +348,27 @@ const I18N = {
     comidas_tipo:'Tipo de comida', comidas_agregar_a:'Agregar a', comidas_placeholder:'Ej. "lata atún 6oz", "plátano mediano"',
     comidas_descripcion_requerida:'Escribe qué comiste antes de agregar',
     comidas_estimar:'Estimar', comidas_escanear:'Escanear código de barras',
+    foto_boton:'Foto (beta)', foto_titulo:'Calorías por foto',
+    foto_plato_pregunta:'¿Qué tipo de plato es?',
+    foto_plato_llano:'Plato llano', foto_plato_hondo:'Plato hondo / sopero', foto_plato_postre:'Plato de postre / ensalada',
+    foto_plato_bowl:'Tazón / bowl', foto_plato_mug:'Taza / mug grande', foto_plato_tupper:'Tupper / lonchera',
+    foto_plato_artesanal:'Plato artesanal / único',
+    foto_fork_nota:'Los platos artesanales/únicos varían mucho en tamaño. Para dar una mejor estimación, coloca un tenedor visible en la foto junto a la comida — su tamaño cambia poco entre marcas, así que sirve como referencia real de escala.',
+    foto_continuar:'Continuar', foto_cambiar_plato:'← Cambiar tipo de plato', foto_cambiar_apikey:'← Cambiar API key',
+    foto_capturar:'📷 Capturar', foto_repetir:'🔁 Repetir foto', foto_analizar:'Analizar plato', foto_analizando:'Analizando…',
+    foto_nota_label:'Nota opcional (ej. "es una porción doble", "es un plato hondo pequeño")',
+    foto_tilt_buscando:'Buscando sensor de inclinación…',
+    foto_tilt_correcto:'✓ Ángulo correcto — captura ahora',
+    foto_tilt_objetivo:'Inclina el móvil hacia el plato (objetivo {min}°-{max}°)',
+    foto_tilt_sindatos:'Sin datos del sensor — captura manualmente cuando quieras',
+    foto_tilt_denegado:'Permiso de sensor denegado — actívalo en Ajustes, o captura manualmente',
+    foto_tilt_nodisponible:'Sensor de inclinación no disponible — captura manualmente',
+    foto_camera_error:'No se pudo acceder a la cámara: {msg}',
+    foto_agregar_no_detectado:'Agregar alimento no detectado', foto_agregar_placeholder:'ej. media taza de arroz',
+    foto_items_vacio:'No se detectaron alimentos.', foto_total:'Total estimado del plato',
+    foto_confirmar:'Agregar a mis comidas', foto_reiniciar:'🔄 Empezar de nuevo (otro plato)',
+    foto_apikey_label:'API key de Anthropic (necesaria para esta función mientras no tengas Plus)',
+    err_foto_analizar:'Error al analizar la foto', err_foto_estimar_item:'Error al estimar',
     comidas_prot_g:'Prot(g)', comidas_carb_g:'Carb(g)', comidas_grasa_g:'Grasa(g)',
     btn_agregar:'+ Agregar', comidas_hoy:'Hoy', comidas_empty:'Sin comidas registradas — agrega la primera arriba',
     pm_titulo:'Comida Personalizada', pm_boton_crear:'Crear comida personalizada', pm_volver:'Volver a Comidas',
@@ -447,7 +487,7 @@ const I18N = {
     err_med_requerido:'Ingresa un nombre y al menos un horario',
     err_bp_rango:'Los valores de presión o pulso están fuera de un rango fisiológico posible',
     err_ejercicio_rango:'Minutos o calorías fuera de un rango posible',
-    err_peso_rango:'Ingresa un peso entre 15 y 500 kg',
+    err_peso_rango:'Ingresa un peso entre 15 y 500 kg', err_sleep_rango:'Ingresa horas de sueño entre 0 y 24',
     err_goals_rango:'Revisa que tus metas estén en un rango razonable',
     err_bodycomp_rango:'{field}: fuera de un rango posible ({min}–{max})',
     set_sync_title:'Sincronización entre dispositivos', set_cancelar:'Cancelar', set_ajustes_guardados:'Ajustes guardados',
@@ -517,7 +557,7 @@ const I18N = {
     ejtipo_senderismo:'Hiking', ejtipo_golf:'Golf', ejtipo_biciEstatica:'Stationary Bike', ejtipo_yoga:'Yoga', ejtipo_pilates:'Pilates',
     ejtipo_pesas:'Weights', ejtipo_remo:'Rowing',
     hoy_vitality:"Today's vitality", hoy_vitality_sub:"Combines today's food, water, exercise, sleep, blood pressure and medications",
-    hoy_insight:"Today's insight", hoy_regenerar:'Regenerate', hoy_generar_insight:'Generate insight',
+    hoy_insight:"Today's insight", hoy_regenerar:'Regenerate', hoy_generar_insight:'Generate insight', hoy_generando_insight:'Generating…', err_insight_failed:'Could not generate the insight',
     hoy_de:'of', legend_comida:'Food', legend_agua:'Water', legend_ejercicio:'Exercise',
     stat_quemadas:'Burned', stat_ejercicio:'Exercise', stat_peso:'Weight', stat_presion:'Pressure',
     macro_title:'Macronutrients', macro_proteina:'Protein', macro_carbohidratos:'Carbs', macro_grasas:'Fat',
@@ -588,6 +628,27 @@ const I18N = {
     comidas_tipo:'Meal type', comidas_agregar_a:'Add to', comidas_placeholder:'E.g. "6oz tuna can", "medium banana"',
     comidas_descripcion_requerida:'Write down what you ate before adding',
     comidas_estimar:'Estimate', comidas_escanear:'Scan barcode',
+    foto_boton:'Photo (beta)', foto_titulo:'Calories from photo',
+    foto_plato_pregunta:'What type of plate is this?',
+    foto_plato_llano:'Flat plate', foto_plato_hondo:'Deep/soup plate', foto_plato_postre:'Dessert/salad plate',
+    foto_plato_bowl:'Bowl', foto_plato_mug:'Large mug/cup', foto_plato_tupper:'Tupperware / lunchbox',
+    foto_plato_artesanal:'Artisanal / unique plate',
+    foto_fork_nota:'Artisanal/unique plates vary a lot in size. For a better estimate, place a visible fork in the photo next to the food — its size varies little between brands, so it works as a real scale reference.',
+    foto_continuar:'Continue', foto_cambiar_plato:'← Change plate type', foto_cambiar_apikey:'← Change API key',
+    foto_capturar:'📷 Capture', foto_repetir:'🔁 Retake photo', foto_analizar:'Analyze plate', foto_analizando:'Analyzing…',
+    foto_nota_label:'Optional note (e.g. "this is a double portion", "small deep plate")',
+    foto_tilt_buscando:'Looking for tilt sensor…',
+    foto_tilt_correcto:'✓ Correct angle — capture now',
+    foto_tilt_objetivo:'Tilt the phone toward the plate (target {min}°-{max}°)',
+    foto_tilt_sindatos:'No sensor data — capture manually whenever you like',
+    foto_tilt_denegado:'Sensor permission denied — enable it in Settings, or capture manually',
+    foto_tilt_nodisponible:'Tilt sensor not available — capture manually',
+    foto_camera_error:'Could not access the camera: {msg}',
+    foto_agregar_no_detectado:'Add undetected food', foto_agregar_placeholder:'e.g. half a cup of rice',
+    foto_items_vacio:'No food items detected.', foto_total:'Estimated total for this plate',
+    foto_confirmar:'Add to my meals', foto_reiniciar:'🔄 Start over (another plate)',
+    foto_apikey_label:'Anthropic API key (needed for this feature until you have Plus)',
+    err_foto_analizar:'Error analyzing the photo', err_foto_estimar_item:'Estimation error',
     comidas_prot_g:'Prot(g)', comidas_carb_g:'Carbs(g)', comidas_grasa_g:'Fat(g)',
     btn_agregar:'+ Add', comidas_hoy:'Today', comidas_empty:'No meals logged yet — add the first one above',
     pm_titulo:'Personalized Meal', pm_boton_crear:'Create personalized meal', pm_volver:'Back to Meals',
@@ -706,7 +767,7 @@ const I18N = {
     err_med_requerido:'Enter a name and at least one time',
     err_bp_rango:'The pressure or pulse values are outside a physiologically possible range',
     err_ejercicio_rango:'Minutes or calories are outside a possible range',
-    err_peso_rango:'Enter a weight between 15 and 500 kg',
+    err_peso_rango:'Enter a weight between 15 and 500 kg', err_sleep_rango:'Enter sleep hours between 0 and 24',
     err_goals_rango:'Check that your goals are within a reasonable range',
     err_bodycomp_rango:'{field}: outside a possible range ({min}–{max})',
     set_sync_title:'Cross-device sync', set_cancelar:'Cancel', set_ajustes_guardados:'Settings saved',
@@ -1403,14 +1464,14 @@ Responde solo con la frase, sin comillas ni explicación adicional.`;
 async function handleGenerateInsight(force){
   const btn = document.getElementById('insight-btn');
   const errEl = document.getElementById('insight-error');
-  if(btn){ btn.disabled = true; btn.textContent = 'Generando…'; }
+  if(btn){ btn.disabled = true; btn.textContent = tr('hoy_generando_insight'); }
   if(errEl) errEl.textContent = '';
   try{
     await generateDailyInsight(force);
     render();
   }catch(e){
-    if(errEl) errEl.textContent = e.message || 'No se pudo generar el insight';
-    if(btn){ btn.disabled=false; btn.textContent='Generar insight'; }
+    if(errEl) errEl.textContent = e.message || tr('err_insight_failed');
+    if(btn){ btn.disabled=false; btn.textContent=tr('hoy_generar_insight'); }
   }
 }
 
@@ -1946,15 +2007,17 @@ function renderHoy(){
         <span class="display" style="font-size:13px;color:var(--accent3);font-weight:700;">${d.water} L</span>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;">
-        ${Array.from({length:Math.max(g.waterGoal, d.water)}).map((_,i,arr)=>{
-          // Every droplet except the last one jumps straight to its position (tap
-          // droplet 3 -> water=3), same as before. The last droplet is the only
-          // way to go *past* the goal: while it's the topmost filled droplet,
-          // tapping it adds one more instead of un-filling it — otherwise there
-          // was no way to log water beyond the goal at all, since a droplet only
-          // exists here once water reaches it.
-          const isLastAtMax = i===arr.length-1 && d.water>=arr.length;
-          const nextValue = isLastAtMax ? d.water+1 : (i+1===d.water ? i : i+1);
+        ${Array.from({length:Math.max(g.waterGoal, d.water)+1}).map((_,i)=>{
+          // One extra empty droplet is always rendered past the current total --
+          // tapping it is how you log past the goal (grows the row by one for
+          // next render). Every droplet (including that one) jumps straight to
+          // its own position (tap droplet 3 -> water=3); tapping the topmost
+          // *filled* droplet specifically un-fills it (nextValue=i). This used
+          // to special-case the last droplet as "always add" so there was some
+          // way to exceed the goal, but that permanently broke un-filling once
+          // past it (real tester report) -- the extra always-present droplet
+          // covers that job instead, so every droplet can use the same rule.
+          const nextValue = i+1===d.water ? i : i+1;
           return `<button class="btn ${i<d.water?'btn-accent3':'btn-ghost'}" style="width:44px;height:44px;padding:0;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;"
             onclick="setWater(${nextValue})" aria-label="${trf('aria_water_drop',{n:i+1})}">${navIcon('gota',19)}</button>`;
         }).join('')}
@@ -1966,7 +2029,7 @@ function renderHoy(){
         </div>
         <div>
           <div class="label">${tr('hoy_sueno')}</div>
-          <input type="number" step="0.1" id="in-sleep" value="${d.sleepHours??''}" placeholder="—" style="width:100%;" onchange="setSleep(this.value)">
+          <input type="number" step="0.1" min="0" max="24" id="in-sleep" value="${d.sleepHours??''}" placeholder="—" style="width:100%;" onchange="setSleep(this.value)">
         </div>
       </div>
     </div>
@@ -2070,6 +2133,7 @@ function renderComidas(){
         <button class="btn btn-primary" id="est-btn" onclick="handleEstimate()">${navIcon('sparkle',14)}${tr('comidas_estimar')}</button>
       </div>
       <button class="btn btn-ghost" style="width:100%;margin-bottom:8px;" onclick="openScanner()">${navIcon('camara',14)}${tr('comidas_escanear')}</button>
+      <button class="btn btn-ghost" style="width:100%;margin-bottom:8px;" onclick="openMealPhotoFlow()">${navIcon('camara',14)}${tr('foto_boton')}</button>
       <div id="meal-note" style="font-size:11px;color:var(--accent3);margin-bottom:8px;"></div>
       <div class="grid4" style="margin-bottom:10px;">
         <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('comidas_prot_g')}</div><input id="meal-p" type="number" placeholder="0" style="width:100%;"></div>
@@ -2613,7 +2677,7 @@ function renderDayDetail(iso){
         <div>
           <div class="label">${tr('cal_editar_sueno')}</div>
           <div style="display:flex;gap:8px;">
-            <input type="number" step="0.1" id="cal-sleep" value="${d.sleepHours??''}" placeholder="—" style="flex:1;min-width:0;">
+            <input type="number" step="0.1" min="0" max="24" id="cal-sleep" value="${d.sleepHours??''}" placeholder="—" style="flex:1;min-width:0;">
             <button class="btn btn-primary" onclick="setSleepForDay('${iso}')">${tr('cal_guardar')}</button>
           </div>
         </div>
@@ -3531,6 +3595,63 @@ function modalHTML(){
       </div>
     </div>`;
   }
+  if(window._modal==='mealPhoto'){
+    return `<div id="foto-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;" onclick="closeMealPhotoModal(event)">
+      <div class="card" style="width:420px;max-width:100%;max-height:92vh;overflow-y:auto;" onclick="event.stopPropagation()">
+        <div class="display" style="font-weight:700;font-size:16px;margin-bottom:12px;display:flex;align-items:center;gap:8px;">${navIcon('camara',18)}${tr('foto_titulo')}</div>
+
+        <div class="foto-step active" id="foto-step-plate">
+          <div class="label" style="margin-top:0;">${tr('foto_plato_pregunta')}</div>
+          <div class="foto-plate-grid" id="foto-plate-grid">
+            ${PLATE_TYPES.map(p=>`<div class="meal-type-btn" data-id="${p.id}" onclick="selectFotoPlate('${p.id}')" style="min-height:64px;">
+              <span style="font-size:22px;">${p.icon}</span><span>${esc(tr(p.labelKey))}</span><span style="opacity:.7;">${p.meta}</span>
+            </div>`).join('')}
+          </div>
+          <div id="foto-fork-nota" style="display:none;font-size:12px;color:var(--accent3);background:rgba(242,166,90,.1);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:12px;">${esc(tr('foto_fork_nota'))}</div>
+          <button class="btn btn-primary" id="foto-plate-continue" disabled style="width:100%;margin-top:14px;" onclick="fotoGoToCapture()">${tr('foto_continuar')}</button>
+          <button class="btn btn-ghost" style="width:100%;margin-top:8px;" onclick="closeMealPhotoModal()">${tr('set_cancelar')}</button>
+        </div>
+
+        <div class="foto-step" id="foto-step-capture">
+          <div class="foto-video-wrap">
+            <video id="foto-video" autoplay playsinline muted></video>
+            <div class="foto-tilt-gauge">
+              <div class="foto-tilt-bar"><div class="foto-tilt-target" id="foto-tilt-target"></div><div class="foto-tilt-fill" id="foto-tilt-fill"></div></div>
+              <div class="foto-tilt-label" id="foto-tilt-label">${tr('foto_tilt_buscando')}</div>
+              <div class="foto-tilt-label" id="foto-tilt-debug" style="opacity:.7;margin-top:2px;"></div>
+            </div>
+          </div>
+          <button class="btn btn-primary" style="width:100%;margin-top:14px;" onclick="capturarFotoPlato()">${tr('foto_capturar')}</button>
+          <button class="btn btn-ghost" style="width:100%;margin-top:8px;" onclick="fotoVolverAPlato()">${tr('foto_cambiar_plato')}</button>
+        </div>
+
+        <div class="foto-step" id="foto-step-preview">
+          <div class="foto-video-wrap"><canvas id="foto-preview-canvas"></canvas></div>
+          <div class="label">${tr('foto_nota_label')}</div>
+          <textarea id="foto-note" rows="2" style="width:100%;"></textarea>
+          <button class="btn btn-primary" id="foto-analyze-btn" style="width:100%;margin-top:14px;" onclick="analizarFotoPlato()">${tr('foto_analizar')}</button>
+          <button class="btn btn-ghost" style="width:100%;margin-top:8px;" onclick="retomarFotoPlato()">${tr('foto_repetir')}</button>
+          <div id="foto-analyze-err" style="color:var(--danger);font-size:12px;margin-top:8px;min-height:1em;"></div>
+        </div>
+
+        <div class="foto-step" id="foto-step-results">
+          <div id="foto-items-list"></div>
+          <div class="label">${tr('foto_agregar_no_detectado')}</div>
+          <div style="display:flex;gap:8px;">
+            <input type="text" id="foto-manual-desc" placeholder="${esc(tr('foto_agregar_placeholder'))}" style="flex:1;min-width:0;">
+            <button class="btn btn-primary" style="width:auto;padding:10px 16px;" onclick="agregarFotoItemManual()">+</button>
+          </div>
+          <div id="foto-manual-err" style="color:var(--danger);font-size:12px;margin-top:6px;min-height:1em;"></div>
+          <div class="card" style="background:var(--raised);text-align:center;margin:14px 0;padding:14px;">
+            <div style="font-size:24px;font-weight:800;color:var(--accent);" id="foto-total">0 kcal</div>
+            <div style="font-size:11px;color:var(--muted);">${tr('foto_total')}</div>
+          </div>
+          <button class="btn btn-primary" style="width:100%;" onclick="confirmarFotoItems()">${tr('foto_confirmar')}</button>
+          <button class="btn btn-ghost" style="width:100%;margin-top:8px;" onclick="reiniciarFotoPlato()">${tr('foto_reiniciar')}</button>
+        </div>
+      </div>
+    </div>`;
+  }
   if(window._modal==='bp-info'){
     const rows = [
       { key:'normal', color:'var(--status-good)' },
@@ -3595,6 +3716,10 @@ function modalHTML(){
     // that function already does, including its window._hcState-not-ready race.
     return `<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;" onclick="closeWelcomeModal(event)">
       <div class="card" style="width:400px;max-width:100%;max-height:85vh;overflow-y:auto;" onclick="event.stopPropagation()">
+        <div style="display:flex;justify-content:flex-end;gap:4px;margin-bottom:10px;">
+          <button class="btn ${state.lang==='es'?'btn-primary':'btn-ghost'}" style="padding:5px 10px;font-size:11px;" onclick="setLang('es')">ES</button>
+          <button class="btn ${state.lang==='en'?'btn-primary':'btn-ghost'}" style="padding:5px 10px;font-size:11px;" onclick="setLang('en')">EN</button>
+        </div>
         <div class="display" style="font-weight:700;font-size:18px;margin-bottom:6px;">${tr('welcome_title')}</div>
         <div style="font-size:13px;color:var(--muted);margin-bottom:18px;">${tr('welcome_subtitle')}</div>
         <div class="label">${tr('hc_settings_title')}</div>
@@ -3711,7 +3836,23 @@ function render(){
   document.getElementById('app').innerHTML = renderApp();
   const newNav = document.querySelector('nav.side');
   if(newNav) newNav.scrollLeft = navScrollLeft;
-  restoreWheelScroll(); runHoyEntranceAnimation();
+  restoreWheelScroll(); runHoyEntranceAnimation(); syncNavScrollFade();
+}
+// The mobile top nav's "more to scroll" chevron (nav.side::after) is a plain
+// CSS overlay with no way to know scroll position on its own -- without this,
+// it stays visible even once the user has scrolled all the way to the end,
+// permanently covering whatever tab/icon lands at the right edge (real tester
+// report). render() replaces nav.side's DOM every call, so the listener is
+// re-attached fresh each time rather than surviving on a stale element.
+function syncNavScrollFade(){
+  const nav = document.querySelector('nav.side');
+  if(!nav) return;
+  const update = ()=>{
+    const atEnd = nav.scrollLeft + nav.clientWidth >= nav.scrollWidth - 1;
+    nav.classList.toggle('at-scroll-end', atEnd);
+  };
+  update();
+  nav.addEventListener('scroll', update, { passive:true });
 }
 function setTab(t){
   if(t==='hoy' && state.tab!=='hoy') window._hoyAnimate = true;
@@ -3755,7 +3896,12 @@ function setWeight(v){
   if(!isFinite(n) || n<15 || n>500){ toast(tr('err_peso_rango'), true); render(); return; }
   state.day.weight = n; saveDay();
 }
-function setSleep(v){ state.day.sleepHours = v===''?null:Number(v); saveDay(); }
+function setSleep(v){
+  if(v===''){ state.day.sleepHours = null; saveDay(); return; }
+  const n = Number(v);
+  if(!isFinite(n) || n<0 || n>24){ toast(tr('err_sleep_rango'), true); render(); return; }
+  state.day.sleepHours = n; saveDay();
+}
 
 function checkCacheHint(){
   const nameEl = document.getElementById('meal-name');
@@ -3951,6 +4097,284 @@ function addMeal(){
   saveDay(); render();
 }
 function removeMeal(id){ state.day.meals = state.day.meals.filter(m=>m.id!==id); saveDay(); render(); }
+
+/* ================= meal photo (calorie estimation from photo) =================
+ * Mirrors the standalone prototype validated in prototypes/foto-calorias/index.html:
+ * plate-type picker for a scale reference (fork-in-photo for the "artesanal" catch-all),
+ * tilt-guided single-photo capture, Claude vision analysis, editable per-item results,
+ * and a manual fallback that reuses estimateNutrition() for anything not detected.
+ * The capture flow deliberately avoids the app's global render() while a step is
+ * active (render() replaces #app's innerHTML wholesale, which would tear down the
+ * live <video> element and its srcObject) — steps are toggled via a CSS class and
+ * sub-elements are updated directly, the same way openScanner()/startScanner() do.
+ */
+const PLATE_TYPES = [
+  { id:'llano',     icon:'🍽️', labelKey:'foto_plato_llano',     meta:'~27cm',    scaleHint:'plato llano estándar, diámetro aproximado 27cm' },
+  { id:'hondo',     icon:'🥣', labelKey:'foto_plato_hondo',     meta:'~22cm',    scaleHint:'plato hondo/sopero, diámetro aproximado 22cm, con profundidad considerable' },
+  { id:'postre',    icon:'🥗', labelKey:'foto_plato_postre',    meta:'~19cm',    scaleHint:'plato de postre o ensalada, diámetro aproximado 19cm' },
+  { id:'bowl',      icon:'🍜', labelKey:'foto_plato_bowl',      meta:'~15cm',    scaleHint:'tazón (bowl) profundo, diámetro aproximado 15cm' },
+  { id:'mug',       icon:'☕', labelKey:'foto_plato_mug',       meta:'~350ml',   scaleHint:'taza o mug grande, volumen aproximado 350ml' },
+  { id:'tupper',    icon:'🥡', labelKey:'foto_plato_tupper',    meta:'estándar', scaleHint:'recipiente tipo tupper/lonchera de tamaño estándar de mercado' },
+  { id:'artesanal', icon:'🎨', labelKey:'foto_plato_artesanal', meta:'variable', scaleHint:'plato de forma o tamaño no estándar — hay un tenedor visible en la foto (largo típico 19-20cm); úsalo como referencia real de escala en vez de asumir un diámetro de plato' },
+];
+// Placeholder target range for the elevation-angle guide, not yet calibrated against
+// real capture outcomes (see project memory) — revisit only if a bad estimate can be
+// tied to a specific out-of-range beta reading.
+const FOTO_TILT_MIN = 35, FOTO_TILT_MAX = 55;
+
+function openMealPhotoFlow(){
+  window._photoFlow = { plateType:null, photos:[], items:[] };
+  window._modal = 'mealPhoto';
+  render();
+}
+function closeMealPhotoModal(e){
+  if(e && e.target!==e.currentTarget) return;
+  fotoStopTilt();
+  fotoStopCamera();
+  window._modal = null;
+  window._photoFlow = null;
+  render();
+}
+function fotoStep(name){
+  const modal = document.getElementById('foto-modal');
+  if(!modal) return;
+  modal.querySelectorAll('.foto-step').forEach(s=>s.classList.remove('active'));
+  const el = document.getElementById('foto-step-'+name);
+  if(el) el.classList.add('active');
+}
+function selectFotoPlate(id){
+  const pf = window._photoFlow; if(!pf) return;
+  pf.plateType = PLATE_TYPES.find(p=>p.id===id);
+  document.querySelectorAll('#foto-plate-grid .meal-type-btn').forEach(c=>c.classList.toggle('active', c.dataset.id===id));
+  const fork = document.getElementById('foto-fork-nota');
+  if(fork) fork.style.display = id==='artesanal' ? 'block' : 'none';
+  const btn = document.getElementById('foto-plate-continue');
+  if(btn) btn.disabled = false;
+}
+function fotoVolverAPlato(){
+  fotoStopTilt();
+  fotoStopCamera();
+  fotoStep('plate');
+}
+async function fotoGoToCapture(){
+  fotoStep('capture');
+  const label = document.getElementById('foto-tilt-label');
+  if(label) label.textContent = tr('foto_tilt_buscando');
+  // Must be requested before the getUserMedia await below, not after — iOS Safari only
+  // honors DeviceOrientationEvent.requestPermission() when it's still inside the click's
+  // transient activation window, which an intervening await can break.
+  const orientationPermission = await fotoRequestOrientationPermission();
+  const pf = window._photoFlow; if(!pf) return;
+  try{
+    pf.stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:'environment' } }, audio:false });
+    const videoEl = document.getElementById('foto-video');
+    if(videoEl) videoEl.srcObject = pf.stream;
+  }catch(e){
+    if(label) label.textContent = trf('foto_camera_error', { msg: e.message||String(e) });
+    return;
+  }
+  fotoStartTilt(orientationPermission);
+}
+async function fotoRequestOrientationPermission(){
+  const needsPermission = typeof DeviceOrientationEvent !== 'undefined'
+    && typeof DeviceOrientationEvent.requestPermission === 'function';
+  if(!needsPermission) return 'granted'; // Android and browsers without this permission model
+  try{ return await DeviceOrientationEvent.requestPermission(); } // 'granted' | 'denied'
+  catch(e){ return 'denied'; }
+}
+function fotoStartTilt(orientationPermission){
+  const target = document.getElementById('foto-tilt-target');
+  if(target){
+    target.style.left = (FOTO_TILT_MIN/90*100)+'%';
+    target.style.width = ((FOTO_TILT_MAX-FOTO_TILT_MIN)/90*100)+'%';
+  }
+  const label = document.getElementById('foto-tilt-label');
+  if(!window.DeviceOrientationEvent){
+    if(label) label.textContent = tr('foto_tilt_nodisponible');
+    return;
+  }
+  if(orientationPermission === 'denied'){
+    if(label) label.textContent = tr('foto_tilt_denegado');
+    return;
+  }
+  const pf = window._photoFlow; if(!pf) return;
+  let gotEvent = false;
+  // Some Android devices with an accelerometer but no magnetometer/compass never fire
+  // plain 'deviceorientation' (Chrome can't establish a fused orientation without it)
+  // but do fire 'deviceorientationabsolute' — listen on both and use whichever answers
+  // first, rather than assuming "no event within N seconds" means "no sensor at all".
+  pf.orientationHandler = (ev)=>{
+    if(ev.beta===null || ev.beta===undefined) return;
+    gotEvent = true;
+    const beta = ev.beta;
+    const clamped = Math.max(0, Math.min(90, beta));
+    const inRange = beta>=FOTO_TILT_MIN && beta<=FOTO_TILT_MAX;
+    const fill = document.getElementById('foto-tilt-fill');
+    if(fill){ fill.style.left = (clamped/90*100)+'%'; fill.style.background = inRange ? 'var(--status-good)' : 'var(--danger)'; }
+    const lbl = document.getElementById('foto-tilt-label');
+    if(lbl) lbl.textContent = inRange ? tr('foto_tilt_correcto') : trf('foto_tilt_objetivo', { min:FOTO_TILT_MIN, max:FOTO_TILT_MAX });
+    const dbg = document.getElementById('foto-tilt-debug');
+    if(dbg) dbg.textContent = `${ev.type} · beta: ${beta.toFixed(1)}°`;
+  };
+  pf.orientationEvents = ['deviceorientation', 'deviceorientationabsolute'];
+  pf.orientationEvents.forEach(evt=>window.addEventListener(evt, pf.orientationHandler));
+  setTimeout(()=>{ if(!gotEvent && label) label.textContent = tr('foto_tilt_sindatos'); }, 4000);
+}
+function fotoStopTilt(){
+  const pf = window._photoFlow;
+  if(pf && pf.orientationHandler){
+    (pf.orientationEvents || ['deviceorientation']).forEach(evt=>window.removeEventListener(evt, pf.orientationHandler));
+    pf.orientationHandler = null;
+  }
+}
+function fotoStopCamera(){
+  const pf = window._photoFlow;
+  if(pf && pf.stream){ pf.stream.getTracks().forEach(t=>t.stop()); pf.stream = null; }
+}
+function capturarFotoPlato(){
+  const pf = window._photoFlow; if(!pf) return;
+  const video = document.getElementById('foto-video');
+  if(!video || !video.videoWidth) return;
+  const maxDim = 1024;
+  const scale = Math.min(1, maxDim/Math.max(video.videoWidth, video.videoHeight));
+  const canvas = document.getElementById('foto-preview-canvas');
+  canvas.width = Math.round(video.videoWidth*scale);
+  canvas.height = Math.round(video.videoHeight*scale);
+  canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+  pf.photos = [canvas.toDataURL('image/jpeg', 0.75)];
+  fotoStopTilt();
+  fotoStopCamera();
+  const noteEl = document.getElementById('foto-note'); if(noteEl) noteEl.value = '';
+  const errEl = document.getElementById('foto-analyze-err'); if(errEl) errEl.textContent = '';
+  fotoStep('preview');
+}
+function retomarFotoPlato(){ fotoGoToCapture(); }
+
+/**
+ * Photo counterpart to estimateNutrition() (text). Same Plus/BYOK dispatch pattern,
+ * same server-constructed-prompt discipline on the Plus path (see functions/index.js),
+ * but returns an array of items (a plate usually holds more than one food) instead of
+ * a single macro set.
+ */
+async function estimateNutritionFromPhoto(images, plateType, note){
+  if(window._planState && window._planState.plan === 'plus'){
+    try{
+      const result = await window.callEstimateNutritionFromPhotoPlus({ images, plateType: plateType.id, note });
+      return result.data.items;
+    }catch(e){ throw new Error(friendlyPlusAiError(e)); }
+  }
+  const key = getApiKey();
+  if(!key) throw new Error(tr('err_ai_key_missing'));
+  const prompt = `Eres un nutricionista analizando ${images.length>1?'fotos':'una foto'} de un plato de comida real, tomada${images.length>1?'s':''} para estimar calorías.
+Contexto de escala: ${plateType.scaleHint}.
+${note ? 'Nota del usuario: '+note+'\n' : ''}
+Identifica cada alimento visible por separado. Para cada uno, estima la porción (en gramos) usando el contexto de escala dado, y calcula su contenido nutricional usando valores típicos (USDA o equivalente). Considera la altura/volumen aparente de cada alimento en la imagen, no solo el área que ocupa en el plato.
+
+Responde ÚNICAMENTE con un array JSON válido, sin texto adicional, sin markdown, sin backticks:
+[{"name":"<nombre en español>","gramos":<entero>,"calories":<entero kcal>,"protein":<entero g>,"carbs":<entero g>,"fat":<entero g>}]`;
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key': key,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true'
+    },
+    body: JSON.stringify({
+      model:'claude-sonnet-5',
+      max_tokens: 1024,
+      messages:[{ role:'user', content:[
+        ...images.map(dataUrl=>({ type:'image', source:{ type:'base64', media_type:'image/jpeg', data: dataUrl.split(',')[1] } })),
+        { type:'text', text: prompt }
+      ]}]
+    })
+  });
+  if(!res.ok){ const t = await res.text(); throw new Error('API error: '+t.slice(0,200)); }
+  const data = await res.json();
+  const text = (data.content||[]).map(b=>b.text||'').join('');
+  const clean = text.replace(/```json|```/g,'').trim();
+  const parsed = JSON.parse(clean);
+  if(!Array.isArray(parsed)) throw new Error(tr('err_ai_bad_response'));
+  return parsed;
+}
+
+async function analizarFotoPlato(){
+  const pf = window._photoFlow; if(!pf) return;
+  const btn = document.getElementById('foto-analyze-btn');
+  const errEl = document.getElementById('foto-analyze-err');
+  if(errEl) errEl.textContent = '';
+  if(btn){ btn.disabled = true; btn.textContent = tr('foto_analizando'); }
+  try{
+    const noteEl = document.getElementById('foto-note');
+    const note = noteEl ? noteEl.value.trim() : '';
+    const items = await estimateNutritionFromPhoto(pf.photos, pf.plateType, note);
+    pf.items = items.map(it=>({ ...it, _id: uid() }));
+    renderFotoResults();
+    fotoStep('results');
+  }catch(e){
+    if(errEl) errEl.textContent = e.message || tr('err_foto_analizar');
+  }
+  if(btn){ btn.disabled = false; btn.textContent = tr('foto_analizar'); }
+}
+
+function renderFotoResults(){
+  const pf = window._photoFlow; if(!pf) return;
+  const list = document.getElementById('foto-items-list');
+  if(list){
+    list.innerHTML = (pf.items||[]).map(it=>rowItem(
+      it.name,
+      `${it.gramos?it.gramos+'g · ':''}P ${it.protein}g · C ${it.carbs}g · G ${it.fat}g`,
+      it.calories+' kcal',
+      `quitarFotoItem('${it._id}')`
+    )).join('') || `<p style="color:var(--muted);font-size:13px;">${tr('foto_items_vacio')}</p>`;
+  }
+  const total = (pf.items||[]).reduce((s,it)=>s+(Number(it.calories)||0),0);
+  const totalEl = document.getElementById('foto-total');
+  if(totalEl) totalEl.textContent = total+' kcal';
+}
+function quitarFotoItem(id){
+  const pf = window._photoFlow; if(!pf) return;
+  pf.items = (pf.items||[]).filter(it=>it._id!==id);
+  renderFotoResults();
+}
+async function agregarFotoItemManual(){
+  const input = document.getElementById('foto-manual-desc');
+  const errEl = document.getElementById('foto-manual-err');
+  const desc = (input && input.value || '').trim();
+  if(!desc) return;
+  if(errEl) errEl.textContent = '';
+  try{
+    const r = await estimateNutrition(desc);
+    const pf = window._photoFlow; if(!pf) return;
+    pf.items = pf.items || [];
+    pf.items.push({ name: desc, gramos: null, calories: r.calories, protein: r.protein||0, carbs: r.carbs||0, fat: r.fat||0, _id: uid() });
+    if(input) input.value = '';
+    renderFotoResults();
+  }catch(e){
+    if(errEl) errEl.textContent = e.message || tr('err_foto_estimar_item');
+  }
+}
+function confirmarFotoItems(){
+  const pf = window._photoFlow; if(!pf || !(pf.items||[]).length) return;
+  const time = nowHM();
+  pf.items.forEach(it=>{
+    state.day.meals.push({
+      id: uid(), type: window._mealType||'desayuno', name: it.name,
+      calories: Number(it.calories)||0, protein: Number(it.protein)||0, carbs: Number(it.carbs)||0, fat: Number(it.fat)||0,
+      fiber:0, sugar:0, sodium:0, iron:0, calcium:0, potassium:0, vitaminC:0,
+      time,
+    });
+  });
+  saveDay();
+  closeMealPhotoModal();
+}
+function reiniciarFotoPlato(){
+  window._photoFlow = { plateType:null, photos:[], items:[] };
+  document.querySelectorAll('#foto-plate-grid .meal-type-btn').forEach(c=>c.classList.remove('active'));
+  const btn = document.getElementById('foto-plate-continue'); if(btn) btn.disabled = true;
+  const fork = document.getElementById('foto-fork-nota'); if(fork) fork.style.display = 'none';
+  fotoStep('plate');
+}
 
 /* ================= personalized meals (local, private-sync only) ================= */
 function openPersonalMealBuilder(){
@@ -4468,7 +4892,10 @@ function removeExerciseForDay(iso, id){
 }
 function setSleepForDay(iso){
   const v = document.getElementById('cal-sleep').value;
-  mutateDay(iso, day=>{ day.sleepHours = v===''?null:Number(v); });
+  if(v===''){ mutateDay(iso, day=>{ day.sleepHours = null; }); return; }
+  const n = Number(v);
+  if(!isFinite(n) || n<0 || n>24){ toast(tr('err_sleep_rango'), true); return; }
+  mutateDay(iso, day=>{ day.sleepHours = n; });
 }
 function setWeightForDay(iso){
   const v = document.getElementById('cal-weight').value;
@@ -5038,6 +5465,7 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
 // "we handled this" from "there was nothing open."
 function handleBackAction(){
   if(window._modal==='scanner'){ closeScanner(); return true; }
+  if(window._modal==='mealPhoto'){ closeMealPhotoModal(); return true; }
   if(window._modal==='welcome'){ closeWelcomeModal(); return true; }
   if(window._modal){ closeModal(); return true; }
   if(window._pmView){ closePersonalMealBuilder(); return true; }
@@ -5157,6 +5585,7 @@ syncNativeMedAlerts();
 
   window._planState = { plan:'free', planExpiresAt:null };
   window.callEstimateNutritionPlus = httpsCallable(functions, 'estimateNutritionPlus');
+  window.callEstimateNutritionFromPhotoPlus = httpsCallable(functions, 'estimateNutritionFromPhotoPlus');
   window.callGenerateDailyInsightPlus = httpsCallable(functions, 'generateDailyInsightPlus');
   window.callDeleteAccount = httpsCallable(functions, 'deleteAccount');
 
