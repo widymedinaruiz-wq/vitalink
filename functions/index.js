@@ -88,6 +88,20 @@ async function callAnthropic(prompt, maxTokens, apiKey) {
   return (data.content || []).map((b) => b.text || '').join('');
 }
 
+// Mirrors the client's PLATE_TYPES scale hints (prototypes/foto-calorias/index.html and
+// the production photo-capture flow) — kept as a fixed server-side whitelist, indexed by
+// plate id, so the client can only select a known scale context rather than injecting
+// arbitrary prompt text through this field.
+const PLATE_SCALE_HINTS = {
+  llano: 'plato llano estándar, diámetro aproximado 27cm',
+  hondo: 'plato hondo/sopero, diámetro aproximado 22cm, con profundidad considerable',
+  postre: 'plato de postre o ensalada, diámetro aproximado 19cm',
+  bowl: 'tazón (bowl) profundo, diámetro aproximado 15cm',
+  mug: 'taza o mug grande, volumen aproximado 350ml',
+  tupper: 'recipiente tipo tupper/lonchera de tamaño estándar de mercado',
+  artesanal: 'plato de forma o tamaño no estándar — hay un tenedor visible en la foto (largo típico 19-20cm); úsalo como referencia real de escala en vez de asumir un diámetro de plato',
+};
+
 /**
  * Server-side counterpart to the client's estimateNutrition() (index.html) — same
  * prompt/schema, so the parsed result shape is identical for Free (BYOK) and Plus
@@ -120,6 +134,64 @@ Alimento: "${desc}"`;
     throw new HttpsError('internal', 'AI response missing calories.');
   }
   return parsed;
+});
+
+/**
+ * Server-side counterpart to the client's estimateNutritionFromPhoto() — same
+ * prompt/schema and per-item array response as the BYOK path, so Plus users get an
+ * identical result shape without needing their own key. Images arrive pre-downscaled
+ * by the client (~1024px, JPEG ~70%) but this still bounds payload size server-side,
+ * since a client is not a trusted source for "already validated" input. The scale
+ * context is a fixed whitelist lookup (PLATE_SCALE_HINTS), not client-supplied prompt
+ * text, for the same reason estimateNutritionPlus builds its own prompt server-side.
+ * Shares the same daily cap as text-based estimation/insights (checkAndIncrementDailyUsage)
+ * rather than a separate counter — simpler to reason about, at the cost of a photo call
+ * (more input tokens than a text call) counting the same as one text call toward it.
+ */
+exports.estimateNutritionFromPhotoPlus = onCall({ secrets: [anthropicApiKey] }, async (request) => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Sign in required.');
+  const uid = request.auth.uid;
+  const data = request.data || {};
+  const images = Array.isArray(data.images) ? data.images : [];
+  if (!images.length) throw new HttpsError('invalid-argument', 'Missing photo.');
+  if (images.length > 3) throw new HttpsError('invalid-argument', 'Too many photos.');
+  if (!images.every((b64) => typeof b64 === 'string' && b64.length > 0)) {
+    throw new HttpsError('invalid-argument', 'Invalid photo data.');
+  }
+  const totalBytes = images.reduce((s, b64) => s + Buffer.byteLength(b64, 'base64'), 0);
+  if (totalBytes > 6 * 1024 * 1024) throw new HttpsError('invalid-argument', 'Photo payload too large.');
+
+  const plateHint = PLATE_SCALE_HINTS[data.plateType] || PLATE_SCALE_HINTS.llano;
+  const note = String(data.note || '').trim().slice(0, 300);
+
+  await requirePlusEntitlement(uid);
+  await checkAndIncrementDailyUsage(uid);
+
+  const prompt = `Eres un nutricionista analizando ${images.length > 1 ? 'fotos' : 'una foto'} de un plato de comida real, tomada${images.length > 1 ? 's' : ''} para estimar calorías.
+Contexto de escala: ${plateHint}.
+${note ? 'Nota del usuario: ' + note + '\n' : ''}
+Identifica cada alimento visible por separado. Para cada uno, estima la porción (en gramos) usando el contexto de escala dado, y calcula su contenido nutricional usando valores típicos (USDA o equivalente). Considera la altura/volumen aparente de cada alimento en la imagen, no solo el área que ocupa en el plato.
+
+Responde ÚNICAMENTE con un array JSON válido, sin texto adicional, sin markdown, sin backticks:
+[{"name":"<nombre en español>","gramos":<entero>,"calories":<entero kcal>,"protein":<entero g>,"carbs":<entero g>,"fat":<entero g>}]`;
+
+  const content = [
+    ...images.map((b64) => ({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } })),
+    { type: 'text', text: prompt },
+  ];
+
+  const text = await callAnthropic(content, 1024, anthropicApiKey.value());
+  const clean = text.replace(/```json|```/g, '').trim();
+  let parsed;
+  try {
+    parsed = JSON.parse(clean);
+  } catch (e) {
+    throw new HttpsError('internal', 'Could not parse AI response.');
+  }
+  if (!Array.isArray(parsed)) {
+    throw new HttpsError('internal', 'AI response was not an item list.');
+  }
+  return { items: parsed };
 });
 
 /**
