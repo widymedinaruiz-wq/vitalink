@@ -1,5 +1,6 @@
 const { onCall, onRequest, HttpsError } = require('firebase-functions/v2/https');
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { setGlobalOptions } = require('firebase-functions/v2');
 const { defineSecret } = require('firebase-functions/params');
 const logger = require('firebase-functions/logger');
@@ -402,5 +403,112 @@ Guía: "noise" es feedback sin contenido accionable (agradecimientos genéricos,
     } catch (e) {
       logger.error('classifyFeedback: Firestore update failed', { docId: event.params.docId, error: String(e) });
     }
+  }
+);
+
+/**
+ * Feedback triage, Layer 2 (see project memory project_feedback_triage.md).
+ *
+ * Layer 1 (classifyFeedback) scores individual documents; that alone can't answer
+ * "where should I focus to reduce churn" because that signal usually lives in the
+ * same friction being reported by several *different* testers, not any one report's
+ * severity. This reads the last FEEDBACK_DIGEST_PERIOD_DAYS of non-noise feedback,
+ * asks Claude to cluster reports that describe the same underlying issue (even if
+ * worded differently) across distinct users, and ranks the clusters by a mix of
+ * how many distinct testers hit it, severity, and churn risk — then stores the
+ * result in feedbackDigests/{digestId} for review.
+ *
+ * Split into a plain async function (runFeedbackDigest) called by the weekly
+ * schedule below, so it can also be triggered manually from the Cloud Scheduler
+ * console ("Run now" on the feedbackDigestWeekly job) without needing a separate
+ * admin-gated callable endpoint just for testing.
+ */
+const FEEDBACK_DIGEST_PERIOD_DAYS = 7;
+
+async function runFeedbackDigest() {
+  const periodStart = Timestamp.fromMillis(Date.now() - FEEDBACK_DIGEST_PERIOD_DAYS * 24 * 60 * 60 * 1000);
+  const periodEnd = Timestamp.now();
+  const snap = await db.collection('feedback').where('createdAt', '>=', periodStart).get();
+
+  const items = [];
+  snap.forEach((doc) => {
+    const d = doc.data();
+    if (d.isNoise === true) return;
+    items.push({
+      id: doc.id,
+      uid: d.uid || 'unknown',
+      category: d.category || 'unclassified',
+      priority: typeof d.priority === 'number' ? d.priority : null,
+      churnRisk: !!d.churnRisk,
+      message: String(d.message || '').slice(0, 300),
+    });
+  });
+
+  if (!items.length) {
+    await db.collection('feedbackDigests').add({
+      periodStart,
+      periodEnd,
+      generatedAt: FieldValue.serverTimestamp(),
+      totalReports: 0,
+      noiseCount: snap.size,
+      headline: 'Sin feedback accionable en este período.',
+      issues: [],
+    });
+    return;
+  }
+
+  const itemsText = items
+    .map((it, i) => `[${i}] usuario=${it.uid.slice(0, 8)} categoria=${it.category} prioridad=${it.priority ?? '?'} churnRisk=${it.churnRisk} mensaje="${it.message}"`)
+    .join('\n');
+
+  const prompt = `Eres un analista de producto revisando feedback de testers de VitaLinks, una app de salud personal (nutrición, ejercicio, presión arterial, sueño, medicamentos). A continuación hay ${items.length} reportes recientes, ya filtrados de ruido (cada uno ya tiene una categoría y prioridad asignadas individualmente). Tu trabajo es encontrar patrones que un análisis reporte-por-reporte no vería: agrupa los reportes que describen el mismo problema de fondo aunque estén redactados distinto, y para cada grupo cuenta cuántos usuarios DISTINTOS lo reportaron (no cuántos reportes — si el mismo usuario lo repite, cuenta 1).
+
+Reportes:
+${itemsText}
+
+Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional, sin markdown, sin backticks:
+{"headline":"<una frase en español indicando en qué vale más la pena enfocarse ahora>","issues":[{"title":"<título corto en español>","affectedUsers":<entero>,"maxPriority":<entero 1-5>,"churnRisk":<true|false>,"category":"<bug|ux-friction|feature-request|otro>","itemIndexes":[<índices de los reportes agrupados en este issue>]}]}
+
+Ordena "issues" de mayor a menor urgencia real, combinando cuántos usuarios distintos afectados, la prioridad máxima del grupo, y si representa riesgo real de abandono — no solo por prioridad individual.`;
+
+  let headline = null;
+  let issues = [];
+  try {
+    const text = await callAnthropic(prompt, 2000, anthropicApiKey.value());
+    const clean = text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+    headline = typeof parsed.headline === 'string' ? parsed.headline.slice(0, 300) : null;
+    if (Array.isArray(parsed.issues)) {
+      issues = parsed.issues.map((issue) => ({
+        title: typeof issue.title === 'string' ? issue.title.slice(0, 200) : 'Sin título',
+        affectedUsers: Number.isInteger(issue.affectedUsers) ? issue.affectedUsers : null,
+        maxPriority: Number.isInteger(issue.maxPriority) ? Math.max(1, Math.min(5, issue.maxPriority)) : null,
+        churnRisk: !!issue.churnRisk,
+        category: typeof issue.category === 'string' ? issue.category : 'unclassified',
+        docIds: Array.isArray(issue.itemIndexes)
+          ? issue.itemIndexes.map((i) => items[i] && items[i].id).filter(Boolean)
+          : [],
+      }));
+    }
+  } catch (e) {
+    logger.error('feedbackDigest: Claude clustering failed', { error: String(e) });
+    headline = 'No se pudo generar el análisis esta vez — revisar feedback manualmente.';
+  }
+
+  await db.collection('feedbackDigests').add({
+    periodStart,
+    periodEnd,
+    generatedAt: FieldValue.serverTimestamp(),
+    totalReports: items.length,
+    noiseCount: snap.size - items.length,
+    headline,
+    issues,
+  });
+}
+
+exports.feedbackDigestWeekly = onSchedule(
+  { schedule: 'every monday 09:00', timeZone: 'Europe/Madrid', secrets: [anthropicApiKey] },
+  async () => {
+    await runFeedbackDigest();
   }
 );
