@@ -568,6 +568,10 @@ Para cada problema, busca la línea o bloque de código específico que sea rele
             }
             issues[v.index].codeStatus = status;
             issues[v.index].codeQuoteVerified = quoteVerified;
+            // Store the quote itself (only when it actually verified — an unverified
+            // one is either fabricated or truncated, not worth keeping) so a manual
+            // spot-check can see the exact cited evidence without re-deriving it.
+            issues[v.index].codeQuote = quoteVerified ? quote.slice(0, 400) : null;
             issues[v.index].codeStatusNote = typeof v.codeStatusNote === 'string' ? v.codeStatusNote.slice(0, 300) : null;
           });
         }
