@@ -503,6 +503,7 @@ Ordena "issues" de mayor a menor urgencia real, combinando cuántos usuarios dis
   // or parse failure here just leaves codeStatus unset on every issue rather than
   // failing the whole digest — the report is still useful without this pass.
   if (issues.length) {
+    let verifyTextForDebug = null;
     try {
       const sourceRes = await fetch('https://vitalinks.eu/index.html');
       if (sourceRes.ok) {
@@ -516,13 +517,24 @@ ${issuesText}
 Código fuente actual (index.html completo):
 ${source}
 
-Para cada problema, busca la lógica relevante (validaciones, manejo de casos límite, comentarios que lo mencionen) y determina su estado actual. Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional, sin markdown, sin backticks:
-{"headline":"<una frase en español indicando en qué enfocarse, teniendo en cuenta que algunos problemas ya podrían estar resueltos>","verdicts":[{"index":<índice del problema>,"codeStatus":"<fixed|open|unclear>","codeStatusNote":"<una frase breve en español explicando por qué, citando la lógica relevante si la encontraste>"}]}
+Para cada problema, busca la lógica relevante (validaciones, manejo de casos límite, comentarios que lo mencionen) y determina su estado actual. No expliques tu razonamiento fuera del JSON — responde ÚNICAMENTE con el objeto JSON, sin texto antes o después, sin markdown, sin backticks. Sé breve en "codeStatusNote" (máximo 15 palabras) para no gastar espacio de respuesta innecesariamente:
+{"headline":"<una frase en español indicando en qué enfocarse, teniendo en cuenta que algunos problemas ya podrían estar resueltos>","verdicts":[{"index":<índice del problema>,"codeStatus":"<fixed|open|unclear>","codeStatusNote":"<máximo 15 palabras, citando la lógica relevante si la encontraste>"}]}
 
 "fixed" = encontraste código que claramente resuelve el problema descrito. "open" = no encontraste lógica relacionada, o el código todavía muestra el comportamiento reportado. "unclear" = no es verificable solo con este archivo (depende de un servidor, o el reporte es ambiguo/no accionable).`;
 
-        const verifyText = await callAnthropic(verifyPrompt, 3000, anthropicApiKey.value());
-        const cleanVerify = verifyText.replace(/```json|```/g, '').trim();
+        // A ~400KB source file as context sometimes leads the model to over-explain
+        // before emitting the JSON despite the instruction not to — a generous
+        // max_tokens plus a tolerant extraction (first '{' to last '}', not just a
+        // markdown-fence strip) makes this resilient to that rather than failing the
+        // whole pass on a single truncated/wrapped response.
+        const verifyText = await callAnthropic(verifyPrompt, 8000, anthropicApiKey.value());
+        verifyTextForDebug = verifyText;
+        let cleanVerify = verifyText.replace(/```json|```/g, '').trim();
+        const firstBrace = cleanVerify.indexOf('{');
+        const lastBrace = cleanVerify.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace > firstBrace) {
+          cleanVerify = cleanVerify.slice(firstBrace, lastBrace + 1);
+        }
         const verifyParsed = JSON.parse(cleanVerify);
         if (typeof verifyParsed.headline === 'string' && verifyParsed.headline.trim()) {
           headline = verifyParsed.headline.slice(0, 300);
@@ -539,7 +551,13 @@ Para cada problema, busca la lógica relevante (validaciones, manejo de casos l�
         logger.warn('feedbackDigest: could not fetch live index.html for verification', { status: sourceRes.status });
       }
     } catch (e) {
-      logger.error('feedbackDigest: code verification pass failed', { error: String(e) });
+      logger.error('feedbackDigest: code verification pass failed', {
+        error: String(e),
+        // Truncated tail of the raw Claude response, if we got one — the most likely
+        // failure mode is a truncated/wrapped JSON response, and seeing the actual
+        // text beats re-deploying with more logging to find out next time.
+        responseTail: verifyTextForDebug ? verifyTextForDebug.slice(-500) : null,
+      });
     }
   }
 
