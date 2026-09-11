@@ -530,10 +530,10 @@ ${issuesText}
 Código fuente actual (index.html completo):
 ${source}
 
-Para cada problema, busca la lógica relevante (validaciones, manejo de casos límite, comentarios que lo mencionen) y determina su estado actual. No expliques tu razonamiento fuera del JSON — responde ÚNICAMENTE con el objeto JSON, sin texto antes o después, sin markdown, sin backticks. Sé breve en "codeStatusNote" (máximo 15 palabras) para no gastar espacio de respuesta innecesariamente:
-{"headline":"<una frase en español indicando en qué enfocarse, teniendo en cuenta que algunos problemas ya podrían estar resueltos>","verdicts":[{"index":<índice del problema>,"codeStatus":"<fixed|open|unclear>","codeStatusNote":"<máximo 15 palabras, citando la lógica relevante si la encontraste>"}]}
+Para cada problema, busca la línea o bloque de código específico que sea relevante. Es OBLIGATORIO citar textualmente en "codeQuote" un fragmento real del archivo (cópialo y pégalo exacto, no lo parafrasees ni lo reconstruyas de memoria) como evidencia de tu veredicto "fixed" u "open" — si no puedes localizar y copiar un fragmento real y específico relacionado con el problema, responde codeStatus:"unclear" en vez de adivinar. No expliques tu razonamiento fuera del JSON — responde ÚNICAMENTE con el objeto JSON, sin texto antes o después, sin markdown, sin backticks. Sé breve en "codeStatusNote" (máximo 15 palabras):
+{"headline":"<una frase en español indicando en qué enfocarse, teniendo en cuenta que algunos problemas ya podrían estar resueltos>","verdicts":[{"index":<índice del problema>,"codeStatus":"<fixed|open|unclear>","codeQuote":"<fragmento textual copiado EXACTO del archivo, o null si codeStatus es unclear>","codeStatusNote":"<máximo 15 palabras explicando por qué ese fragmento resuelve o no el problema>"}]}
 
-"fixed" = encontraste código que claramente resuelve el problema descrito. "open" = no encontraste lógica relacionada, o el código todavía muestra el comportamiento reportado. "unclear" = no es verificable solo con este archivo (depende de un servidor, o el reporte es ambiguo/no accionable).`;
+"fixed" = el fragmento citado en codeQuote resuelve claramente el problema descrito. "open" = citaste un fragmento real relacionado (ej. la función involucrada) y muestra que el comportamiento reportado sigue ahí, o no existe ningún fragmento relacionado en el archivo. "unclear" = no encontraste ningún fragmento real y específico que puedas citar sobre este problema, o depende de algo fuera de este archivo (un servidor, una API externa).`;
 
         // A ~400KB source file as context sometimes leads the model to over-explain
         // before emitting the JSON despite the instruction not to — a generous
@@ -554,10 +554,21 @@ Para cada problema, busca la lógica relevante (validaciones, manejo de casos l�
         }
         if (Array.isArray(verifyParsed.verdicts)) {
           verifyParsed.verdicts.forEach((v) => {
-            if (Number.isInteger(v.index) && issues[v.index]) {
-              issues[v.index].codeStatus = ['fixed', 'open', 'unclear'].includes(v.codeStatus) ? v.codeStatus : 'unclear';
-              issues[v.index].codeStatusNote = typeof v.codeStatusNote === 'string' ? v.codeStatusNote.slice(0, 300) : null;
+            if (!Number.isInteger(v.index) || !issues[v.index]) return;
+            let status = ['fixed', 'open', 'unclear'].includes(v.codeStatus) ? v.codeStatus : 'unclear';
+            const quote = typeof v.codeQuote === 'string' ? v.codeQuote.trim() : '';
+            // The prompt asks for a verbatim quote, but a model can still fabricate one
+            // that merely *sounds* plausible — this is the actual grounding check, not
+            // just trusting the instruction was followed. A "fixed"/"open" verdict whose
+            // quote doesn't literally appear in the fetched source is demoted to
+            // "unclear" rather than shown as a confident (and possibly wrong) verdict.
+            const quoteVerified = quote.length >= 10 && source.includes(quote);
+            if ((status === 'fixed' || status === 'open') && !quoteVerified) {
+              status = 'unclear';
             }
+            issues[v.index].codeStatus = status;
+            issues[v.index].codeQuoteVerified = quoteVerified;
+            issues[v.index].codeStatusNote = typeof v.codeStatusNote === 'string' ? v.codeStatusNote.slice(0, 300) : null;
           });
         }
       } else {
