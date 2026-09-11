@@ -473,9 +473,19 @@ Ordena "issues" de mayor a menor urgencia real, combinando cuántos usuarios dis
 
   let headline = null;
   let issues = [];
+  let clusterTextForDebug = null;
   try {
-    const text = await callAnthropic(prompt, 2000, anthropicApiKey.value());
-    const clean = text.replace(/```json|```/g, '').trim();
+    // Same tolerant-extraction approach as the verification pass below (see its
+    // comment) — a wrapped or slightly-over-length response shouldn't fail the
+    // whole digest when the actual JSON is still recoverable from it.
+    const text = await callAnthropic(prompt, 4000, anthropicApiKey.value());
+    clusterTextForDebug = text;
+    let clean = text.replace(/```json|```/g, '').trim();
+    const firstBraceIdx = clean.indexOf('{');
+    const lastBraceIdx = clean.lastIndexOf('}');
+    if (firstBraceIdx !== -1 && lastBraceIdx > firstBraceIdx) {
+      clean = clean.slice(firstBraceIdx, lastBraceIdx + 1);
+    }
     const parsed = JSON.parse(clean);
     headline = typeof parsed.headline === 'string' ? parsed.headline.slice(0, 300) : null;
     if (Array.isArray(parsed.issues)) {
@@ -491,7 +501,10 @@ Ordena "issues" de mayor a menor urgencia real, combinando cuántos usuarios dis
       }));
     }
   } catch (e) {
-    logger.error('feedbackDigest: Claude clustering failed', { error: String(e) });
+    logger.error('feedbackDigest: Claude clustering failed', {
+      error: String(e),
+      responseTail: clusterTextForDebug ? clusterTextForDebug.slice(-500) : null,
+    });
     headline = 'No se pudo generar el análisis esta vez — revisar feedback manualmente.';
   }
 
