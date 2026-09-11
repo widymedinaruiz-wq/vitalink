@@ -495,6 +495,54 @@ Ordena "issues" de mayor a menor urgencia real, combinando cuántos usuarios dis
     headline = 'No se pudo generar el análisis esta vez — revisar feedback manualmente.';
   }
 
+  // Verification pass: the clustering above only knows what testers *reported* — it
+  // has no way to tell an issue was already fixed since. index.html is public (served
+  // unauthenticated from vitalinks.eu, the same file Capacitor packages into the app),
+  // so it's fetched directly and handed to Claude alongside the issue list to check
+  // which ones the current deployed code actually still exhibits. Best-effort: a fetch
+  // or parse failure here just leaves codeStatus unset on every issue rather than
+  // failing the whole digest — the report is still useful without this pass.
+  if (issues.length) {
+    try {
+      const sourceRes = await fetch('https://vitalinks.eu/index.html');
+      if (sourceRes.ok) {
+        const source = await sourceRes.text();
+        const issuesText = issues.map((iss, i) => `[${i}] ${iss.title}`).join('\n');
+        const verifyPrompt = `Eres un ingeniero revisando el código fuente actual de VitaLinks (una app de salud personal) para determinar si problemas reportados por testers ya fueron corregidos. A continuación tienes la lista de problemas y el archivo index.html completo tal como está desplegado ahora mismo en producción.
+
+Problemas reportados:
+${issuesText}
+
+Código fuente actual (index.html completo):
+${source}
+
+Para cada problema, busca la lógica relevante (validaciones, manejo de casos límite, comentarios que lo mencionen) y determina su estado actual. Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional, sin markdown, sin backticks:
+{"headline":"<una frase en español indicando en qué enfocarse, teniendo en cuenta que algunos problemas ya podrían estar resueltos>","verdicts":[{"index":<índice del problema>,"codeStatus":"<fixed|open|unclear>","codeStatusNote":"<una frase breve en español explicando por qué, citando la lógica relevante si la encontraste>"}]}
+
+"fixed" = encontraste código que claramente resuelve el problema descrito. "open" = no encontraste lógica relacionada, o el código todavía muestra el comportamiento reportado. "unclear" = no es verificable solo con este archivo (depende de un servidor, o el reporte es ambiguo/no accionable).`;
+
+        const verifyText = await callAnthropic(verifyPrompt, 3000, anthropicApiKey.value());
+        const cleanVerify = verifyText.replace(/```json|```/g, '').trim();
+        const verifyParsed = JSON.parse(cleanVerify);
+        if (typeof verifyParsed.headline === 'string' && verifyParsed.headline.trim()) {
+          headline = verifyParsed.headline.slice(0, 300);
+        }
+        if (Array.isArray(verifyParsed.verdicts)) {
+          verifyParsed.verdicts.forEach((v) => {
+            if (Number.isInteger(v.index) && issues[v.index]) {
+              issues[v.index].codeStatus = ['fixed', 'open', 'unclear'].includes(v.codeStatus) ? v.codeStatus : 'unclear';
+              issues[v.index].codeStatusNote = typeof v.codeStatusNote === 'string' ? v.codeStatusNote.slice(0, 300) : null;
+            }
+          });
+        }
+      } else {
+        logger.warn('feedbackDigest: could not fetch live index.html for verification', { status: sourceRes.status });
+      }
+    } catch (e) {
+      logger.error('feedbackDigest: code verification pass failed', { error: String(e) });
+    }
+  }
+
   await db.collection('feedbackDigests').add({
     periodStart,
     periodEnd,
@@ -507,7 +555,15 @@ Ordena "issues" de mayor a menor urgencia real, combinando cuántos usuarios dis
 }
 
 exports.feedbackDigestWeekly = onSchedule(
-  { schedule: 'every monday 09:00', timeZone: 'Europe/Madrid', secrets: [anthropicApiKey] },
+  {
+    schedule: 'every monday 09:00',
+    timeZone: 'Europe/Madrid',
+    secrets: [anthropicApiKey],
+    // Default 60s is too tight once this fetches and reasons over the full deployed
+    // index.html for the code-verification pass — a slow Claude response on a large
+    // prompt could otherwise get killed mid-run.
+    timeoutSeconds: 300,
+  },
   async () => {
     await runFeedbackDigest();
   }
