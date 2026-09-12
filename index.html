@@ -284,7 +284,7 @@ const I18N = {
     micro_title:'Micronutrientes', micro_fibra:'Fibra', micro_azucar:'Azúcar', micro_sodio:'Sodio',
     micro_hierro:'Hierro', micro_calcio:'Calcio', micro_potasio:'Potasio', micro_vitc:'Vitamina C',
     hoy_agua:'Agua (L)', hoy_peso:'Peso (kg)', hoy_sueno:'Sueño (h)', hoy_ajustar_metas:'Ajustar metas diarias',
-    hoy_agua_anadir:'Añadir', set_agua_unidad:'Tamaño de la gota (mL)',
+    hoy_agua_anadir:'Añadir', set_agua_unidad:'Tamaño de la gota (mL)', hoy_agua_gota_titulo:'Agua (gota: {ml}mL)', set_meta_agua:'Meta diaria de agua (L)',
     aria_water_drop:'Registrar {n} L de agua', aria_eliminar:'Eliminar {name}',
     aria_eliminar_medicion:'Eliminar medición de las {time}',
     aria_mes_anterior:'Mes anterior', aria_mes_siguiente:'Mes siguiente',
@@ -565,7 +565,7 @@ const I18N = {
     micro_title:'Micronutrients', micro_fibra:'Fiber', micro_azucar:'Sugar', micro_sodio:'Sodium',
     micro_hierro:'Iron', micro_calcio:'Calcium', micro_potasio:'Potassium', micro_vitc:'Vitamin C',
     hoy_agua:'Water (L)', hoy_peso:'Weight (kg)', hoy_sueno:'Sleep (h)', hoy_ajustar_metas:'Adjust daily goals',
-    hoy_agua_anadir:'Add', set_agua_unidad:'Droplet size (mL)',
+    hoy_agua_anadir:'Add', set_agua_unidad:'Droplet size (mL)', hoy_agua_gota_titulo:'Water (droplet: {ml}mL)', set_meta_agua:'Daily Water Goal (L)',
     aria_water_drop:'Log {n} L of water', aria_eliminar:'Delete {name}',
     aria_eliminar_medicion:'Delete the {time} measurement',
     aria_mes_anterior:'Previous month', aria_mes_siguiente:'Next month',
@@ -2005,7 +2005,7 @@ function renderHoy(){
     ${microCard(d.meals)}
     <div class="card full-span">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">
-        <div class="label" style="margin:0;">${tr('hoy_agua')}</div>
+        <div class="label" style="margin:0;">${trf('hoy_agua_gota_titulo',{ml:g.waterUnitMl||DEFAULT_GOALS.waterUnitMl})}</div>
         <span class="display" style="font-size:13px;color:var(--accent3);font-weight:700;">${d.water} L</span>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
@@ -3566,7 +3566,7 @@ function modalHTML(){
         <div class="label">${tr('set_metas_diarias')}</div>
         <div class="grid2" style="margin-bottom:14px;">
           <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('cal_calorias')}</div><input id="g-cal" type="number" value="${g.calorieGoal}" style="width:100%;"></div>
-          <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('hoy_agua')}</div><input id="g-water" type="number" value="${g.waterGoal}" style="width:100%;"></div>
+          <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('set_meta_agua')}</div><input id="g-water" type="number" value="${g.waterGoal}" style="width:100%;"></div>
         </div>
         <div style="margin-bottom:16px;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('set_agua_unidad')}</div><input id="g-water-unit" type="number" step="10" value="${g.waterUnitMl||DEFAULT_GOALS.waterUnitMl}" style="width:100%;"></div>
         <div style="margin-bottom:16px;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('set_ejercicio_min')}</div><input id="g-ex" type="number" value="${g.exerciseGoal}" style="width:100%;"></div>
