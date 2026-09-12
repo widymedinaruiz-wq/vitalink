@@ -284,6 +284,7 @@ const I18N = {
     micro_title:'Micronutrientes', micro_fibra:'Fibra', micro_azucar:'Azúcar', micro_sodio:'Sodio',
     micro_hierro:'Hierro', micro_calcio:'Calcio', micro_potasio:'Potasio', micro_vitc:'Vitamina C',
     hoy_agua:'Agua (L)', hoy_peso:'Peso (kg)', hoy_sueno:'Sueño (h)', hoy_ajustar_metas:'Ajustar metas diarias',
+    hoy_agua_anadir:'Añadir', set_agua_unidad:'Tamaño de la gota (mL)',
     aria_water_drop:'Registrar {n} L de agua', aria_eliminar:'Eliminar {name}',
     aria_eliminar_medicion:'Eliminar medición de las {time}',
     aria_mes_anterior:'Mes anterior', aria_mes_siguiente:'Mes siguiente',
@@ -564,6 +565,7 @@ const I18N = {
     micro_title:'Micronutrients', micro_fibra:'Fiber', micro_azucar:'Sugar', micro_sodio:'Sodium',
     micro_hierro:'Iron', micro_calcio:'Calcium', micro_potasio:'Potassium', micro_vitc:'Vitamin C',
     hoy_agua:'Water (L)', hoy_peso:'Weight (kg)', hoy_sueno:'Sleep (h)', hoy_ajustar_metas:'Adjust daily goals',
+    hoy_agua_anadir:'Add', set_agua_unidad:'Droplet size (mL)',
     aria_water_drop:'Log {n} L of water', aria_eliminar:'Delete {name}',
     aria_eliminar_medicion:'Delete the {time} measurement',
     aria_mes_anterior:'Previous month', aria_mes_siguiente:'Next month',
@@ -881,7 +883,7 @@ function nowHM(){ const d=new Date(); return `${pad(d.getHours())}:${pad(d.getMi
 function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 /* ================= data model ================= */
-const DEFAULT_GOALS = { calorieGoal:2000, waterGoal:4, exerciseGoal:30 };
+const DEFAULT_GOALS = { calorieGoal:2000, waterGoal:4, exerciseGoal:30, waterUnitMl:1000 };
 const MEAL_TYPES = [
   { id:'desayuno', label:'Desayuno', ic:'desayuno' },
   { id:'merienda', label:'Merienda', ic:'merienda' },
@@ -2006,21 +2008,37 @@ function renderHoy(){
         <div class="label" style="margin:0;">${tr('hoy_agua')}</div>
         <span class="display" style="font-size:13px;color:var(--accent3);font-weight:700;">${d.water} L</span>
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;">
-        ${Array.from({length:Math.max(g.waterGoal, d.water)+1}).map((_,i)=>{
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+        ${(()=>{
+          // Each droplet is a quick-tap for the user's own configured serving size
+          // (waterUnitMl, e.g. a glass/bottle) instead of a hardcoded 1L -- so one
+          // tap logs "my usual amount" without retyping it (real tester request:
+          // Nadine wanted numeric mL entry as an alternative to always going by
+          // whole liters; the fix keeps the fast tap AND adds precise entry below,
+          // both add into the same d.water running total instead of overriding it).
+          const unitL = (g.waterUnitMl||DEFAULT_GOALS.waterUnitMl)/1000;
+          const wholeUnits = Math.floor(d.water/unitL + 1e-9);
+          const goalUnits = Math.ceil(g.waterGoal/unitL - 1e-9);
           // One extra empty droplet is always rendered past the current total --
           // tapping it is how you log past the goal (grows the row by one for
           // next render). Every droplet (including that one) jumps straight to
-          // its own position (tap droplet 3 -> water=3); tapping the topmost
-          // *filled* droplet specifically un-fills it (nextValue=i). This used
+          // its own position (tap droplet 3 -> water=3 units); tapping the topmost
+          // *filled* droplet specifically un-fills it (nextValue=i units). This used
           // to special-case the last droplet as "always add" so there was some
           // way to exceed the goal, but that permanently broke un-filling once
           // past it (real tester report) -- the extra always-present droplet
           // covers that job instead, so every droplet can use the same rule.
-          const nextValue = i+1===d.water ? i : i+1;
-          return `<button class="btn ${i<d.water?'btn-accent3':'btn-ghost'}" style="width:44px;height:44px;padding:0;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;"
-            onclick="setWater(${nextValue})" aria-label="${trf('aria_water_drop',{n:i+1})}">${navIcon('gota',19)}</button>`;
-        }).join('')}
+          return Array.from({length:Math.max(goalUnits, wholeUnits)+1}).map((_,i)=>{
+            const nextUnits = i+1===wholeUnits ? i : i+1;
+            const nextValue = Math.round(nextUnits*unitL*1000)/1000;
+            return `<button class="btn ${i<wholeUnits?'btn-accent3':'btn-ghost'}" style="width:44px;height:44px;padding:0;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;"
+              onclick="setWater(${nextValue})" aria-label="${trf('aria_water_drop',{n:Math.round((i+1)*unitL*1000)/1000})}">${navIcon('gota',19)}</button>`;
+          }).join('');
+        })()}
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:18px;">
+        <input type="number" min="1" step="10" id="in-water-ml" placeholder="mL" style="flex:1;" onkeydown="if(event.key==='Enter'){event.preventDefault();addWaterMl();}">
+        <button class="btn btn-ghost" style="white-space:nowrap;padding:8px 12px;" onclick="addWaterMl()">${tr('hoy_agua_anadir')}</button>
       </div>
       <div class="grid2">
         <div>
@@ -3550,6 +3568,7 @@ function modalHTML(){
           <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('cal_calorias')}</div><input id="g-cal" type="number" value="${g.calorieGoal}" style="width:100%;"></div>
           <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('hoy_agua')}</div><input id="g-water" type="number" value="${g.waterGoal}" style="width:100%;"></div>
         </div>
+        <div style="margin-bottom:16px;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('set_agua_unidad')}</div><input id="g-water-unit" type="number" step="10" value="${g.waterUnitMl||DEFAULT_GOALS.waterUnitMl}" style="width:100%;"></div>
         <div style="margin-bottom:16px;"><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('set_ejercicio_min')}</div><input id="g-ex" type="number" value="${g.exerciseGoal}" style="width:100%;"></div>
         <div class="label">${tr('set_apariencia')}</div>
         <div style="display:flex;gap:6px;margin-bottom:16px;">
@@ -3818,11 +3837,12 @@ function closeWelcomeModal(e){
 function saveSettings(){
   const calorieGoal = Number(document.getElementById('g-cal').value)||DEFAULT_GOALS.calorieGoal;
   const waterGoal = Number(document.getElementById('g-water').value)||DEFAULT_GOALS.waterGoal;
+  const waterUnitMl = Number(document.getElementById('g-water-unit').value)||DEFAULT_GOALS.waterUnitMl;
   const exerciseGoal = Number(document.getElementById('g-ex').value)||DEFAULT_GOALS.exerciseGoal;
-  if(calorieGoal<500 || calorieGoal>10000 || waterGoal<0.5 || waterGoal>20 || exerciseGoal<0 || exerciseGoal>600){
+  if(calorieGoal<500 || calorieGoal>10000 || waterGoal<0.5 || waterGoal>20 || waterUnitMl<50 || waterUnitMl>5000 || exerciseGoal<0 || exerciseGoal>600){
     toast(tr('err_goals_rango'), true); return;
   }
-  state.goals = { calorieGoal, waterGoal, exerciseGoal };
+  state.goals = { calorieGoal, waterGoal, waterUnitMl, exerciseGoal };
   setGoals(state.goals);
   setApiKey(document.getElementById('g-apikey').value.trim());
   window._modal=null;
@@ -3890,6 +3910,14 @@ function setRange(r){ state.progressRange=r; LS.set('vl:progressRange', r); rend
 function setNutritionRange(r){ state.nutritionRange=r; render(); }
 
 function setWater(v){ state.day.water = v; saveDay(); render(); }
+function addWaterMl(){
+  const el = document.getElementById('in-water-ml');
+  const ml = Number(el.value);
+  if(!ml || ml<=0) return;
+  state.day.water = Math.round(((state.day.water||0) + ml/1000)*1000)/1000;
+  el.value = '';
+  saveDay(); render();
+}
 function setWeight(v){
   if(v===''){ state.day.weight = null; saveDay(); return; }
   const n = Number(v);
