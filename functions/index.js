@@ -124,15 +124,18 @@ exports.estimateNutritionPlus = onCall({ secrets: [anthropicApiKey] }, async (re
 
 Alimento: "${desc}"`;
 
-  const text = await callAnthropic(prompt, 300, anthropicApiKey.value());
-  const clean = text.replace(/```json|```/g, '').trim();
+  const text = await callAnthropic(prompt, 600, anthropicApiKey.value());
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
   let parsed;
   try {
-    parsed = JSON.parse(clean);
+    parsed = JSON.parse(start >= 0 && end > start ? text.slice(start, end + 1) : text);
   } catch (e) {
+    logger.error('estimateNutritionPlus: could not parse AI response', { desc, responseTail: text.slice(-300) });
     throw new HttpsError('internal', 'Could not parse AI response.');
   }
   if (typeof parsed.calories !== 'number') {
+    logger.error('estimateNutritionPlus: AI response missing calories', { desc, responseTail: text.slice(-300) });
     throw new HttpsError('internal', 'AI response missing calories.');
   }
   return parsed;
@@ -183,14 +186,17 @@ Responde ÚNICAMENTE con un array JSON válido, sin texto adicional, sin markdow
   ];
 
   const text = await callAnthropic(content, 1024, anthropicApiKey.value());
-  const clean = text.replace(/```json|```/g, '').trim();
+  const start = text.indexOf('[');
+  const end = text.lastIndexOf(']');
   let parsed;
   try {
-    parsed = JSON.parse(clean);
+    parsed = JSON.parse(start >= 0 && end > start ? text.slice(start, end + 1) : text);
   } catch (e) {
+    logger.error('estimateNutritionFromPhotoPlus: could not parse AI response', { responseTail: text.slice(-300) });
     throw new HttpsError('internal', 'Could not parse AI response.');
   }
   if (!Array.isArray(parsed)) {
+    logger.error('estimateNutritionFromPhotoPlus: AI response was not an item list', { responseTail: text.slice(-300) });
     throw new HttpsError('internal', 'AI response was not an item list.');
   }
   return { items: parsed };
