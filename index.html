@@ -4287,7 +4287,7 @@ function retomarFotoPlato(){ fotoGoToCapture(); }
 async function estimateNutritionFromPhoto(images, plateType, note){
   if(window._planState && window._planState.plan === 'plus'){
     try{
-      const result = await window.callEstimateNutritionFromPhotoPlus({ images, plateType: plateType.id, note });
+      const result = await window.callEstimateNutritionFromPhotoPlus({ images: images.map(img=>img.split(',')[1]), plateType: plateType.id, note });
       return result.data.items;
     }catch(e){ throw new Error(friendlyPlusAiError(e)); }
   }
