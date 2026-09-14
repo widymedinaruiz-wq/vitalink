@@ -388,6 +388,7 @@ const I18N = {
     foods_guardar:'Guardar cambios', foods_actualizado:'Alimento actualizado',
     foods_error_valores:'Ingresa valores numéricos válidos (0 o mayor)',
     foods_buscar_placeholder:'Buscar alimento…', foods_sin_resultados:'Ningún alimento coincide con tu búsqueda',
+    foods_error_duplicado:'Ya tienes un alimento guardado con ese nombre',
     comidas_prot:'Prot', comidas_carb:'Carb', comidas_grasa:'Grasa', comidas_fibra:'Fibra', comidas_azucar:'Azúcar', comidas_sodio:'Sodio',
     ejercicio_agregar:'Agregar ejercicio', ejercicio_actividad:'Actividad', ejercicio_min:'min',
     ejercicio_actividad_requerida:'Elige o escribe una actividad antes de agregar',
@@ -674,6 +675,7 @@ const I18N = {
     foods_guardar:'Save changes', foods_actualizado:'Food updated',
     foods_error_valores:'Enter valid numeric values (0 or greater)',
     foods_buscar_placeholder:'Search food…', foods_sin_resultados:'No foods match your search',
+    foods_error_duplicado:'You already have a saved food with that name',
     comidas_prot:'Prot', comidas_carb:'Carbs', comidas_grasa:'Fat', comidas_fibra:'Fiber', comidas_azucar:'Sugar', comidas_sodio:'Sodium',
     ejercicio_agregar:'Add exercise', ejercicio_actividad:'Activity', ejercicio_min:'min',
     ejercicio_actividad_requerida:'Choose or type an activity before adding',
@@ -2287,15 +2289,32 @@ function saveFoodEdit(){
   const cache = getNutritionCache();
   const entry = cache[key];
   if(!entry) return;
+  const name = document.getElementById('food-edit-name').value.trim();
   const calories = Number(document.getElementById('food-edit-cal').value);
   const protein = Number(document.getElementById('food-edit-p').value);
   const carbs = Number(document.getElementById('food-edit-c').value);
   const fat = Number(document.getElementById('food-edit-f').value);
+  if(!name){
+    toast(tr('pm_nombre_requerido'), true);
+    return;
+  }
   if(![calories, protein, carbs, fat].every(n=>Number.isFinite(n) && n>=0)){
     toast(tr('foods_error_valores'), true);
     return;
   }
-  cache[key] = { ...entry, calories, protein, carbs, fat, ts: Date.now() };
+  // The cache is keyed by normalizeFoodKey(label) (see getNutritionCache/
+  // rememberNutrition above), so renaming can move an entry to a different
+  // key -- and that new key might already belong to a distinct existing
+  // food. Reject rather than silently overwrite/merge someone else's macro
+  // history; the user can pick a different name or edit that other entry
+  // instead.
+  const newKey = normalizeFoodKey(name);
+  if(newKey!==key && cache[newKey]){
+    toast(tr('foods_error_duplicado'), true);
+    return;
+  }
+  if(newKey!==key) delete cache[key];
+  cache[newKey] = { ...entry, label: name, calories, protein, carbs, fat, ts: Date.now() };
   setNutritionCache(cache);
   window._foodEdit = null;
   window._modal = null;
@@ -3678,7 +3697,8 @@ function modalHTML(){
     // every other confirm-style dialog in this file.
     return `<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;" onclick="closeFoodEditModal(event)">
       <div class="card" style="width:360px;max-width:100%;" onclick="event.stopPropagation()">
-        <div class="label" style="margin-bottom:14px;">${tr('pm_editando')} — ${esc(edit.label)}</div>
+        <div class="label" style="margin-bottom:14px;">${tr('pm_editando')}</div>
+        <input id="food-edit-name" value="${esc(edit.label)}" placeholder="${esc(tr('pm_nombre_placeholder'))}" style="width:100%;margin-bottom:14px;">
         <div class="grid4" style="margin-bottom:14px;">
           <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">kcal</div><input id="food-edit-cal" type="number" value="${edit.calories}" style="width:100%;"></div>
           <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('comidas_prot_g')}</div><input id="food-edit-p" type="number" value="${edit.protein}" style="width:100%;"></div>
