@@ -2247,7 +2247,6 @@ function filterFoodsList(){
 }
 function renderFoodsManager(){
   const cache = getNutritionCache();
-  const edit = window._foodEdit;
   return `
   <div class="stack">
     <button class="btn btn-ghost" onclick="closeFoodsManager()">← ${tr('foods_volver')}</button>
@@ -2256,20 +2255,6 @@ function renderFoodsManager(){
       ${Object.keys(cache).length>0 ? `<input id="foods-search" placeholder="${esc(tr('foods_buscar_placeholder'))}" style="width:100%;margin-bottom:12px;" autocomplete="off" oninput="filterFoodsList()">` : ''}
       <div id="foods-list-items">${foodsListHTML('')}</div>
     </div>
-    ${edit ? `
-    <div class="card">
-      <div class="label">${tr('pm_editando')} — ${esc(edit.label)}</div>
-      <div class="grid4" style="margin-bottom:14px;">
-        <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">kcal</div><input id="food-edit-cal" type="number" value="${edit.calories}" style="width:100%;"></div>
-        <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('comidas_prot_g')}</div><input id="food-edit-p" type="number" value="${edit.protein}" style="width:100%;"></div>
-        <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('comidas_carb_g')}</div><input id="food-edit-c" type="number" value="${edit.carbs}" style="width:100%;"></div>
-        <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('comidas_grasa_g')}</div><input id="food-edit-f" type="number" value="${edit.fat}" style="width:100%;"></div>
-      </div>
-      <div style="display:flex;gap:8px;">
-        <button class="btn btn-ghost" style="flex:1;" onclick="cancelFoodEdit()">${tr('pm_cancelar_edicion')}</button>
-        <button class="btn btn-primary" style="flex:1;" onclick="saveFoodEdit()">${tr('foods_guardar')}</button>
-      </div>
-    </div>` : ''}
   </div>`;
 }
 function openFoodsManager(){
@@ -2282,15 +2267,18 @@ function closeFoodsManager(){
   window._foodEdit = null;
   render();
 }
+function closeFoodEditModal(e){
+  if(e && e.target!==e.currentTarget) return;
+  window._modal = null;
+  window._foodEdit = null;
+  render();
+}
 function editFoodEntry(key){
   const cache = getNutritionCache();
   const entry = cache[key];
   if(!entry) return;
   window._foodEdit = { key, label: entry.label, calories: entry.calories||0, protein: entry.protein||0, carbs: entry.carbs||0, fat: entry.fat||0 };
-  render();
-}
-function cancelFoodEdit(){
-  window._foodEdit = null;
+  window._modal = 'food-edit';
   render();
 }
 function saveFoodEdit(){
@@ -2310,6 +2298,7 @@ function saveFoodEdit(){
   cache[key] = { ...entry, calories, protein, carbs, fat, ts: Date.now() };
   setNutritionCache(cache);
   window._foodEdit = null;
+  window._modal = null;
   toast(tr('foods_actualizado'));
   render();
 }
@@ -3678,6 +3667,31 @@ window._modal = null;
 window._pmView = false;
 function modalHTML(){
   if(!window._modal) return '';
+  if(window._modal==='food-edit'){
+    const edit = window._foodEdit;
+    if(!edit) return '';
+    // A modal, not an inline card at the end of the list, per direct user
+    // feedback: with a long "My Foods" list, an inline edit form appended
+    // after all the rows meant scrolling all the way down to find it,
+    // disconnected from whichever row was just tapped. A modal appears in
+    // place regardless of scroll position and disappears on save, same as
+    // every other confirm-style dialog in this file.
+    return `<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;" onclick="closeFoodEditModal(event)">
+      <div class="card" style="width:360px;max-width:100%;" onclick="event.stopPropagation()">
+        <div class="label" style="margin-bottom:14px;">${tr('pm_editando')} — ${esc(edit.label)}</div>
+        <div class="grid4" style="margin-bottom:14px;">
+          <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">kcal</div><input id="food-edit-cal" type="number" value="${edit.calories}" style="width:100%;"></div>
+          <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('comidas_prot_g')}</div><input id="food-edit-p" type="number" value="${edit.protein}" style="width:100%;"></div>
+          <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('comidas_carb_g')}</div><input id="food-edit-c" type="number" value="${edit.carbs}" style="width:100%;"></div>
+          <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('comidas_grasa_g')}</div><input id="food-edit-f" type="number" value="${edit.fat}" style="width:100%;"></div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost" style="flex:1;" onclick="closeFoodEditModal()">${tr('pm_cancelar_edicion')}</button>
+          <button class="btn btn-primary" style="flex:1;" onclick="saveFoodEdit()">${tr('foods_guardar')}</button>
+        </div>
+      </div>
+    </div>`;
+  }
   if(window._modal==='settings'){
     const g = state.goals;
     return `<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;" onclick="closeModal(event)">
@@ -5615,6 +5629,7 @@ function handleBackAction(){
   if(window._modal==='scanner'){ closeScanner(); return true; }
   if(window._modal==='mealPhoto'){ closeMealPhotoModal(); return true; }
   if(window._modal==='welcome'){ closeWelcomeModal(); return true; }
+  if(window._modal==='food-edit'){ closeFoodEditModal(); return true; }
   if(window._modal){ closeModal(); return true; }
   if(window._pmView){ closePersonalMealBuilder(); return true; }
   if(window._foodsView){ closeFoodsManager(); return true; }
