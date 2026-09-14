@@ -387,6 +387,7 @@ const I18N = {
     foods_guardados:'Alimentos que has estimado', foods_sin_guardados:'Aún no has estimado ningún alimento por texto',
     foods_guardar:'Guardar cambios', foods_actualizado:'Alimento actualizado',
     foods_error_valores:'Ingresa valores numéricos válidos (0 o mayor)',
+    foods_buscar_placeholder:'Buscar alimento…', foods_sin_resultados:'Ningún alimento coincide con tu búsqueda',
     comidas_prot:'Prot', comidas_carb:'Carb', comidas_grasa:'Grasa', comidas_fibra:'Fibra', comidas_azucar:'Azúcar', comidas_sodio:'Sodio',
     ejercicio_agregar:'Agregar ejercicio', ejercicio_actividad:'Actividad', ejercicio_min:'min',
     ejercicio_actividad_requerida:'Elige o escribe una actividad antes de agregar',
@@ -672,6 +673,7 @@ const I18N = {
     foods_guardados:"Foods you've estimated", foods_sin_guardados:"You haven't estimated any foods by text yet",
     foods_guardar:'Save changes', foods_actualizado:'Food updated',
     foods_error_valores:'Enter valid numeric values (0 or greater)',
+    foods_buscar_placeholder:'Search food…', foods_sin_resultados:'No foods match your search',
     comidas_prot:'Prot', comidas_carb:'Carbs', comidas_grasa:'Fat', comidas_fibra:'Fiber', comidas_azucar:'Sugar', comidas_sodio:'Sodium',
     ejercicio_agregar:'Add exercise', ejercicio_actividad:'Activity', ejercicio_min:'min',
     ejercicio_actividad_requerida:'Choose or type an activity before adding',
@@ -889,6 +891,13 @@ function formatDateEs(iso){
 }
 function nowHM(){ const d=new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; }
 function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+// For embedding a raw string (not an auto-generated id) as the argument of an
+// inline onclick="fn('...')" handler. HTML-decodes before JS runs, so esc()
+// alone doesn't protect the JS string boundary -- a literal apostrophe in the
+// value (e.g. a food name like "Rachel's salad") closes the JS string early
+// and silently breaks the handler. Backslash-escape for JS first, then esc()
+// for the surrounding HTML attribute.
+function jsq(s){ return esc(String(s ?? '').replace(/\\/g,'\\\\').replace(/'/g,"\\'")); }
 
 /* ================= data model ================= */
 const DEFAULT_GOALS = { calorieGoal:2000, waterGoal:4, exerciseGoal:30, waterUnitMl:1000 };
@@ -2210,23 +2219,42 @@ function renderComidas(){
 // (index.html ~1257) -- editing is safe because it keeps the key present
 // (and refreshes ts), so backfill's `if(!key || existing[key]) return;`
 // never touches it again.
+// Split from renderFoodsManager so the search box can refresh just this list's
+// innerHTML on every keystroke (filterFoodsList) instead of the whole screen --
+// a full render() would rebuild the <input> itself and drop focus/cursor mid-type,
+// same reasoning already applied to the feedback textarea and typed-confirmation
+// inputs elsewhere in this file.
+function foodsListHTML(query){
+  const cache = getNutritionCache();
+  const q = normalizeFoodKey(query||'');
+  const entries = Object.entries(cache)
+    .filter(([,e])=>!q || normalizeFoodKey(e.label).includes(q))
+    .sort((a,b)=>(b[1].ts||0)-(a[1].ts||0));
+  if(entries.length===0) return emptyState('sparkle', q ? tr('foods_sin_resultados') : tr('foods_sin_guardados'));
+  return `<div class="stack" style="gap:8px;">${entries.map(([key,e])=>rowItem(
+    e.label,
+    `P${Math.round(e.protein||0)}g C${Math.round(e.carbs||0)}g G${Math.round(e.fat||0)}g`,
+    Math.round(e.calories||0)+' kcal',
+    null,
+    `<button onclick="editFoodEntry('${jsq(key)}')" class="btn btn-ghost" style="padding:4px 8px;font-size:11px;">${tr('pm_editar')}</button>`
+  )).join('')}</div>`;
+}
+function filterFoodsList(){
+  const input = document.getElementById('foods-search');
+  const list = document.getElementById('foods-list-items');
+  if(!input || !list) return;
+  list.innerHTML = foodsListHTML(input.value);
+}
 function renderFoodsManager(){
   const cache = getNutritionCache();
-  const entries = Object.entries(cache).sort((a,b)=>(b[1].ts||0)-(a[1].ts||0));
   const edit = window._foodEdit;
   return `
   <div class="stack">
     <button class="btn btn-ghost" onclick="closeFoodsManager()">← ${tr('foods_volver')}</button>
     <div class="card">
       <div class="label">${tr('foods_guardados')}</div>
-      ${entries.length===0 ? emptyState('sparkle', tr('foods_sin_guardados')) :
-        `<div class="stack" style="gap:8px;">${entries.map(([key,e])=>rowItem(
-          e.label,
-          `P${Math.round(e.protein||0)}g C${Math.round(e.carbs||0)}g G${Math.round(e.fat||0)}g`,
-          Math.round(e.calories||0)+' kcal',
-          null,
-          `<button onclick="editFoodEntry('${key}')" class="btn btn-ghost" style="padding:4px 8px;font-size:11px;">${tr('pm_editar')}</button>`
-        )).join('')}</div>`}
+      ${Object.keys(cache).length>0 ? `<input id="foods-search" placeholder="${esc(tr('foods_buscar_placeholder'))}" style="width:100%;margin-bottom:12px;" autocomplete="off" oninput="filterFoodsList()">` : ''}
+      <div id="foods-list-items">${foodsListHTML('')}</div>
     </div>
     ${edit ? `
     <div class="card">
