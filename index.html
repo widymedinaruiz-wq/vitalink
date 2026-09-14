@@ -383,6 +383,10 @@ const I18N = {
     pm_nombre_requerido:'Ponle un nombre a la comida', pm_faltan_componentes:'Agrega al menos un componente',
     pm_creada:'Comida personalizada guardada', pm_actualizada:'Comida personalizada actualizada', pm_eliminada:'Comida personalizada eliminada',
     pm_badge_reconocida:'Comida personalizada', pm_componente_placeholder:'Ej. "pechuga de pollo 150g"',
+    foods_boton_abrir:'Mis alimentos', foods_titulo:'Mis Alimentos', foods_volver:'Volver a Comidas',
+    foods_guardados:'Alimentos que has estimado', foods_sin_guardados:'Aún no has estimado ningún alimento por texto',
+    foods_guardar:'Guardar cambios', foods_actualizado:'Alimento actualizado',
+    foods_error_valores:'Ingresa valores numéricos válidos (0 o mayor)',
     comidas_prot:'Prot', comidas_carb:'Carb', comidas_grasa:'Grasa', comidas_fibra:'Fibra', comidas_azucar:'Azúcar', comidas_sodio:'Sodio',
     ejercicio_agregar:'Agregar ejercicio', ejercicio_actividad:'Actividad', ejercicio_min:'min',
     ejercicio_actividad_requerida:'Elige o escribe una actividad antes de agregar',
@@ -664,6 +668,10 @@ const I18N = {
     pm_nombre_requerido:'Give the meal a name', pm_faltan_componentes:'Add at least one component',
     pm_creada:'Personalized meal saved', pm_actualizada:'Personalized meal updated', pm_eliminada:'Personalized meal deleted',
     pm_badge_reconocida:'Personalized meal', pm_componente_placeholder:'E.g. "150g chicken breast"',
+    foods_boton_abrir:'My foods', foods_titulo:'My Foods', foods_volver:'Back to Meals',
+    foods_guardados:"Foods you've estimated", foods_sin_guardados:"You haven't estimated any foods by text yet",
+    foods_guardar:'Save changes', foods_actualizado:'Food updated',
+    foods_error_valores:'Enter valid numeric values (0 or greater)',
     comidas_prot:'Prot', comidas_carb:'Carbs', comidas_grasa:'Fat', comidas_fibra:'Fiber', comidas_azucar:'Sugar', comidas_sodio:'Sodium',
     ejercicio_agregar:'Add exercise', ejercicio_actividad:'Activity', ejercicio_min:'min',
     ejercicio_actividad_requerida:'Choose or type an activity before adding',
@@ -1911,7 +1919,7 @@ function renderApp(){
   <main>
     <header>
       <div>
-        <h1>${window._pmView ? tr('pm_titulo') : titles[state.tab]}</h1>
+        <h1>${window._pmView ? tr('pm_titulo') : window._foodsView ? tr('foods_titulo') : titles[state.tab]}</h1>
         <div class="sub">${formatDateEs(todayISO())}</div>
       </div>
       ${langToggle}
@@ -1924,6 +1932,7 @@ function renderApp(){
 }
 function renderTab(){
   if(window._pmView) return renderPersonalMealBuilder();
+  if(window._foodsView) return renderFoodsManager();
   switch(state.tab){
     case 'hoy': return renderHoy();
     case 'comidas': return renderComidas();
@@ -2161,6 +2170,7 @@ function renderComidas(){
       <button class="btn btn-primary" style="width:100%;" onclick="addMeal()">${tr('btn_agregar')}</button>
     </div>
     <button class="btn btn-ghost" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="openPersonalMealBuilder()">${navIcon('sparkle',14)}${tr('pm_boton_crear')}</button>
+    <button class="btn btn-ghost" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="openFoodsManager()">${navIcon('sparkle',14)}${tr('foods_boton_abrir')}</button>
     <div class="card">
       <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
         <div class="label">${tr('comidas_hoy')}</div>
@@ -2192,6 +2202,88 @@ function renderComidas(){
         }).join('')}
     </div>
   </div>`;
+}
+
+// Edit-only by design: deleting a cache entry would just get silently
+// recreated the next time getNutritionCache() runs, since backfillFromDays()
+// reconstructs any *missing* key from the user's own logged meal history
+// (index.html ~1257) -- editing is safe because it keeps the key present
+// (and refreshes ts), so backfill's `if(!key || existing[key]) return;`
+// never touches it again.
+function renderFoodsManager(){
+  const cache = getNutritionCache();
+  const entries = Object.entries(cache).sort((a,b)=>(b[1].ts||0)-(a[1].ts||0));
+  const edit = window._foodEdit;
+  return `
+  <div class="stack">
+    <button class="btn btn-ghost" onclick="closeFoodsManager()">← ${tr('foods_volver')}</button>
+    <div class="card">
+      <div class="label">${tr('foods_guardados')}</div>
+      ${entries.length===0 ? emptyState('sparkle', tr('foods_sin_guardados')) :
+        `<div class="stack" style="gap:8px;">${entries.map(([key,e])=>rowItem(
+          e.label,
+          `P${Math.round(e.protein||0)}g C${Math.round(e.carbs||0)}g G${Math.round(e.fat||0)}g`,
+          Math.round(e.calories||0)+' kcal',
+          null,
+          `<button onclick="editFoodEntry('${key}')" class="btn btn-ghost" style="padding:4px 8px;font-size:11px;">${tr('pm_editar')}</button>`
+        )).join('')}</div>`}
+    </div>
+    ${edit ? `
+    <div class="card">
+      <div class="label">${tr('pm_editando')} — ${esc(edit.label)}</div>
+      <div class="grid4" style="margin-bottom:14px;">
+        <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">kcal</div><input id="food-edit-cal" type="number" value="${edit.calories}" style="width:100%;"></div>
+        <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('comidas_prot_g')}</div><input id="food-edit-p" type="number" value="${edit.protein}" style="width:100%;"></div>
+        <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('comidas_carb_g')}</div><input id="food-edit-c" type="number" value="${edit.carbs}" style="width:100%;"></div>
+        <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('comidas_grasa_g')}</div><input id="food-edit-f" type="number" value="${edit.fat}" style="width:100%;"></div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost" style="flex:1;" onclick="cancelFoodEdit()">${tr('pm_cancelar_edicion')}</button>
+        <button class="btn btn-primary" style="flex:1;" onclick="saveFoodEdit()">${tr('foods_guardar')}</button>
+      </div>
+    </div>` : ''}
+  </div>`;
+}
+function openFoodsManager(){
+  window._foodsView = true;
+  window._foodEdit = null;
+  render();
+}
+function closeFoodsManager(){
+  window._foodsView = false;
+  window._foodEdit = null;
+  render();
+}
+function editFoodEntry(key){
+  const cache = getNutritionCache();
+  const entry = cache[key];
+  if(!entry) return;
+  window._foodEdit = { key, label: entry.label, calories: entry.calories||0, protein: entry.protein||0, carbs: entry.carbs||0, fat: entry.fat||0 };
+  render();
+}
+function cancelFoodEdit(){
+  window._foodEdit = null;
+  render();
+}
+function saveFoodEdit(){
+  const key = window._foodEdit && window._foodEdit.key;
+  if(!key) return;
+  const cache = getNutritionCache();
+  const entry = cache[key];
+  if(!entry) return;
+  const calories = Number(document.getElementById('food-edit-cal').value);
+  const protein = Number(document.getElementById('food-edit-p').value);
+  const carbs = Number(document.getElementById('food-edit-c').value);
+  const fat = Number(document.getElementById('food-edit-f').value);
+  if(![calories, protein, carbs, fat].every(n=>Number.isFinite(n) && n>=0)){
+    toast(tr('foods_error_valores'), true);
+    return;
+  }
+  cache[key] = { ...entry, calories, protein, carbs, fat, ts: Date.now() };
+  setNutritionCache(cache);
+  window._foodEdit = null;
+  toast(tr('foods_actualizado'));
+  render();
 }
 
 function ensurePMBuilder(){
@@ -3412,7 +3504,7 @@ function rowItem(left, sub, right, onDelete, badge){
     <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
       ${badge||''}
       ${right?`<span class="display" style="font-size:12px;color:var(--muted);">${esc(right)}</span>`:''}
-      <button onclick="${onDelete}" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;" aria-label="${esc(trf('aria_eliminar',{name:left}))}">✕</button>
+      ${onDelete?`<button onclick="${onDelete}" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;" aria-label="${esc(trf('aria_eliminar',{name:left}))}">✕</button>`:''}
     </div>
   </div>`;
 }
@@ -3876,7 +3968,7 @@ function syncNavScrollFade(){
 }
 function setTab(t){
   if(t==='hoy' && state.tab!=='hoy') window._hoyAnimate = true;
-  state.tab=t; window._pmView=false; render();
+  state.tab=t; window._pmView=false; window._foodsView=false; render();
 }
 function animateCountUp(el, target, duration){
   if(!el) return;
@@ -5497,6 +5589,7 @@ function handleBackAction(){
   if(window._modal==='welcome'){ closeWelcomeModal(); return true; }
   if(window._modal){ closeModal(); return true; }
   if(window._pmView){ closePersonalMealBuilder(); return true; }
+  if(window._foodsView){ closeFoodsManager(); return true; }
   return false;
 }
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') handleBackAction(); });

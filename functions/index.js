@@ -484,7 +484,7 @@ Ordena "issues" de mayor a menor urgencia real, combinando cuántos usuarios dis
     // Same tolerant-extraction approach as the verification pass below (see its
     // comment) — a wrapped or slightly-over-length response shouldn't fail the
     // whole digest when the actual JSON is still recoverable from it.
-    const text = await callAnthropic(prompt, 4000, anthropicApiKey.value());
+    const text = await callAnthropic(prompt, 8000, anthropicApiKey.value());
     clusterTextForDebug = text;
     let clean = text.replace(/```json|```/g, '').trim();
     const firstBraceIdx = clean.indexOf('{');
