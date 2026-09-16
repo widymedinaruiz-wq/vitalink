@@ -328,7 +328,13 @@ const I18N = {
     plus_purchase_success:'¡Bienvenido a VitaLinks Plus!',
     welcome_title:'¡Bienvenido a VitaLinks!',
     welcome_subtitle:'Registra tu nutrición, ejercicio, presión arterial y más — todo en un solo lugar.',
+    welcome_signin_title:'Guarda tu progreso',
+    welcome_signin_button:'Iniciar sesión con Google',
+    welcome_signin_note:'Así tus datos se sincronizan entre dispositivos y no se pierden si cambias o reinstalas el teléfono. Puedes hacerlo más tarde desde Ajustes.',
     welcome_skip_button:'Tal vez luego',
+    welcome_continue_button:'Continuar',
+    signin_reminder_text:'Inicia sesión para no perder tus datos si cambias de teléfono.',
+    signin_reminder_dismiss:'Ahora no',
     hc_settings_title:'Health Connect',
     hc_web_only_note:'Health Connect sincroniza automáticamente tus pasos, ritmo cardíaco y presión arterial desde otras apps — disponible por ahora solo en la app de Android.',
     hc_not_installed_note:'No se encontró la app Health Connect en este dispositivo.',
@@ -633,7 +639,13 @@ const I18N = {
     plus_purchase_success:'Welcome to VitaLinks Plus!',
     welcome_title:'Welcome to VitaLinks!',
     welcome_subtitle:'Track your nutrition, exercise, blood pressure, and more — all in one place.',
+    welcome_signin_title:'Save your progress',
+    welcome_signin_button:'Sign in with Google',
+    welcome_signin_note:'This syncs your data across devices and keeps it safe if you switch or reinstall your phone. You can also do this later from Settings.',
     welcome_skip_button:'Maybe later',
+    welcome_continue_button:'Continue',
+    signin_reminder_text:'Sign in so you don\'t lose your data if you switch phones.',
+    signin_reminder_dismiss:'Not now',
     hc_settings_title:'Health Connect',
     hc_web_only_note:'Health Connect automatically syncs your steps, heart rate, and blood pressure from other apps — available for now only in the Android app.',
     hc_not_installed_note:"The Health Connect app wasn't found on this device.",
@@ -1993,6 +2005,14 @@ function renderApp(){
       </div>
       ${langToggle}
     </header>
+    ${shouldShowSigninReminder() ? `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:14px;">
+      <div style="font-size:12px;color:var(--text);">${tr('signin_reminder_text')}</div>
+      <div style="display:flex;gap:6px;flex-shrink:0;">
+        <button class="btn btn-ghost" style="padding:6px 10px;font-size:11px;" onclick="dismissSigninReminder()">${tr('signin_reminder_dismiss')}</button>
+        <button class="btn btn-primary" style="padding:6px 10px;font-size:11px;" onclick="firebaseSignIn()">${tr('sync_iniciar_sesion')}</button>
+      </div>
+    </div>` : ''}
     ${state.toast ? `<div class="toast ${state.toast.isError?'':'ok'}">${esc(state.toast.msg)}</div>` : ''}
     ${renderTab()}
   </main>
@@ -3981,10 +4001,15 @@ function modalHTML(){
         </div>
         <div class="display" style="font-weight:700;font-size:18px;margin-bottom:6px;">${tr('welcome_title')}</div>
         <div style="font-size:13px;color:var(--muted);margin-bottom:18px;">${tr('welcome_subtitle')}</div>
+        ${!(window._syncState && window._syncState.user) ? `
+        <div class="label">${tr('welcome_signin_title')}</div>
+        <button class="btn btn-primary" style="width:100%;margin-bottom:6px;" onclick="firebaseSignIn()">${navIcon('login',14)}${tr('welcome_signin_button')}</button>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:16px;">${tr('welcome_signin_note')}</div>` : `
+        <div style="font-size:12px;color:var(--accent2);margin-bottom:16px;">✅ ${esc(window._syncState.user.email)}</div>`}
         ${window.Capacitor && window.Capacitor.isNativePlatform() ? `
         <div class="label">${tr('hc_settings_title')}</div>
         <div style="margin-bottom:16px;">${healthConnectSectionHTML()}</div>` : ''}
-        <button class="btn btn-ghost" style="width:100%;" onclick="closeWelcomeModal()">${tr('welcome_skip_button')}</button>
+        <button class="btn btn-ghost" style="width:100%;" onclick="closeWelcomeModal()">${(window._syncState && window._syncState.user) ? tr('welcome_continue_button') : tr('welcome_skip_button')}</button>
       </div>
     </div>`;
   }
@@ -4114,7 +4139,24 @@ function shouldShowWelcome(){
 function closeWelcomeModal(e){
   if(e && e.target!==e.currentTarget) return;
   LS.set('vl:welcome-shown', true);
+  // Skipped without signing in — seed the weekly reminder's clock now so it
+  // doesn't immediately nag again the very next time the app opens today.
+  if(!(window._syncState && window._syncState.user)) LS.set('vl:signin-reminder-last-shown', Date.now());
   window._modal = null;
+  render();
+}
+function shouldShowSigninReminder(){
+  // The welcome modal already offers sign-in front and center on first launch —
+  // stacking this banner behind it at the same time would just be a second,
+  // redundant ask before the user has even dismissed the first one.
+  if(window._modal==='welcome') return false;
+  if(!(window._syncState && window._syncState.ready) || window._syncState.user) return false;
+  const last = LS.get('vl:signin-reminder-last-shown');
+  const WEEK_MS = 7*24*60*60*1000;
+  return !last || (Date.now() - last) >= WEEK_MS;
+}
+function dismissSigninReminder(){
+  LS.set('vl:signin-reminder-last-shown', Date.now());
   render();
 }
 function saveSettings(){
