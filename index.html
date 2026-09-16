@@ -367,6 +367,7 @@ const I18N = {
     comidas_tipo:'Tipo de comida', comidas_agregar_a:'Agregar a', comidas_placeholder:'Ej. "lata atún 6oz", "plátano mediano"',
     comidas_descripcion_requerida:'Escribe qué comiste antes de agregar',
     comidas_estimar:'Estimar', comidas_escanear:'Escanear código de barras',
+    meal_edit_title:'Editar comida', meal_actualizado:'Comida actualizada',
     foto_boton:'Foto (beta)', foto_titulo:'Calorías por foto',
     foto_plato_pregunta:'¿Qué tipo de plato es?',
     foto_plato_llano:'Plato llano', foto_plato_hondo:'Plato hondo / sopero', foto_plato_postre:'Plato de postre / ensalada',
@@ -678,6 +679,7 @@ const I18N = {
     comidas_tipo:'Meal type', comidas_agregar_a:'Add to', comidas_placeholder:'E.g. "6oz tuna can", "medium banana"',
     comidas_descripcion_requerida:'Write down what you ate before adding',
     comidas_estimar:'Estimate', comidas_escanear:'Scan barcode',
+    meal_edit_title:'Edit meal', meal_actualizado:'Meal updated',
     foto_boton:'Photo (beta)', foto_titulo:'Calories from photo',
     foto_plato_pregunta:'What type of plate is this?',
     foto_plato_llano:'Flat plate', foto_plato_hondo:'Deep/soup plate', foto_plato_postre:'Dessert/salad plate',
@@ -2285,7 +2287,7 @@ function renderComidas(){
               <span style="font-size:12px;color:${isTop?'var(--accent)':'var(--muted)'};">${sub} kcal</span>
             </div>
             <div class="stack" style="gap:8px;">
-              ${g.items.map(m=>rowItem(m.name, (m.protein||m.carbs||m.fat)?`${m.time} · P${m.protein}g C${m.carbs}g G${m.fat}g`:m.time, m.calories+' kcal', `removeMeal('${m.id}')`)).join('')}
+              ${g.items.map(m=>rowItem(m.name, (m.protein||m.carbs||m.fat)?`${m.time} · P${m.protein}g C${m.carbs}g G${m.fat}g`:m.time, m.calories+' kcal', `removeMeal('${m.id}')`, `<button onclick="editMeal('${todayISO()}','${m.id}')" class="btn btn-ghost" style="padding:4px 8px;font-size:11px;">${tr('pm_editar')}</button>`)).join('')}
             </div>
           </div>`;
         }).join('')}
@@ -2915,7 +2917,7 @@ function renderDayDetail(iso){
     <div class="grid2">
       <div style="min-width:0;">
         <div class="label">${tr('cal_comidas')}</div>
-        ${d.meals.length? `<div class="stack" style="gap:6px;margin-bottom:10px;">${d.meals.map(m=>rowItem(m.name, m.time, m.calories+' kcal', `removeMealForDay('${iso}','${m.id}')`)).join('')}</div>` : `<div style="color:var(--muted);font-size:12px;margin-bottom:10px;">${tr('cal_sin_registros')}</div>`}
+        ${d.meals.length? `<div class="stack" style="gap:6px;margin-bottom:10px;">${d.meals.map(m=>rowItem(m.name, m.time, m.calories+' kcal', `removeMealForDay('${iso}','${m.id}')`, `<button onclick="editMeal('${iso}','${m.id}')" class="btn btn-ghost" style="padding:4px 8px;font-size:11px;">${tr('pm_editar')}</button>`)).join('')}</div>` : `<div style="color:var(--muted);font-size:12px;margin-bottom:10px;">${tr('cal_sin_registros')}</div>`}
         <select id="cal-meal-type" style="width:100%;margin-bottom:6px;">
           ${MEAL_TYPES.map(mt=>`<option value="${mt.id}">${tr('meal_'+mt.id)}</option>`).join('')}
         </select>
@@ -3814,6 +3816,26 @@ function modalHTML(){
         <div style="display:flex;gap:8px;">
           <button class="btn btn-ghost" style="flex:1;" onclick="closeFoodEditModal()">${tr('pm_cancelar_edicion')}</button>
           <button class="btn btn-primary" style="flex:1;" onclick="saveFoodEdit()">${tr('foods_guardar')}</button>
+        </div>
+      </div>
+    </div>`;
+  }
+  if(window._modal==='meal-edit'){
+    const edit = window._mealEdit;
+    if(!edit) return '';
+    return `<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;" onclick="closeMealEditModal(event)">
+      <div class="card" style="width:360px;max-width:100%;" onclick="event.stopPropagation()">
+        <div class="label" style="margin-bottom:14px;">${tr('meal_edit_title')}</div>
+        <input id="meal-edit-name" value="${esc(edit.name)}" placeholder="${esc(tr('comidas_placeholder'))}" style="width:100%;margin-bottom:14px;">
+        <div class="grid4" style="margin-bottom:14px;">
+          <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">kcal</div><input id="meal-edit-cal" type="number" value="${edit.calories}" style="width:100%;"></div>
+          <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('comidas_prot_g')}</div><input id="meal-edit-p" type="number" value="${edit.protein}" style="width:100%;"></div>
+          <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('comidas_carb_g')}</div><input id="meal-edit-c" type="number" value="${edit.carbs}" style="width:100%;"></div>
+          <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('comidas_grasa_g')}</div><input id="meal-edit-f" type="number" value="${edit.fat}" style="width:100%;"></div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost" style="flex:1;" onclick="closeMealEditModal()">${tr('pm_cancelar_edicion')}</button>
+          <button class="btn btn-primary" style="flex:1;" onclick="saveMealEdit()">${tr('foods_guardar')}</button>
         </div>
       </div>
     </div>`;
@@ -5188,6 +5210,44 @@ function addMealForDay(iso){
   mutateDay(iso, day=>day.meals.push(meal));
 }
 function removeMealForDay(iso, id){ if(!confirm(tr('confirm_delete_generic'))) return; mutateDay(iso, day=>{ day.meals = day.meals.filter(m=>m.id!==id); }); }
+// Shared by both the Comidas tab (iso=todayISO()) and the Calendario day-detail
+// view (iso=any past day) -- mutateDay() already special-cases today vs. a past
+// day internally, so one edit path covers both call sites.
+function editMeal(iso, id){
+  const day = dayAt(iso);
+  const m = day.meals.find(x=>x.id===id);
+  if(!m) return;
+  window._mealEdit = { iso, id, name: m.name, calories: m.calories||0, protein: m.protein||0, carbs: m.carbs||0, fat: m.fat||0 };
+  window._modal = 'meal-edit';
+  render();
+}
+function closeMealEditModal(e){
+  if(e && e.target!==e.currentTarget) return;
+  window._modal = null;
+  window._mealEdit = null;
+  render();
+}
+function saveMealEdit(){
+  const edit = window._mealEdit;
+  if(!edit) return;
+  const name = document.getElementById('meal-edit-name').value.trim();
+  const calories = Number(document.getElementById('meal-edit-cal').value);
+  const protein = Number(document.getElementById('meal-edit-p').value);
+  const carbs = Number(document.getElementById('meal-edit-c').value);
+  const fat = Number(document.getElementById('meal-edit-f').value);
+  if(!name){ toast(tr('pm_nombre_requerido'), true); return; }
+  if(![calories, protein, carbs, fat].every(n=>Number.isFinite(n) && n>=0)){ toast(tr('foods_error_valores'), true); return; }
+  window._modal = null;
+  window._mealEdit = null;
+  // Only the 4 edited fields are reassigned -- id/type/time and any micros
+  // (fiber, sugar, sodium, iron, calcium, potassium, vitaminC) already on the
+  // meal are left untouched, matching what this edit form actually exposes.
+  mutateDay(edit.iso, day=>{
+    const m = day.meals.find(x=>x.id===edit.id);
+    if(m){ m.name=name; m.calories=calories; m.protein=protein; m.carbs=carbs; m.fat=fat; }
+  });
+  toast(tr('meal_actualizado'));
+}
 function checkExerciseHintForDay(){
   const nameEl = document.getElementById('cal-ex-name');
   if(!nameEl) return;
@@ -5947,6 +6007,7 @@ function handleBackAction(){
   if(window._modal==='mealPhoto'){ closeMealPhotoModal(); return true; }
   if(window._modal==='welcome'){ closeWelcomeModal(); return true; }
   if(window._modal==='food-edit'){ closeFoodEditModal(); return true; }
+  if(window._modal==='meal-edit'){ closeMealEditModal(); return true; }
   if(window._modal==='export-passphrase'){ closeExportPassphraseModal(); return true; }
   if(window._modal==='import-passphrase'){ closeImportPassphraseModal(); return true; }
   if(window._modal){ closeModal(); return true; }
