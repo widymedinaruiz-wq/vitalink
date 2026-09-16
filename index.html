@@ -26,6 +26,14 @@
        next to on Hoy (that collision — orange meaning "food" in one card and
        "protein" one card below — was the clearest case found in the audit). */
     --macro-protein:#B9A0E0; --macro-carbs:#D999C7; --macro-fat:#8FA8DE;
+    /* Progreso's per-metric trend charts (weight/BP/pulse/steps/heart rate/SpO2/sleep)
+       hit the exact same collision class the macro audit above already found and fixed
+       for food/water/exercise — accent3 was meaning "water" on Hoy and "weight" a few
+       taps away on Progreso. A dedicated, non-reserved color per metric here closes
+       that off the same way. Pulse deliberately keeps --danger (an elevated pulse is
+       a real severity signal, not just a category color, same reasoning as sodium). */
+    --chart-weight:#7BA7C9; --chart-bp-sys:#D9738F; --chart-bp-dia:#A67FD1;
+    --chart-steps:#C9B23E; --chart-heartrate:#D9577A; --chart-spo2:#4FA8A8; --chart-sleep:#7A7FBE;
     /* Text/mark color for anything sitting on an accent-colored fill (button
        labels, a toggle's "on" knob) — aliases --bg on dark, since a dark mark
        on a bright accent is what already looks right there. Light mode can't
@@ -49,20 +57,24 @@
   @media (prefers-color-scheme: light){
     :root:not([data-theme="dark"]){
       --bg:#F4F7F5; --surface:#FFFFFF; --raised:#EAF0EE; --line:#DCE6E2;
-      --accent:#C9731D; --accent2:#4E8B23; --accent3:#358D6F;
-      --text:#132A25; --muted:#5B7A72; --danger:#D04825;
+      --accent:#C9731D; --accent2:#4A8421; --accent3:#358D6F;
+      --text:#132A25; --muted:#55716A; --danger:#D04825;
       --status-good:#358D4E; --status-warn:#AD7E1F;
       --macro-protein:#6C3DB8; --macro-carbs:#B03B8F; --macro-fat:#325AAE;
+      --chart-weight:#3E6690; --chart-bp-sys:#B84763; --chart-bp-dia:#6E4C96;
+      --chart-steps:#8A7422; --chart-heartrate:#A6304F; --chart-spo2:#2D7373; --chart-sleep:#4F548F;
       --on-accent:#132A25;
       --ring-track:#C4D2CC;
     }
   }
   :root[data-theme="light"]{
     --bg:#F4F7F5; --surface:#FFFFFF; --raised:#EAF0EE; --line:#DCE6E2;
-    --accent:#C9731D; --accent2:#4E8B23; --accent3:#358D6F;
-    --text:#132A25; --muted:#5B7A72; --danger:#D04825;
+    --accent:#C9731D; --accent2:#4A8421; --accent3:#358D6F;
+    --text:#132A25; --muted:#55716A; --danger:#D04825;
     --status-good:#358D4E; --status-warn:#AD7E1F;
     --macro-protein:#6C3DB8; --macro-carbs:#B03B8F; --macro-fat:#325AAE;
+    --chart-weight:#3E6690; --chart-bp-sys:#B84763; --chart-bp-dia:#6E4C96;
+    --chart-steps:#8A7422; --chart-heartrate:#A6304F; --chart-spo2:#2D7373; --chart-sleep:#4F548F;
     --on-accent:#132A25;
     --ring-track:#C4D2CC;
   }
@@ -77,7 +89,7 @@
   input:focus,select:focus,textarea:focus{border-color:var(--accent);}
   .card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;}
   .label{font-family:'Space Grotesk',sans-serif;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
-  .info-btn{background:none;border:1px solid var(--line);color:var(--muted);border-radius:99px;width:18px;height:18px;min-width:18px;font-size:11px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;text-transform:none;letter-spacing:normal;}
+  .info-btn{background:none;border:1px solid var(--line);color:var(--muted);border-radius:99px;width:24px;height:24px;min-width:24px;font-size:12px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;text-transform:none;letter-spacing:normal;}
   .info-btn:hover{border-color:var(--accent);color:var(--accent);}
   /* min-height (not a padding bump) so this only raises buttons that were
      genuinely short (Estimar/Guardar/etc. measured at 34-38px in the audit) —
@@ -95,7 +107,7 @@
   .suggest-item:hover{background:var(--surface);}
   .pill{border-radius:12px;border:1px solid var(--line);background:var(--raised);padding:9px 4px;text-align:center;cursor:pointer;font-size:11px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:4px;}
   .pill.active{border-color:var(--accent);background:rgba(242,166,90,.12);color:var(--accent);font-weight:700;}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
   .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
   .grid-icons{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:6px;}
   .grid2>*,.grid4>*,.grid-icons>*{min-width:0;}
@@ -154,11 +166,11 @@
 
   .wheel-wrap{position:relative;}
   .wheel-row{display:flex;gap:8px;}
-  .wheel-col{flex:1;min-width:0;height:180px;overflow-y:auto;scroll-snap-type:y mandatory;scrollbar-width:none;padding:72px 0;}
+  .wheel-col{flex:1;min-width:0;height:220px;overflow-y:auto;scroll-snap-type:y mandatory;scrollbar-width:none;padding:88px 0;}
   .wheel-col::-webkit-scrollbar{display:none;}
-  .wheel-item{height:36px;display:flex;align-items:center;justify-content:center;scroll-snap-align:center;font-size:14px;color:var(--muted);cursor:pointer;transition:color .15s,font-size .15s;}
+  .wheel-item{height:44px;display:flex;align-items:center;justify-content:center;scroll-snap-align:center;font-size:14px;color:var(--muted);cursor:pointer;transition:color .15s,font-size .15s;}
   .wheel-item.selected{color:var(--accent);font-weight:700;font-size:16px;}
-  .wheel-highlight{position:absolute;left:0;right:0;top:72px;height:36px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:color-mix(in srgb, var(--accent) 8%, transparent);pointer-events:none;border-radius:6px;}
+  .wheel-highlight{position:absolute;left:0;right:0;top:88px;height:44px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:color-mix(in srgb, var(--accent) 8%, transparent);pointer-events:none;border-radius:6px;}
 
   .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
   .cal-day{aspect-ratio:1;min-width:44px;min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--raised);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:var(--text);position:relative;}
@@ -172,10 +184,10 @@
   .chart-box{width:100%;overflow-x:auto;}
   .med-row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--raised);border-radius:12px;}
   .med-due{border:1px solid var(--accent);background:rgba(242,166,90,.1);}
-  .switch{width:38px;height:22px;border-radius:99px;background:var(--line);position:relative;cursor:pointer;flex-shrink:0;}
+  .switch{width:42px;height:24px;border-radius:99px;background:var(--line);position:relative;cursor:pointer;flex-shrink:0;}
   .switch.on{background:var(--accent);}
-  .switch .knob{width:16px;height:16px;border-radius:99px;background:var(--text);position:absolute;top:3px;left:3px;transition:left .15s;}
-  .switch.on .knob{left:19px;background:var(--on-accent);}
+  .switch .knob{width:18px;height:18px;border-radius:99px;background:var(--text);position:absolute;top:3px;left:3px;transition:left .15s;}
+  .switch.on .knob{left:21px;background:var(--on-accent);}
 
   .scanner-video-wrap{position:relative;width:100%;aspect-ratio:4/3;background:#000;border-radius:14px;overflow:hidden;}
   .scanner-video-wrap video{width:100%;height:100%;object-fit:cover;}
@@ -222,7 +234,7 @@
       margin-top:0; margin-left:auto; flex-direction:row; padding-left:10px; gap:6px;
       border-left:2px solid var(--line); background:var(--surface); border-radius:12px;
     }
-    main{padding:18px 16px 60px;}
+    main{padding:18px 16px calc(60px + env(safe-area-inset-bottom));}
     .grid2{grid-template-columns:1fr;}
     .grid4{grid-template-columns:1fr 1fr;}
   }
@@ -296,7 +308,7 @@ const I18N = {
     err_auth_too_many:'Demasiados intentos — espera un momento e inténtalo de nuevo',
     err_auth_generic:'No se pudo iniciar sesión — inténtalo de nuevo',
     err_sync_permission:'No tienes permiso para sincronizar — intenta cerrar sesión y volver a iniciarla',
-    err_sync_generic:'No se pudo sincronizar — inténtalo de nuevo',
+    err_sync_generic:'No se pudo sincronizar — revisa tu conexión a internet e inténtalo de nuevo',
     err_plus_cap_reached:'Has alcanzado el límite diario de estimaciones con IA de VitaLinks Plus. Inténtalo de nuevo mañana.',
     err_plus_required:'Tu suscripción a VitaLinks Plus no está activa. Ve a Ajustes para revisarla.',
     err_plus_offerings_failed:'No se pudieron cargar los planes de VitaLinks Plus. Inténtalo de nuevo más tarde.',
@@ -305,7 +317,7 @@ const I18N = {
     plus_active_label:'VitaLinks Plus está activo',
     plus_renews_on:'Se renueva el {date}',
     plus_manage_subscription:'Gestionar suscripción',
-    plus_web_only_note:'VitaLinks Plus solo se puede activar desde la app de Android.',
+    plus_web_only_note:'VitaLinks Plus agrega estimación de calorías por foto y análisis más profundos — disponible por ahora solo en la app de Android.',
     plus_upsell_note:'Estima calorías con IA sin necesidad de tu propia API key.',
     plus_upgrade_button:'Mejorar a Plus',
     plus_paywall_title:'VitaLinks Plus',
@@ -318,7 +330,7 @@ const I18N = {
     welcome_subtitle:'Registra tu nutrición, ejercicio, presión arterial y más — todo en un solo lugar.',
     welcome_skip_button:'Tal vez luego',
     hc_settings_title:'Health Connect',
-    hc_web_only_note:'Health Connect solo está disponible en la app de Android.',
+    hc_web_only_note:'Health Connect sincroniza automáticamente tus pasos, ritmo cardíaco y presión arterial desde otras apps — disponible por ahora solo en la app de Android.',
     hc_not_installed_note:'No se encontró la app Health Connect en este dispositivo.',
     hc_install_button:'Instalar Health Connect',
     hc_connect_explainer:'Conecta Health Connect para traer tus pasos, ritmo cardíaco y presión arterial de otras apps y dispositivos a VitaLinks.',
@@ -344,7 +356,7 @@ const I18N = {
     hc_workout_hiking:'Senderismo', hc_workout_yoga:'Yoga', hc_workout_elliptical:'Elíptica',
     err_hc_not_installed:'Instala la app Health Connect para conectar tus dispositivos.',
     err_hc_permission_denied:'VitaLinks no tiene permiso para leer estos datos de Health Connect.',
-    err_hc_sync_failed:'No se pudieron importar los datos de Health Connect. Inténtalo de nuevo.',
+    err_hc_sync_failed:'No se pudieron importar los datos de Health Connect. Revisa los permisos de la app en Health Connect e inténtalo de nuevo.',
     hoy_metas_titulo:'Tus metas diarias', hoy_ultimos_7_dias:'Últimos 7 días',
     comidas_tipo:'Tipo de comida', comidas_agregar_a:'Agregar a', comidas_placeholder:'Ej. "lata atún 6oz", "plátano mediano"',
     comidas_descripcion_requerida:'Escribe qué comiste antes de agregar',
@@ -485,10 +497,27 @@ const I18N = {
     err_import_invalid_json:'El archivo no es un JSON válido',
     err_import_no_data:'El archivo no contiene datos de VitaLinks (vl:...)',
     import_success:'Se importaron {count} registros. Recargando…',
-    err_ai_bad_response:'Respuesta inválida de la IA — intenta de nuevo',
+    err_ai_bad_response:'Respuesta inválida de la IA — intenta describir el alimento de forma más simple, o inténtalo de nuevo',
     err_estimate_busy:'Espera a que termine de estimar antes de agregar',
     export_backup_done:'Respaldo descargado',
     err_file_read:'No se pudo leer el archivo',
+    export_passphrase_title:'Proteger tu respaldo',
+    export_passphrase_body:'Este archivo tendrá tus datos de salud. Elige una frase de acceso para cifrarlo — sin ella, nadie (ni tú) podrá leerlo, ni siquiera abriéndolo fuera de la app.',
+    export_passphrase_placeholder:'Frase de acceso',
+    export_passphrase_confirm_placeholder:'Confirma la frase de acceso',
+    export_passphrase_show:'Mostrar',
+    export_passphrase_warning:'⚠ Si olvidas esta frase, este respaldo no se podrá recuperar. VitaLinks no la guarda en ningún lugar.',
+    export_passphrase_mismatch:'Las frases no coinciden',
+    export_passphrase_too_short:'Usa al menos 8 caracteres',
+    export_passphrase_button:'Cifrar y descargar',
+    export_passphrase_encrypting:'Cifrando…',
+    import_passphrase_title:'Frase de acceso requerida',
+    import_passphrase_body:'Este respaldo está cifrado. Ingresa la frase de acceso que usaste al exportarlo.',
+    import_passphrase_button:'Descifrar e importar',
+    import_passphrase_decrypting:'Descifrando…',
+    err_import_wrong_passphrase:'Frase de acceso incorrecta, o el archivo está dañado',
+    err_crypto_unsupported:'Tu dispositivo no soporta cifrado — no se puede exportar de forma segura',
+    notice_backup_encryption:'Novedad: los respaldos ahora se cifran con una frase de acceso que tú eliges, para proteger tus datos de salud si el archivo termina fuera de este dispositivo.',
     err_bp_requerido:'Ingresa al menos la presión sistólica y diastólica',
     err_bodycomp_requerido:'Ingresa al menos un valor antes de agregar',
     err_med_requerido:'Ingresa un nombre y al menos un horario',
@@ -517,6 +546,7 @@ const I18N = {
     sync_sincronizando:'Sincronizando…', sync_ultima:'Última sincronización:',
     sync_force_pull_button:'Forzar descarga desde la nube',
     sync_force_pull_confirm:'Esto reemplazará los datos de este dispositivo con los de la nube. Los cambios hechos aquí desde la última sincronización se perderán. ¿Continuar?',
+    confirm_delete_generic:'¿Eliminar este registro? No se puede deshacer.',
     delete_account_title:'Eliminar cuenta',
     delete_account_explainer:'Elimina permanentemente tu cuenta y todos tus datos sincronizados en la nube. Esta acción no se puede deshacer.',
     delete_account_button:'Eliminar mi cuenta',
@@ -583,7 +613,7 @@ const I18N = {
     err_auth_too_many:'Too many attempts — wait a moment and try again',
     err_auth_generic:"Couldn't sign in — please try again",
     err_sync_permission:"You don't have permission to sync — try signing out and back in",
-    err_sync_generic:"Couldn't sync — please try again",
+    err_sync_generic:"Couldn't sync — check your internet connection and try again",
     err_plus_cap_reached:"You've reached today's VitaLinks Plus AI estimate limit. Try again tomorrow.",
     err_plus_required:"Your VitaLinks Plus subscription isn't active. Check Settings to review it.",
     err_plus_offerings_failed:"Couldn't load VitaLinks Plus plans. Please try again later.",
@@ -592,7 +622,7 @@ const I18N = {
     plus_active_label:'VitaLinks Plus is active',
     plus_renews_on:'Renews on {date}',
     plus_manage_subscription:'Manage subscription',
-    plus_web_only_note:'VitaLinks Plus can only be activated from the Android app.',
+    plus_web_only_note:'VitaLinks Plus adds photo-based calorie estimation and deeper analytics — available for now only in the Android app.',
     plus_upsell_note:'Get AI calorie estimates without needing your own API key.',
     plus_upgrade_button:'Upgrade to Plus',
     plus_paywall_title:'VitaLinks Plus',
@@ -605,7 +635,7 @@ const I18N = {
     welcome_subtitle:'Track your nutrition, exercise, blood pressure, and more — all in one place.',
     welcome_skip_button:'Maybe later',
     hc_settings_title:'Health Connect',
-    hc_web_only_note:'Health Connect is only available in the Android app.',
+    hc_web_only_note:'Health Connect automatically syncs your steps, heart rate, and blood pressure from other apps — available for now only in the Android app.',
     hc_not_installed_note:"The Health Connect app wasn't found on this device.",
     hc_install_button:'Install Health Connect',
     hc_connect_explainer:'Connect Health Connect to bring your steps, heart rate, and blood pressure from other apps and devices into VitaLinks.',
@@ -631,7 +661,7 @@ const I18N = {
     hc_workout_hiking:'Hiking', hc_workout_yoga:'Yoga', hc_workout_elliptical:'Elliptical',
     err_hc_not_installed:'Install the Health Connect app to connect your devices.',
     err_hc_permission_denied:"VitaLinks doesn't have permission to read this data from Health Connect.",
-    err_hc_sync_failed:'Could not import data from Health Connect. Please try again.',
+    err_hc_sync_failed:"Could not import data from Health Connect. Check the app's permissions in Health Connect and try again.",
     hoy_metas_titulo:'Your daily goals', hoy_ultimos_7_dias:'Last 7 days',
     comidas_tipo:'Meal type', comidas_agregar_a:'Add to', comidas_placeholder:'E.g. "6oz tuna can", "medium banana"',
     comidas_descripcion_requerida:'Write down what you ate before adding',
@@ -772,10 +802,27 @@ const I18N = {
     err_import_invalid_json:"That file isn't valid JSON",
     err_import_no_data:"That file doesn't contain VitaLinks data (vl:...)",
     import_success:'Imported {count} records. Reloading…',
-    err_ai_bad_response:'Invalid response from the AI — please try again',
+    err_ai_bad_response:'Invalid response from the AI — try describing the food more simply, or try again',
     err_estimate_busy:'Wait for the estimate to finish before adding',
     export_backup_done:'Backup downloaded',
     err_file_read:"Couldn't read the file",
+    export_passphrase_title:'Protect your backup',
+    export_passphrase_body:"This file will hold your health data. Choose a passphrase to encrypt it — without it, no one (not even you) can read it, even by opening it outside the app.",
+    export_passphrase_placeholder:'Passphrase',
+    export_passphrase_confirm_placeholder:'Confirm passphrase',
+    export_passphrase_show:'Show',
+    export_passphrase_warning:"⚠ If you forget this passphrase, this backup can't be recovered. VitaLinks never stores it anywhere.",
+    export_passphrase_mismatch:"Passphrases don't match",
+    export_passphrase_too_short:'Use at least 8 characters',
+    export_passphrase_button:'Encrypt & download',
+    export_passphrase_encrypting:'Encrypting…',
+    import_passphrase_title:'Passphrase required',
+    import_passphrase_body:'This backup is encrypted. Enter the passphrase you used when you exported it.',
+    import_passphrase_button:'Decrypt & import',
+    import_passphrase_decrypting:'Decrypting…',
+    err_import_wrong_passphrase:"Wrong passphrase, or the file is corrupted",
+    err_crypto_unsupported:"Your device doesn't support encryption — can't export securely",
+    notice_backup_encryption:"New: backups are now encrypted with a passphrase you choose, to protect your health data if the file ever ends up off this device.",
     err_bp_requerido:'Enter at least the systolic and diastolic pressure',
     err_bodycomp_requerido:'Enter at least one value before adding',
     err_med_requerido:'Enter a name and at least one time',
@@ -804,6 +851,7 @@ const I18N = {
     sync_sincronizando:'Syncing…', sync_ultima:'Last synced:',
     sync_force_pull_button:'Force pull from cloud',
     sync_force_pull_confirm:"This will replace this device's data with the cloud's version. Any changes made here since the last sync will be lost. Continue?",
+    confirm_delete_generic:"Delete this entry? This can't be undone.",
     delete_account_title:'Delete account',
     delete_account_explainer:'Permanently delete your account and all your synced cloud data. This action cannot be undone.',
     delete_account_button:'Delete my account',
@@ -1091,7 +1139,7 @@ function getForecastConfig(){ return LS.get('vl:forecast-config') || { heightCm:
 function setForecastConfig(c){ return LS.set('vl:forecast-config', c); }
 
 /* ================= birth date wheel picker ================= */
-const WHEEL_ITEM_H = 36;
+const WHEEL_ITEM_H = 44; // matches .wheel-item's height — kept 44px+ for a comfortable touch target, same convention as .cal-day/.meal-type-btn
 function birthYearOptions(){
   const nowY = new Date().getFullYear();
   return ['–', ...Array.from({length:96}).map((_,i)=>nowY-5-i)];
@@ -1356,7 +1404,11 @@ function toast(msg, isError){
   state.toast = { msg, isError };
   render();
   clearTimeout(toast._t);
-  toast._t = setTimeout(()=>{ state.toast=null; render(); }, 3500);
+  // Error toasts often ask the user to go do something (retry, check their
+  // connection, re-enter a passphrase) — 3.5s is fine for a quick success
+  // confirmation nobody needs to re-read, but too short to register and act on
+  // an error message. Give errors real time to be read before they vanish.
+  toast._t = setTimeout(()=>{ state.toast=null; render(); }, isError ? 6000 : 3500);
 }
 
 /* ================= nutrition AI estimate ================= */
@@ -1869,6 +1921,7 @@ const NAV_ICONS = {
   sparkle: '<path d="M12 9V3M15 12H21M12 15V21M9 12H3M14.1 9.9L18.4 5.6M14.1 14.1L18.4 18.4M9.9 14.1L5.6 18.4M9.9 9.9L5.6 5.6"/><circle class="fill" cx="12" cy="12" r="1.8"/>',
   refresh: '<path d="M20 12a8 8 0 1 1-2.5-5.8"/><path d="M20 3v4.5h-4.5"/>',
   buscar: '<circle cx="10" cy="10" r="6"/><path d="M20 20l-5-5"/>',
+  editar: '<path d="M4 20l1-4L15.6 5.4a2 2 0 0 1 2.8 0l.2.2a2 2 0 0 1 0 2.8L8 19l-4 1z"/><path d="M13 7l4 4"/>',
   gota: '<path d="M12 3c3 4 6 7.5 6 11a6 6 0 1 1-12 0c0-3.5 3-7 6-11z"/>',
   camara: '<rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M8 7l1.5-2.5h5L16 7"/><circle cx="12" cy="13.5" r="3.5"/>',
   login: '<path d="M12 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6"/><path d="M15 8l4 4-4 4M19 12H9"/>',
@@ -1891,7 +1944,11 @@ const NAV_ICONS = {
 };
 function navIcon(key, size){ return `<svg class="ic-svg" style="${size?`width:${size}px;height:${size}px;`:''}" viewBox="0 0 24 24">${NAV_ICONS[key]||''}</svg>`; }
 function renderApp(){
-  const tabs = ['hoy','comidas','ejercicio','salud','composicion','calendario','progreso','nutricion','pronostico']
+  // Logging tabs first (Hoy/Comidas/Ejercicio/Salud/Calendario), then the trend/
+  // analysis tabs grouped together (Composición/Progreso/Nutrición/Pronóstico) —
+  // Composición used to sit between Salud and Calendario, splitting the trend
+  // group across two non-adjacent zones for no reason a user could infer.
+  const tabs = ['hoy','comidas','ejercicio','salud','calendario','composicion','progreso','nutricion','pronostico']
     .map(id=>({ id, label: tr('nav_'+id) }));
   const navBtns = tabs.map(t=>`
     <div class="navbtn ${state.tab===t.id?'active':''}" onclick="setTab('${t.id}')">
@@ -2182,7 +2239,7 @@ function renderComidas(){
       <button class="btn btn-primary" style="width:100%;" onclick="addMeal()">${tr('btn_agregar')}</button>
     </div>
     <button class="btn btn-ghost" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="openPersonalMealBuilder()">${navIcon('sparkle',14)}${tr('pm_boton_crear')}</button>
-    <button class="btn btn-ghost" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="openFoodsManager()">${navIcon('sparkle',14)}${tr('foods_boton_abrir')}</button>
+    <button class="btn btn-ghost" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="openFoodsManager()">${navIcon('editar',14)}${tr('foods_boton_abrir')}</button>
     <div class="card">
       <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
         <div class="label">${tr('comidas_hoy')}</div>
@@ -3060,8 +3117,13 @@ function renderProgreso(){
   const isos = Array.from({length:n}).map((_,i)=>isoDaysAgo(n-1-i));
   const rawAt = i => rawByDaysAgo[n-1-i];
   // A single-letter-per-day label works at 7 points but overlaps illegibly at
-  // 14-30 — thin to every 2nd/5th point instead of labeling every single one.
-  const labelStep = n<=7 ? 1 : n<=14 ? 2 : 5;
+  // 14-30 — thin to every Nth point instead of labeling every single one. The
+  // step is always a multiple of 7 (not 2 or 5) so every label shown is the
+  // same weekday as the first point, rather than cycling through different
+  // weekdays in an order that reads as shuffled/broken (a stride of 5 against
+  // a 7-day week was the actual bug: labels like "L S J M D V" with no
+  // relation to Mon-Sun order, even though the underlying dates were correct).
+  const labelStep = n<=7 ? 1 : 7;
   const axisLabel = (iso,i) => i%labelStep===0 ? dayLetter(iso) : '';
   const weightPts = isos.map((iso,i)=>({ label:axisLabel(iso,i), v: rawAt(i).weight }));
   const calPts = isos.map((iso,i)=>({ label:axisLabel(iso,i), v: rawAt(i).calories }));
@@ -3095,7 +3157,7 @@ function renderProgreso(){
           <div class="label" style="margin:0;">${tr('hoy_peso')}</div>
           ${weightSummaryHTML(weightPts)}
         </div>
-        <div class="chart-box">${lineChartSVG(weightPts,{color:'var(--accent3)', gridLines:true, gridSteps:isExp('weight')?5:4, unit:'kg', maValues:weightMA, h:isExp('weight')?320:150})}</div>
+        <div class="chart-box">${lineChartSVG(weightPts,{color:'var(--chart-weight)', gridLines:true, gridSteps:isExp('weight')?5:4, unit:'kg', maValues:weightMA, h:isExp('weight')?320:150})}</div>
         ${weightPts.filter(p=>p.v!=null).length>=2 ? `<button class="btn btn-ghost" style="width:100%;margin-top:10px;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="event.stopPropagation();shareWeightProgress()">${navIcon('exportar',14)}${tr('share_boton')}</button>` : ''}
       </div>
       <div class="card expand-card ${pexp('bp')}" onclick="toggleChartExpand('progreso','bp')">
@@ -3103,7 +3165,7 @@ function renderProgreso(){
           <div class="label" style="margin:0;">${tr('salud_presion')}</div>
           ${bpSummaryHTML()}
         </div>
-        <div class="chart-box">${multiLineChartSVG(bpPts,[{key:'sys',color:'var(--accent)', ma:sysMA},{key:'dia',color:'var(--accent3)', ma:diaMA}],{gridLines:true, gridSteps:isExp('bp')?5:4, unit:'mmHg', h:isExp('bp')?320:150})}</div>
+        <div class="chart-box">${multiLineChartSVG(bpPts,[{key:'sys',color:'var(--chart-bp-sys)', ma:sysMA},{key:'dia',color:'var(--chart-bp-dia)', ma:diaMA}],{gridLines:true, gridSteps:isExp('bp')?5:4, unit:'mmHg', h:isExp('bp')?320:150})}</div>
         ${todayHCBp.length ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);" onclick="event.stopPropagation()">
           <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">${tr('hc_bp_synced_label')}</div>
           ${todayHCBp.map(r=>`<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:3px 0;">
@@ -3122,15 +3184,15 @@ function renderProgreso(){
       </div>
       <div class="card expand-card ${pexp('steps')}" onclick="toggleChartExpand('progreso','steps')">
         <div class="label">${tr('hc_steps_label')}</div>
-        <div class="chart-box">${barChartSVG(stepsPts,{color:'var(--accent2)', gridLines:true, gridSteps:isExp('steps')?5:4, unit:'pasos', maValues:stepsMA, h:isExp('steps')?320:150})}</div>
+        <div class="chart-box">${barChartSVG(stepsPts,{color:'var(--chart-steps)', gridLines:true, gridSteps:isExp('steps')?5:4, unit:'pasos', maValues:stepsMA, h:isExp('steps')?320:150})}</div>
       </div>
       <div class="card expand-card ${pexp('heartrate')}" onclick="toggleChartExpand('progreso','heartrate')">
         <div class="label">${tr('hc_heartrate_label')}</div>
-        <div class="chart-box">${lineChartSVG(hrPts,{color:'var(--accent)', gridLines:true, gridSteps:isExp('heartrate')?5:4, unit:'bpm', maValues:hrMA, h:isExp('heartrate')?320:150})}</div>
+        <div class="chart-box">${lineChartSVG(hrPts,{color:'var(--chart-heartrate)', gridLines:true, gridSteps:isExp('heartrate')?5:4, unit:'bpm', maValues:hrMA, h:isExp('heartrate')?320:150})}</div>
       </div>
       <div class="card expand-card ${pexp('spo2')}" onclick="toggleChartExpand('progreso','spo2')">
         <div class="label">${tr('hc_spo2_label')}</div>
-        <div class="chart-box">${lineChartSVG(spo2Pts,{color:'var(--accent3)', gridLines:true, gridSteps:isExp('spo2')?5:4, unit:'%', maValues:spo2MA, h:isExp('spo2')?320:150})}</div>
+        <div class="chart-box">${lineChartSVG(spo2Pts,{color:'var(--chart-spo2)', gridLines:true, gridSteps:isExp('spo2')?5:4, unit:'%', maValues:spo2MA, h:isExp('spo2')?320:150})}</div>
       </div>
       <div class="card expand-card ${pexp('calories')}" onclick="toggleChartExpand('progreso','calories')"><div class="label">${trf('prog_calorias_meta',{goal:state.goals.calorieGoal})}</div><div class="chart-box">${barChartSVG(calPts,{color:'var(--accent)',goal:state.goals.calorieGoal, gridLines:true, gridSteps:isExp('calories')?5:4, unit:'kcal', maValues:calMA, h:isExp('calories')?320:150})}</div></div>
       <div class="card expand-card ${pexp('exercise')}" onclick="toggleChartExpand('progreso','exercise')">
@@ -3146,7 +3208,7 @@ function renderProgreso(){
           <div class="label" style="margin:0;">${tr('hoy_sueno')}</div>
           ${sleepAvgSummaryHTML()}
         </div>
-        <div class="chart-box">${barChartSVG(sleepPts,{color:'var(--accent2)', gridLines:true, gridSteps:isExp('sleep')?5:4, unit:'h', maValues:sleepMA, h:isExp('sleep')?320:150})}</div>
+        <div class="chart-box">${barChartSVG(sleepPts,{color:'var(--chart-sleep)', gridLines:true, gridSteps:isExp('sleep')?5:4, unit:'h', maValues:sleepMA, h:isExp('sleep')?320:150})}</div>
       </div>
     </div>
     ${renderPatternsCard()}
@@ -3341,24 +3403,44 @@ function nutricionChartData(){
   const lookbackDays = n - 1 + maWindow; // extra days behind the visible range so the oldest point still gets a full 30-day trailing average
   const rawByDaysAgo = Array.from({length:lookbackDays}).map((_,daysAgo)=>{
     const d = dayAt(isoDaysAgo(daysAgo));
-    return { ...macroSums(d.meals), ...microSums(d.meals) };
+    // A day with zero meals logged is almost always a day nobody bothered to log, not
+    // a real zero-nutrient day — null (not the macroSums/microSums 0 default) keeps
+    // unlogged days from rendering as a real flat-zero trend line, matching
+    // computePatternData's and Progreso's established convention for this same class
+    // of sparse data (weight/BP/sleep there, macros/micros here).
+    const hasMeals = d.meals.length>0;
+    return hasMeals ? { ...macroSums(d.meals), ...microSums(d.meals) } : {
+      protein:null, carbs:null, fat:null, fiber:null, sugar:null, sodium:null,
+      iron:null, calcium:null, potassium:null, vitaminC:null,
+    };
   });
   // The MA is always a 30-day average regardless of range, so on the 7-day view
   // it's a near-flat line well above/below that week's real data — suppress it
-  // there entirely, same as Progreso's chart range toggle.
+  // there entirely, same as Progreso's chart range toggle. Averages only over
+  // samples that actually exist in the trailing window, same as Progreso's ma30 —
+  // otherwise an unlogged day's null would coerce to 0 in the sum and quietly
+  // drag the average down.
   function ma30(key){
     if(n===7) return null;
     return Array.from({length:n}).map((_,i)=>{
       const daysAgo = n-1-i;
-      let sum = 0;
-      for(let k=daysAgo; k<daysAgo+maWindow; k++) sum += rawByDaysAgo[k][key];
-      return sum/maWindow;
+      let sum=0, count=0;
+      for(let k=daysAgo; k<daysAgo+maWindow; k++){
+        const v = rawByDaysAgo[k][key];
+        if(v!=null){ sum+=v; count++; }
+      }
+      return count>0 ? sum/count : null;
     });
   }
   const isos = Array.from({length:n}).map((_,i)=>isoDaysAgo(n-1-i));
   // A single-letter-per-day label works at 7 points but overlaps illegibly at
-  // 14-30 — thin to every 2nd/5th point instead of labeling every single one.
-  const labelStep = n<=7 ? 1 : n<=14 ? 2 : 5;
+  // 14-30 — thin to every Nth point instead of labeling every single one. The
+  // step is always a multiple of 7 (not 2 or 5) so every label shown is the
+  // same weekday as the first point, rather than cycling through different
+  // weekdays in an order that reads as shuffled/broken (a stride of 5 against
+  // a 7-day week was the actual bug: labels like "L S J M D V" with no
+  // relation to Mon-Sun order, even though the underlying dates were correct).
+  const labelStep = n<=7 ? 1 : 7;
   const axisLabel = (iso,i) => i%labelStep===0 ? dayLetter(iso) : '';
   const macroPts = isos.map((iso,i)=>{
     const r = rawByDaysAgo[n-1-i];
@@ -3899,8 +3981,9 @@ function modalHTML(){
         </div>
         <div class="display" style="font-weight:700;font-size:18px;margin-bottom:6px;">${tr('welcome_title')}</div>
         <div style="font-size:13px;color:var(--muted);margin-bottom:18px;">${tr('welcome_subtitle')}</div>
+        ${window.Capacitor && window.Capacitor.isNativePlatform() ? `
         <div class="label">${tr('hc_settings_title')}</div>
-        <div style="margin-bottom:16px;">${healthConnectSectionHTML()}</div>
+        <div style="margin-bottom:16px;">${healthConnectSectionHTML()}</div>` : ''}
         <button class="btn btn-ghost" style="width:100%;" onclick="closeWelcomeModal()">${tr('welcome_skip_button')}</button>
       </div>
     </div>`;
@@ -3916,6 +3999,44 @@ function modalHTML(){
         <div style="display:flex;gap:8px;">
           <button class="btn btn-ghost" style="flex:1;" onclick="closeModal()">${tr('set_cancelar')}</button>
           <button id="delete-account-confirm-btn" class="btn btn-danger" style="flex:1;" disabled onclick="confirmDeleteAccount()">${tr('delete_account_confirm_button')}</button>
+        </div>
+      </div>
+    </div>`;
+  }
+  if(window._modal==='export-passphrase'){
+    return `<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;" onclick="closeExportPassphraseModal(event)">
+      <div class="card" style="width:380px;max-width:100%;" onclick="event.stopPropagation()">
+        <div class="label" style="margin-bottom:10px;">${tr('export_passphrase_title')}</div>
+        <div style="font-size:13px;color:var(--text);line-height:1.5;margin-bottom:14px;">${tr('export_passphrase_body')}</div>
+        <input id="export-pass-1" type="password" autocomplete="new-password" placeholder="${esc(tr('export_passphrase_placeholder'))}" style="width:100%;margin-bottom:10px;" oninput="updateExportPassphraseValidity()">
+        <input id="export-pass-2" type="password" autocomplete="new-password" placeholder="${esc(tr('export_passphrase_confirm_placeholder'))}" style="width:100%;margin-bottom:10px;" oninput="updateExportPassphraseValidity()">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-bottom:12px;">
+          <input type="checkbox" onchange="document.getElementById('export-pass-1').type=this.checked?'text':'password';document.getElementById('export-pass-2').type=this.checked?'text':'password';">
+          ${tr('export_passphrase_show')}
+        </label>
+        <div style="font-size:11px;color:var(--accent);line-height:1.5;margin-bottom:12px;">${tr('export_passphrase_warning')}</div>
+        <div id="export-pass-error" style="font-size:11px;color:var(--danger);margin-bottom:8px;"></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost" style="flex:1;" onclick="closeExportPassphraseModal()">${tr('set_cancelar')}</button>
+          <button id="export-pass-btn" class="btn btn-primary" style="flex:1;" disabled onclick="confirmExportBackup()">${tr('export_passphrase_button')}</button>
+        </div>
+      </div>
+    </div>`;
+  }
+  if(window._modal==='import-passphrase'){
+    return `<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;" onclick="closeImportPassphraseModal(event)">
+      <div class="card" style="width:360px;max-width:100%;" onclick="event.stopPropagation()">
+        <div class="label" style="margin-bottom:10px;">${tr('import_passphrase_title')}</div>
+        <div style="font-size:13px;color:var(--text);line-height:1.5;margin-bottom:14px;">${tr('import_passphrase_body')}</div>
+        <input id="import-pass-input" type="password" autocomplete="off" placeholder="${esc(tr('export_passphrase_placeholder'))}" style="width:100%;margin-bottom:10px;" oninput="document.getElementById('import-pass-btn').disabled = !this.value">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-bottom:12px;">
+          <input type="checkbox" onchange="document.getElementById('import-pass-input').type=this.checked?'text':'password';">
+          ${tr('export_passphrase_show')}
+        </label>
+        <div id="import-pass-error" style="font-size:11px;color:var(--danger);margin-bottom:8px;"></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost" style="flex:1;" onclick="closeImportPassphraseModal()">${tr('set_cancelar')}</button>
+          <button id="import-pass-btn" class="btn btn-primary" style="flex:1;" disabled onclick="confirmImportBackup()">${tr('import_passphrase_button')}</button>
         </div>
       </div>
     </div>`;
@@ -3981,9 +4102,13 @@ function closeModal(e){ if(e && e.target!==e.currentTarget) return; window._moda
 // so a user who dismisses without touching anything else in the app doesn't see it
 // again next launch — and since it's set via LS.set(), it cross-device-syncs once
 // they eventually sign in, so a second device on the same account won't re-show it.
+// No longer gated on native platform — vitalinks.eu is a real, shipped surface real
+// users land on (not just a dev convenience), and the modal's title/subtitle are
+// already platform-agnostic. Only its Health Connect section is native-only; that
+// part alone is skipped on web (see modalHTML's 'welcome' branch) rather than
+// hiding the whole first-run greeting from every web user.
 function shouldShowWelcome(){
-  return !!(window.Capacitor && window.Capacitor.isNativePlatform())
-    && !localStorage.getItem('vl:_lastChangeAt') && !localStorage.getItem('vl:invite-code')
+  return !localStorage.getItem('vl:_lastChangeAt') && !localStorage.getItem('vl:invite-code')
     && !localStorage.getItem('vl:welcome-shown');
 }
 function closeWelcomeModal(e){
@@ -4282,7 +4407,7 @@ function addMeal(){
   window._pendingMicros = null;
   saveDay(); render();
 }
-function removeMeal(id){ state.day.meals = state.day.meals.filter(m=>m.id!==id); saveDay(); render(); }
+function removeMeal(id){ if(!confirm(tr('confirm_delete_generic'))) return; state.day.meals = state.day.meals.filter(m=>m.id!==id); saveDay(); render(); }
 
 /* ================= meal photo (calorie estimation from photo) =================
  * Mirrors the standalone prototype validated in prototypes/foto-calorias/index.html:
@@ -4713,6 +4838,7 @@ function cancelPMEdit(){
   render();
 }
 function deletePersonalMeal(id){
+  if(!confirm(tr('confirm_delete_generic'))) return;
   setPersonalMeals(getPersonalMeals().filter(m=>m.id!==id));
   if(window._pmBuilder && window._pmBuilder.editingId===id) window._pmBuilder = { editingId:null, name:'', components:[] };
   toast(tr('pm_eliminada'));
@@ -4772,6 +4898,7 @@ function addExercise(){
   saveDay(); render();
 }
 function removeExercise(id){
+  if(!confirm(tr('confirm_delete_generic'))) return;
   const target = state.day.exercises.find(e=>e.id===id);
   if(target && target.source==='healthconnect' && target.externalId) excludeHCExerciseId(target.externalId);
   state.day.exercises = state.day.exercises.filter(e=>e.id!==id);
@@ -4801,7 +4928,7 @@ function addBP(){
   state.day.bp.push({ id:uid(), systolic:sys, diastolic:dia, pulse, time: nowHM() });
   saveDay(); render();
 }
-function removeBP(id){ state.day.bp = state.day.bp.filter(b=>b.id!==id); saveDay(); render(); }
+function removeBP(id){ if(!confirm(tr('confirm_delete_generic'))) return; state.day.bp = state.day.bp.filter(b=>b.id!==id); saveDay(); render(); }
 
 function addBodyComp(){
   const vals = {};
@@ -4820,7 +4947,7 @@ function addBodyComp(){
   state.day.bodyComp.push({ id:uid(), time: nowHM(), ...vals });
   saveDay(); render();
 }
-function removeBodyComp(id){ state.day.bodyComp = state.day.bodyComp.filter(b=>b.id!==id); saveDay(); render(); }
+function removeBodyComp(id){ if(!confirm(tr('confirm_delete_generic'))) return; state.day.bodyComp = state.day.bodyComp.filter(b=>b.id!==id); saveDay(); render(); }
 
 function addMed(){
   const name = document.getElementById('med-name').value.trim();
@@ -4830,7 +4957,7 @@ function addMed(){
   state.meds.push({ id:uid(), name, dose, times });
   setMeds(state.meds); syncNativeMedAlerts(); render();
 }
-function removeMed(id){ state.meds = state.meds.filter(m=>m.id!==id); setMeds(state.meds); syncNativeMedAlerts(); render(); }
+function removeMed(id){ if(!confirm(tr('confirm_delete_generic'))) return; state.meds = state.meds.filter(m=>m.id!==id); setMeds(state.meds); syncNativeMedAlerts(); render(); }
 function startEditMed(id){ window._medEditingId = id; render(); }
 function cancelMedEdit(){ window._medEditingId = null; render(); }
 function updateMed(id){
@@ -5018,7 +5145,7 @@ function addMealForDay(iso){
   window._pendingMicros = null;
   mutateDay(iso, day=>day.meals.push(meal));
 }
-function removeMealForDay(iso, id){ mutateDay(iso, day=>{ day.meals = day.meals.filter(m=>m.id!==id); }); }
+function removeMealForDay(iso, id){ if(!confirm(tr('confirm_delete_generic'))) return; mutateDay(iso, day=>{ day.meals = day.meals.filter(m=>m.id!==id); }); }
 function checkExerciseHintForDay(){
   const nameEl = document.getElementById('cal-ex-name');
   if(!nameEl) return;
@@ -5070,6 +5197,7 @@ function addExerciseForDay(iso){
   mutateDay(iso, day=>day.exercises.push(ex));
 }
 function removeExerciseForDay(iso, id){
+  if(!confirm(tr('confirm_delete_generic'))) return;
   mutateDay(iso, day=>{
     const target = day.exercises.find(e=>e.id===id);
     if(target && target.source==='healthconnect' && target.externalId) excludeHCExerciseId(target.externalId);
@@ -5091,23 +5219,141 @@ function setWeightForDay(iso){
   mutateDay(iso, day=>{ day.weight = n; });
 }
 
+/* ================= backup encryption (AES-GCM + PBKDF2) =================
+   Backups hold raw health data (meals, BP, meds, weight) and are meant to be
+   copied off-device (synced, emailed, dropped in a Downloads folder) — plain
+   JSON there is readable by anyone with file access, no app required. Every
+   export is encrypted with a user-chosen passphrase; nothing is stored, so a
+   forgotten passphrase means a permanently unrecoverable backup (surfaced to
+   the user up front, not just in this comment). AES-GCM's built-in auth tag
+   also means a wrong passphrase or a tampered file fails decryption cleanly,
+   with no separate integrity check needed. */
+const BACKUP_PBKDF2_ITERATIONS = 300000;
+function bufToBase64(buf){
+  let binary = '';
+  const bytes = new Uint8Array(buf);
+  for(let i=0;i<bytes.length;i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+function base64ToBuf(b64){
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
+  return bytes.buffer;
+}
+async function deriveBackupKey(passphrase, salt, iterations){
+  const baseKey = await crypto.subtle.importKey('raw', new TextEncoder().encode(passphrase), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name:'PBKDF2', salt, iterations, hash:'SHA-256' },
+    baseKey,
+    { name:'AES-GCM', length:256 },
+    false,
+    ['encrypt','decrypt']
+  );
+}
+async function encryptBackupPayload(plaintext, passphrase){
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveBackupKey(passphrase, salt, BACKUP_PBKDF2_ITERATIONS);
+  const ciphertext = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, new TextEncoder().encode(plaintext));
+  return {
+    vitalinksBackup: true, version: 1, encrypted: true,
+    kdf: 'PBKDF2-SHA256', iterations: BACKUP_PBKDF2_ITERATIONS,
+    salt: bufToBase64(salt), iv: bufToBase64(iv), ciphertext: bufToBase64(ciphertext),
+  };
+}
+async function decryptBackupPayload(envelope, passphrase){
+  const salt = new Uint8Array(base64ToBuf(envelope.salt));
+  const iv = new Uint8Array(base64ToBuf(envelope.iv));
+  const key = await deriveBackupKey(passphrase, salt, envelope.iterations || BACKUP_PBKDF2_ITERATIONS);
+  const plainBuf = await crypto.subtle.decrypt({name:'AES-GCM', iv}, key, base64ToBuf(envelope.ciphertext));
+  return new TextDecoder().decode(plainBuf);
+}
+
 /* ================= backup export/import ================= */
 function exportBackup(){
-  const all = {};
-  for(let i=0;i<localStorage.length;i++){
-    const k = localStorage.key(i);
-    if(k.startsWith('vl:')) all[k] = localStorage.getItem(k);
+  if(!(window.crypto && window.crypto.subtle)){ toast(tr('err_crypto_unsupported'), true); return; }
+  window._modal = 'export-passphrase';
+  render();
+}
+function closeExportPassphraseModal(e){
+  if(e && e.target!==e.currentTarget) return;
+  window._modal = null;
+  render();
+}
+function updateExportPassphraseValidity(){
+  const p1 = document.getElementById('export-pass-1');
+  const p2 = document.getElementById('export-pass-2');
+  const btn = document.getElementById('export-pass-btn');
+  const errEl = document.getElementById('export-pass-error');
+  if(!p1 || !p2 || !btn) return;
+  btn.disabled = !(p1.value.length >= 8 && p1.value === p2.value);
+  if(errEl) errEl.textContent = '';
+}
+async function confirmExportBackup(){
+  const p1 = document.getElementById('export-pass-1');
+  const p2 = document.getElementById('export-pass-2');
+  const errEl = document.getElementById('export-pass-error');
+  const btn = document.getElementById('export-pass-btn');
+  const pass = p1.value;
+  if(pass.length < 8){ if(errEl) errEl.textContent = tr('export_passphrase_too_short'); return; }
+  if(pass !== p2.value){ if(errEl) errEl.textContent = tr('export_passphrase_mismatch'); return; }
+  if(errEl) errEl.textContent = '';
+  if(btn){ btn.disabled = true; btn.textContent = tr('export_passphrase_encrypting'); }
+  try{
+    const all = {};
+    for(let i=0;i<localStorage.length;i++){
+      const k = localStorage.key(i);
+      if(k.startsWith('vl:')) all[k] = localStorage.getItem(k);
+    }
+    const envelope = await encryptBackupPayload(JSON.stringify(all), pass);
+    const blob = new Blob([JSON.stringify(envelope)], { type:'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `vitalinks-backup-${todayISO()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    window._modal = null;
+    toast(tr('export_backup_done'));
+  }catch(e){
+    if(btn){ btn.disabled = false; btn.textContent = tr('export_passphrase_button'); }
+    if(errEl) errEl.textContent = tr('err_sync_generic');
   }
-  const blob = new Blob([JSON.stringify(all,null,2)], { type:'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = `vitalinks-backup-${todayISO()}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  toast(tr('export_backup_done'));
 }
 function triggerImportBackup(){
   document.getElementById('import-file-input').click();
+}
+function applyImportedData(data){
+  const keys = Object.keys(data).filter(k=>k.startsWith('vl:'));
+  if(!keys.length){ toast(tr('err_import_no_data'), true); return; }
+  keys.forEach(k=>localStorage.setItem(k, data[k]));
+  toast(trf('import_success', {count:keys.length}));
+  setTimeout(()=>location.reload(), 1200);
+}
+function closeImportPassphraseModal(e){
+  if(e && e.target!==e.currentTarget) return;
+  window._pendingImportEnvelope = null;
+  window._modal = null;
+  render();
+}
+async function confirmImportBackup(){
+  const envelope = window._pendingImportEnvelope;
+  if(!envelope) return;
+  const input = document.getElementById('import-pass-input');
+  const errEl = document.getElementById('import-pass-error');
+  const btn = document.getElementById('import-pass-btn');
+  if(errEl) errEl.textContent = '';
+  if(btn){ btn.disabled = true; btn.textContent = tr('import_passphrase_decrypting'); }
+  try{
+    const plaintext = await decryptBackupPayload(envelope, input.value);
+    const data = JSON.parse(plaintext);
+    window._pendingImportEnvelope = null;
+    window._modal = null;
+    applyImportedData(data);
+  }catch(e){
+    if(btn){ btn.disabled = false; btn.textContent = tr('import_passphrase_button'); }
+    if(errEl) errEl.textContent = tr('err_import_wrong_passphrase');
+  }
 }
 function handleImportFile(input){
   const file = input.files[0];
@@ -5117,11 +5363,16 @@ function handleImportFile(input){
     let data;
     try{ data = JSON.parse(e.target.result); }
     catch(err){ toast(tr('err_import_invalid_json'), true); return; }
-    const keys = Object.keys(data).filter(k=>k.startsWith('vl:'));
-    if(!keys.length){ toast(tr('err_import_no_data'), true); return; }
-    keys.forEach(k=>localStorage.setItem(k, data[k]));
-    toast(trf('import_success', {count:keys.length}));
-    setTimeout(()=>location.reload(), 1200);
+
+    if(data && data.vitalinksBackup && data.encrypted){
+      if(!(window.crypto && window.crypto.subtle)){ toast(tr('err_crypto_unsupported'), true); return; }
+      window._pendingImportEnvelope = data;
+      window._modal = 'import-passphrase';
+      render();
+      return;
+    }
+    // Legacy plain-JSON backups (exported before encryption was added) stay importable.
+    applyImportedData(data);
   };
   reader.onerror = () => toast(tr('err_file_read'), true);
   reader.readAsText(file);
@@ -5654,6 +5905,8 @@ function handleBackAction(){
   if(window._modal==='mealPhoto'){ closeMealPhotoModal(); return true; }
   if(window._modal==='welcome'){ closeWelcomeModal(); return true; }
   if(window._modal==='food-edit'){ closeFoodEditModal(); return true; }
+  if(window._modal==='export-passphrase'){ closeExportPassphraseModal(); return true; }
+  if(window._modal==='import-passphrase'){ closeImportPassphraseModal(); return true; }
   if(window._modal){ closeModal(); return true; }
   if(window._pmView){ closePersonalMealBuilder(); return true; }
   if(window._foodsView){ closeFoodsManager(); return true; }
@@ -5745,6 +5998,15 @@ if(shouldShowWelcome()) window._modal = 'welcome';
 if(state.tab==='hoy') window._hoyAnimate = true;
 render();
 syncNativeMedAlerts();
+// One-time notice for existing users about the new backup encryption requirement --
+// fresh installs never had an unencrypted-backup habit to begin with (and the
+// export-passphrase modal already explains the "why" in context the first time
+// they export), so this is scoped to returning users only, exactly like
+// vl:welcome-shown's own fresh-install exclusion above.
+if(localStorage.getItem('vl:_lastChangeAt') && !localStorage.getItem('vl:backup-encryption-notice-shown')){
+  LS.set('vl:backup-encryption-notice-shown', true);
+  setTimeout(()=>toast(tr('notice_backup_encryption')), 1200);
+}
 </script>
 
 <script type="module">
@@ -6240,10 +6502,11 @@ syncNativeMedAlerts();
   // heuristic above -- the whole point is to have a way out if that heuristic is ever
   // wrong or unreachable in some future/unanticipated case. Unconditionally overwrites
   // this device with the cloud's version, no timestamp/day-count comparison at all. The
-  // confirm() below is a deliberate one-off: nothing else in this app confirms a
-  // destructive action (even single-item deletes fire immediately), but this button can
-  // discard the device's entire local dataset at once, which is categorically more
-  // destructive than anything else currently in the app.
+  // confirm() below matches the same native-confirm pattern single-item deletes now use
+  // (removeMeal/removeExercise/removeBP/removeBodyComp/removeMed/deletePersonalMeal) —
+  // this one has its own dedicated string rather than reusing confirm_delete_generic
+  // since discarding the entire device's local dataset at once is categorically more
+  // destructive than any single-item delete and warrants saying so explicitly.
   window.forcePullFromCloud = async function(){
     if(!currentUser) return;
     if(!confirm(tr('sync_force_pull_confirm'))) return;
