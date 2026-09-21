@@ -24,6 +24,10 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSHealthShareUsageDescription</key>
+	<string>VitaLinks reads health data such as steps, heart rate, blood pressure, oxygen saturation, and exercise from Apple Health so it can sync with your VitaLinks profile and help you track your wellbeing.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>VitaLinks may save health data you log in the app to Apple Health so it stays in sync with your other health apps.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
