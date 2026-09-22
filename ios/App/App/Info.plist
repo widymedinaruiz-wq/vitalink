@@ -6,6 +6,12 @@
 	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
+	<key>FacebookAppID</key>
+	<string>000000000000000</string>
+	<key>FacebookClientToken</key>
+	<string>0000000000000000000000000000000000000</string>
+	<key>FacebookDisplayName</key>
+	<string>VitaLinks</string>
 	<key>CFBundleDisplayName</key>
         <string>VitaLinks</string>
 	<key>CFBundleExecutable</key>
