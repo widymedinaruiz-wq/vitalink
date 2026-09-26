@@ -320,6 +320,7 @@ const I18N = {
     plus_web_only_note:'VitaLinks Plus agrega estimación de calorías por foto y análisis más profundos — disponible por ahora solo en la app de Android.',
     plus_upsell_note:'Estima calorías con IA sin necesidad de tu propia API key.',
     plus_upgrade_button:'Mejorar a Plus',
+    plus_ios_soon:'VitaLinks Plus llegará pronto a iOS.',
     plus_paywall_title:'VitaLinks Plus',
     plus_paywall_subtitle:'Estimación de calorías con IA incluida, sin necesidad de tu propia API key.',
     plus_feature_ai:'Hasta 15 estimaciones con IA al día, sin configurar nada',
@@ -632,6 +633,7 @@ const I18N = {
     plus_web_only_note:'VitaLinks Plus adds photo-based calorie estimation and deeper analytics — available for now only in the Android app.',
     plus_upsell_note:'Get AI calorie estimates without needing your own API key.',
     plus_upgrade_button:'Upgrade to Plus',
+    plus_ios_soon:'VitaLinks Plus is coming soon to iOS.',
     plus_paywall_title:'VitaLinks Plus',
     plus_paywall_subtitle:'AI calorie estimation included, no personal API key needed.',
     plus_feature_ai:'Up to 15 AI estimates a day, zero setup',
@@ -938,7 +940,51 @@ async function syncNativeStatusBar(isLight){
 if(window.matchMedia){
   window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', ()=>{ if(state.theme==='system') applyTheme(); });
 }
-function tr(key){ return (I18N[state.lang] && I18N[state.lang][key]) ?? I18N.es[key] ?? key; }
+// On iOS the same Health plugin reads Apple Health, so its Health Connect (Android) wording
+// is swapped at lookup time; Android/web keep the I18N strings above untouched.
+const I18N_IOS_HEALTH = {
+  es: {
+    hc_settings_title:'Salud de Apple',
+    hc_not_installed_note:'No se pudo acceder a Salud de Apple en este dispositivo.',
+    hc_connect_explainer:'Conecta Salud de Apple para traer tus pasos, ritmo cardíaco y presión arterial de otras apps y dispositivos a VitaLinks.',
+    hc_connect_button:'Conectar Salud de Apple',
+    hc_connected_label:'Salud de Apple conectado',
+    hc_manage_permissions_note:'Para cambiar estos permisos, ábrelos en Ajustes > Salud > Acceso a datos y dispositivos.',
+    hc_steps_label:'Pasos (Salud de Apple)',
+    hc_heartrate_label:'Ritmo cardíaco (Salud de Apple)',
+    hc_spo2_label:'Saturación de oxígeno mín. (Salud de Apple)',
+    hc_bp_synced_label:'Sincronizado desde Salud de Apple',
+    hc_bp_synced_badge:'Salud de Apple',
+    hc_ex_synced_badge:'Salud de Apple',
+    err_hc_not_installed:'No se pudo acceder a Salud de Apple para conectar tus dispositivos.',
+    err_hc_permission_denied:'VitaLinks no tiene permiso para leer estos datos de Salud de Apple.',
+    err_hc_sync_failed:'No se pudieron importar los datos de Salud de Apple. Revisa los permisos en Ajustes > Salud e inténtalo de nuevo.'
+  },
+  en: {
+    hc_settings_title:'Apple Health',
+    hc_not_installed_note:"Couldn't access Apple Health on this device.",
+    hc_connect_explainer:'Connect Apple Health to bring your steps, heart rate, and blood pressure from other apps and devices into VitaLinks.',
+    hc_connect_button:'Connect Apple Health',
+    hc_connected_label:'Apple Health connected',
+    hc_manage_permissions_note:'To change these permissions, open Settings > Health > Data Access & Devices.',
+    hc_steps_label:'Steps (Apple Health)',
+    hc_heartrate_label:'Heart rate (Apple Health)',
+    hc_spo2_label:'Min. oxygen saturation (Apple Health)',
+    hc_bp_synced_label:'Synced from Apple Health',
+    hc_bp_synced_badge:'Apple Health',
+    hc_ex_synced_badge:'Apple Health',
+    err_hc_not_installed:"Couldn't access Apple Health to connect your devices.",
+    err_hc_permission_denied:"VitaLinks doesn't have permission to read this data from Apple Health.",
+    err_hc_sync_failed:"Could not import data from Apple Health. Check the permissions in Settings > Health and try again."
+  }
+};
+function tr(key){
+  if(window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform()==='ios'){
+    const o = (I18N_IOS_HEALTH[state.lang] || I18N_IOS_HEALTH.es)[key];
+    if(o !== undefined) return o;
+  }
+  return (I18N[state.lang] && I18N[state.lang][key]) ?? I18N.es[key] ?? key;
+}
 function trf(key, params){ return tr(key).replace(/\{(\w+)\}/g, (_,k)=>params[k]??''); }
 
 const DOW_ES = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
@@ -3691,13 +3737,20 @@ function emptyState(key,text){
 function plusSectionHTML(){
   const p = window._planState || {plan:'free'};
   const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform());
+  // iOS has no in-app purchase wired up yet (purchases run through Google Play only), so
+  // it never offers an upgrade or links out to Google Play; an already-entitled account
+  // still shows as active.
+  const isIOS = !!(window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform()==='ios');
   if(p.plan === 'plus'){
     const until = p.planExpiresAt ? new Date(p.planExpiresAt).toLocaleDateString(state.lang==='en'?'en-US':'es-ES') : '';
     return `<div>
       <div style="font-size:12px;color:var(--accent3);font-weight:700;margin-bottom:4px;">✨ ${tr('plus_active_label')}</div>
-      ${until?`<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">${trf('plus_renews_on',{date:until})}</div>`:''}
-      <a href="https://play.google.com/store/account/subscriptions" target="_blank" class="btn btn-ghost" style="width:100%;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;">${tr('plus_manage_subscription')}</a>
+      ${until?`<div style="font-size:11px;color:var(--muted);margin-bottom:${isIOS?0:10}px;">${trf('plus_renews_on',{date:until})}</div>`:''}
+      ${isIOS?'':`<a href="https://play.google.com/store/account/subscriptions" target="_blank" class="btn btn-ghost" style="width:100%;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;">${tr('plus_manage_subscription')}</a>`}
     </div>`;
+  }
+  if(isIOS){
+    return `<div style="font-size:11px;color:var(--muted);">${tr('plus_ios_soon')}</div>`;
   }
   if(!isNative){
     return `<div style="font-size:11px;color:var(--muted);">${tr('plus_web_only_note')}</div>`;
@@ -4115,6 +4168,10 @@ async function confirmDeleteAccount(){
 }
 function openBodyCompInfo(key){ window._modal='bodycomp-info'; window._infoKey=key; render(); }
 async function openPlusPaywall(){
+  if(window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform()==='ios'){
+    toast(tr('plus_ios_soon'));
+    return;
+  }
   if(!(window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins.Purchases)){
     toast(tr('plus_web_only_note'), true);
     return;
@@ -6156,6 +6213,8 @@ if(localStorage.getItem('vl:_lastChangeAt') && !localStorage.getItem('vl:backup-
   let purchasesConfigured = false;
   async function syncPurchasesIdentity(user){
     if(!(window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins.Purchases)) return;
+    // The only RevenueCat key here is the Android one; configuring iOS with it just errors.
+    if(window.Capacitor.getPlatform && window.Capacitor.getPlatform()==='ios') return;
     const Purchases = window.Capacitor.Plugins.Purchases;
     try{
       if(user){
