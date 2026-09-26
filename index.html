@@ -547,6 +547,8 @@ const I18N = {
     set_cerrar:'Cerrar',
     scan_titulo:'Escanear código', scan_apunta:'Apunta la cámara al código de barras del producto…',
     scan_iniciando:'Iniciando cámara…',
+    scan_photo_reading:'Leyendo el código…',
+    scan_photo_not_found:'No se encontró un código de barras. Acércate, mejora la luz e inténtalo de nuevo.',
     scan_timeout:'La cámara está tardando en iniciar. Revisa los permisos de la app o inténtalo de nuevo.',
     sync_cargando:'Cargando sincronización…', sync_iniciar_sesion:'Iniciar sesión con Google', sync_iniciar_sesion_apple:'Iniciar sesión con Apple',
     sync_conecta:'Conecta tu cuenta para que tus datos se sincronicen automáticamente entre tu computadora y tu celular.',
@@ -860,6 +862,8 @@ const I18N = {
     set_cerrar:'Close',
     scan_titulo:'Scan code', scan_apunta:"Point the camera at the product's barcode…",
     scan_iniciando:'Starting camera…',
+    scan_photo_reading:'Reading the code…',
+    scan_photo_not_found:'No barcode found. Move closer, improve the lighting, and try again.',
     scan_timeout:'The camera is taking a while to start. Check the app’s permissions or try again.',
     sync_cargando:'Loading sync…', sync_iniciar_sesion:'Sign in with Google', sync_iniciar_sesion_apple:'Sign in with Apple',
     sync_conecta:'Connect your account so your data syncs automatically between your computer and phone.',
@@ -1612,12 +1616,40 @@ async function handleGenerateInsight(force){
 function getBarcodeCache(){ return LS.get('vl:barcode-cache') || {}; }
 function setBarcodeCache(c){ return LS.set('vl:barcode-cache', c); }
 
+// Some web views (notably the iOS app's) don't expose a live camera stream to the page.
+// There, take one photo of the barcode with the system camera and decode that instead.
+function scanFromPhoto(target){
+  window._scanBusy = false;
+  window._scanTarget = target || 'meal';
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.setAttribute('capture', 'environment');
+  input.style.display = 'none';
+  input.addEventListener('change', async ()=>{
+    const file = input.files && input.files[0];
+    input.remove();
+    if(!file) return;
+    toast(tr('scan_photo_reading'));
+    const url = URL.createObjectURL(file);
+    try{
+      const result = await new ZXing.BrowserMultiFormatReader().decodeFromImageUrl(url);
+      handleScanResult(result.getText());
+    }catch(e){
+      toast(tr('scan_photo_not_found'), true);
+    }finally{
+      URL.revokeObjectURL(url);
+    }
+  });
+  document.body.appendChild(input);
+  input.click();
+}
 function openScanner(target){
-  if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){
-    toast(tr('err_camera_unsupported'), true); return;
-  }
   if(typeof ZXing === 'undefined'){
     toast(tr('err_barcode_lib_failed'), true); return;
+  }
+  if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){
+    scanFromPhoto(target); return;
   }
   window._scanBusy = false;
   window._scanTarget = target || 'meal';
