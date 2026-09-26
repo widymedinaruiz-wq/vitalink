@@ -548,7 +548,7 @@ const I18N = {
     scan_titulo:'Escanear código', scan_apunta:'Apunta la cámara al código de barras del producto…',
     scan_iniciando:'Iniciando cámara…',
     scan_timeout:'La cámara está tardando en iniciar. Revisa los permisos de la app o inténtalo de nuevo.',
-    sync_cargando:'Cargando sincronización…', sync_iniciar_sesion:'Iniciar sesión con Google',
+    sync_cargando:'Cargando sincronización…', sync_iniciar_sesion:'Iniciar sesión con Google', sync_iniciar_sesion_apple:'Iniciar sesión con Apple',
     sync_conecta:'Conecta tu cuenta para que tus datos se sincronicen automáticamente entre tu computadora y tu celular.',
     sync_error:'Error:', sync_nunca:'nunca', sync_cerrar_sesion:'Cerrar sesión',
     sync_sincronizando:'Sincronizando…', sync_ultima:'Última sincronización:',
@@ -861,7 +861,7 @@ const I18N = {
     scan_titulo:'Scan code', scan_apunta:"Point the camera at the product's barcode…",
     scan_iniciando:'Starting camera…',
     scan_timeout:'The camera is taking a while to start. Check the app’s permissions or try again.',
-    sync_cargando:'Loading sync…', sync_iniciar_sesion:'Sign in with Google',
+    sync_cargando:'Loading sync…', sync_iniciar_sesion:'Sign in with Google', sync_iniciar_sesion_apple:'Sign in with Apple',
     sync_conecta:'Connect your account so your data syncs automatically between your computer and phone.',
     sync_error:'Error:', sync_nunca:'never', sync_cerrar_sesion:'Sign out',
     sync_sincronizando:'Syncing…', sync_ultima:'Last synced:',
@@ -3820,6 +3820,12 @@ async function syncHealthConnectNowUI(){
   try{ await window.hcSyncNow(false); }
   catch(e){ toast(tr('err_hc_sync_failed'), true); }
 }
+// Apple's guideline 4.8 requires Sign in with Apple alongside Google on iOS; it's iOS-only
+// here (Android/web keep Google alone).
+function appleSignInButtonHTML(){
+  if(!(window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform()==='ios')) return '';
+  return `<button class="btn" style="width:100%;margin-bottom:6px;background:#000;color:#fff;border:1px solid #fff;display:inline-flex;align-items:center;justify-content:center;gap:8px;" onclick="firebaseSignInApple()"><svg width="14" height="14" viewBox="0 0 384 512" fill="currentColor" aria-hidden="true"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>${tr('sync_iniciar_sesion_apple')}</button>`;
+}
 function syncSectionHTML(){
   const s = window._syncState;
   if(!s.ready){
@@ -3828,6 +3834,7 @@ function syncSectionHTML(){
   if(!s.user){
     return `<div>
       <button class="btn btn-ghost" style="width:100%;margin-bottom:6px;" onclick="firebaseSignIn()">${navIcon('login',14)}${tr('sync_iniciar_sesion')}</button>
+      ${appleSignInButtonHTML()}
       <div style="font-size:11px;color:var(--muted);">${tr('sync_conecta')}</div>
       ${s.error?`<div style="font-size:11px;color:var(--danger);margin-top:6px;">${tr('sync_error')} ${esc(s.error)}</div>`:''}
     </div>`;
@@ -4079,6 +4086,7 @@ function modalHTML(){
         ${!(window._syncState && window._syncState.user) ? `
         <div class="label">${tr('welcome_signin_title')}</div>
         <button class="btn btn-primary" style="width:100%;margin-bottom:6px;" onclick="firebaseSignIn()">${navIcon('login',14)}${tr('welcome_signin_button')}</button>
+        ${appleSignInButtonHTML()}
         <div style="font-size:11px;color:var(--muted);margin-bottom:16px;">${tr('welcome_signin_note')}</div>` : `
         <div style="font-size:12px;color:var(--accent2);margin-bottom:16px;">✅ ${esc(window._syncState.user.email)}</div>`}
         ${window.Capacitor && window.Capacitor.isNativePlatform() ? `
@@ -6171,7 +6179,7 @@ if(localStorage.getItem('vl:_lastChangeAt') && !localStorage.getItem('vl:backup-
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-  import { getAuth, initializeAuth, indexedDBLocalPersistence, GoogleAuthProvider, signInWithPopup, signInWithCredential, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { getAuth, initializeAuth, indexedDBLocalPersistence, GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithCredential, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import { getFirestore, doc, setDoc, getDoc, onSnapshot, addDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
   import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-functions.js";
 
@@ -6738,6 +6746,23 @@ if(localStorage.getItem('vl:_lastChangeAt') && !localStorage.getItem('vl:backup-
     }
     catch(e){ window._syncState.error = friendlyFirebaseError(e); safeRender(); }
   };
+  // iOS only (button is only rendered there). The plugin runs the native Apple sheet and
+  // returns the identity token plus the raw nonce it hashed for Apple; both are needed
+  // to build the Firebase credential.
+  window.firebaseSignInApple = async function(){
+    try{
+      const result = await window.Capacitor.Plugins.FirebaseAuthentication.signInWithApple();
+      const idToken = result.credential && result.credential.idToken;
+      const rawNonce = result.credential && result.credential.nonce;
+      if(!idToken) throw new Error('No ID token returned from native Apple sign-in');
+      const credential = new OAuthProvider('apple.com').credential({ idToken, rawNonce });
+      await signInWithCredential(auth, credential);
+    }
+    catch(e){
+      if(e && (e.code === '1001' || /cancel/i.test(String(e.message||e.code||'')))) return;
+      window._syncState.error = friendlyFirebaseError(e); safeRender();
+    }
+  };
   window.firebaseSignOut = async function(){
     if(unsubscribeSnapshot){ unsubscribeSnapshot(); unsubscribeSnapshot=null; }
     if(window.Capacitor && window.Capacitor.isNativePlatform()){
@@ -6748,7 +6773,8 @@ if(localStorage.getItem('vl:_lastChangeAt') && !localStorage.getItem('vl:backup-
 
   onAuthStateChanged(auth, (user) => {
     currentUser = user;
-    window._syncState.user = user ? { email: user.email, uid: user.uid } : null;
+    // Apple can withhold the email entirely, so never leave the account label empty.
+    window._syncState.user = user ? { email: user.email || 'Apple ID', uid: user.uid } : null;
     window._syncState.ready = true;
     syncPurchasesIdentity(user);
     if(user){
