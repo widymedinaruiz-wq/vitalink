@@ -6114,7 +6114,7 @@ if(localStorage.getItem('vl:_lastChangeAt') && !localStorage.getItem('vl:backup-
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-  import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithCredential, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { getAuth, initializeAuth, indexedDBLocalPersistence, GoogleAuthProvider, signInWithPopup, signInWithCredential, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import { getFirestore, doc, setDoc, getDoc, onSnapshot, addDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
   import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-functions.js";
 
@@ -6129,7 +6129,15 @@ if(localStorage.getItem('vl:_lastChangeAt') && !localStorage.getItem('vl:backup-
   };
 
   const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
+  // getAuth() wires up a popup/redirect resolver that loads a hidden iframe from the
+  // Firebase auth domain; inside the iOS app (capacitor://localhost) that never
+  // resolves, so onAuthStateChanged never fires and Settings stays on "Loading sync…".
+  // iOS signs in natively and only needs signInWithCredential, so skip the resolver
+  // there. Android/web keep getAuth() unchanged.
+  const isIOSApp = !!(window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'ios');
+  const auth = isIOSApp
+    ? initializeAuth(app, { persistence: indexedDBLocalPersistence })
+    : getAuth(app);
   const db = getFirestore(app);
   // Region must match where functions/index.js is deployed (europe-west1, co-located
   // with the eur3 Firestore instance) — getFunctions defaults to us-central1 otherwise.
