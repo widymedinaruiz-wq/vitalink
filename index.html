@@ -2578,7 +2578,10 @@ function stepsCardHTML(){
       <button class="btn btn-ghost" style="width:100%;" onclick="connectHealthConnect()">${tr('hc_connect_button')}</button>
     </div>`;
   }
-  const steps = getHealthConnectDay(todayISO()).steps;
+  // steps is stored as {value, source, syncedAt}, not a plain number -- matches how
+  // Progreso's chart already reads it (rawAt(i).steps via hc.steps.value).
+  const stepsRaw = getHealthConnectDay(todayISO()).steps;
+  const steps = stepsRaw ? stepsRaw.value : null;
   return `<div class="card">
     <div class="label">${tr('hc_scope_steps')}</div>
     <div class="display" style="font-size:28px;font-weight:700;">${steps!=null ? steps.toLocaleString(state.lang==='en'?'en-US':'es-ES') : '—'}</div>
