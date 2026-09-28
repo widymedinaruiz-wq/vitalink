@@ -209,7 +209,7 @@
     /* Edge-to-edge Android (see syncNativeStatusBar) draws this bar behind the
        status bar / camera cutout — pad the top so tabs don't render under it
        (e.g. Pixel's centered punch-hole camera, reported by testers). */
-    nav.side{width:100%;height:auto;position:sticky;top:0;flex-direction:row;overflow-x:auto;padding:calc(12px + env(safe-area-inset-top)) 12px 12px;border-right:none;border-bottom:1px solid var(--line);z-index:20;background:var(--bg);scroll-snap-type:x mandatory;}
+    nav.side{width:100%;height:auto;position:sticky;top:0;flex-direction:row;overflow-x:auto;padding:calc(12px + env(safe-area-inset-top)) 12px 12px;border-right:none;border-bottom:1px solid var(--line);z-index:20;background:var(--bg);scroll-snap-type:x mandatory;scroll-padding-right:40px;}
     /* The OS/WebView scrollbar this row relies on for a "more to scroll" signal
        doesn't reliably render on touch — a custom-styled scrollbar in particular
        is usually suppressed outside an active drag. This chevron is a signal
