@@ -209,7 +209,7 @@
     /* Edge-to-edge Android (see syncNativeStatusBar) draws this bar behind the
        status bar / camera cutout — pad the top so tabs don't render under it
        (e.g. Pixel's centered punch-hole camera, reported by testers). */
-    nav.side{width:100%;height:auto;position:sticky;top:0;flex-direction:row;overflow-x:auto;padding:calc(12px + env(safe-area-inset-top)) 12px 12px;border-right:none;border-bottom:1px solid var(--line);z-index:20;background:var(--bg);}
+    nav.side{width:100%;height:auto;position:sticky;top:0;flex-direction:row;overflow-x:auto;padding:calc(12px + env(safe-area-inset-top)) 12px 12px;border-right:none;border-bottom:1px solid var(--line);z-index:20;background:var(--bg);scroll-snap-type:x mandatory;}
     /* The OS/WebView scrollbar this row relies on for a "more to scroll" signal
        doesn't reliably render on touch — a custom-styled scrollbar in particular
        is usually suppressed outside an active drag. This chevron is a signal
@@ -226,7 +226,7 @@
        has no way to know scroll position from CSS alone. */
     nav.side.at-scroll-end::after{ display:none; }
     nav.side .brand{display:none;}
-    nav.side .navbtn{flex-direction:column;font-size:10px;gap:4px;white-space:nowrap;}
+    nav.side .navbtn{flex-direction:column;font-size:10px;gap:4px;white-space:nowrap;scroll-snap-align:start;}
     /* Settings/Export/Import are actions, not tabs — riding along in the same
        scroll strip with only a hairline border made them read as 3 more
        destinations rather than a distinct utility group. */
@@ -2117,7 +2117,7 @@ function renderApp(){
   </div>`;
 
   return `
-  <nav class="side">
+  <nav class="side" data-tab-count="${tabs.length}">
     <div class="brand">
       <div>VitaLinks<div class="owner">by WM Designs</div></div>
       <svg class="brand-logo" viewBox="0 0 120 120">
@@ -4444,9 +4444,17 @@ function saveSettings(){
 function render(){
   const prevNav = document.querySelector('nav.side');
   const navScrollLeft = prevNav ? prevNav.scrollLeft : 0;
+  const prevTabCount = prevNav ? prevNav.dataset.tabCount : null;
   document.getElementById('app').innerHTML = renderApp();
   const newNav = document.querySelector('nav.side');
-  if(newNav) newNav.scrollLeft = navScrollLeft;
+  // Only carry the scroll offset over when the tab row itself didn't just change
+  // shape (e.g. a module was hidden/shown in Settings) -- a real tester screenshot
+  // showed the right-edge "more to scroll" fade/chevron landing mid-label because
+  // the old scrollLeft no longer lined up with any tab boundary once the row got
+  // shorter. Resetting to the start in that case is simpler and always correct.
+  if(newNav && prevTabCount !== null && newNav.dataset.tabCount === prevTabCount){
+    newNav.scrollLeft = navScrollLeft;
+  }
   restoreWheelScroll(); runHoyEntranceAnimation(); syncNavScrollFade();
 }
 // The mobile top nav's "more to scroll" chevron (nav.side::after) is a plain
