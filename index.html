@@ -284,7 +284,7 @@ const I18N = {
     nav_composicion:'Composición', nav_calendario:'Calendario', nav_progreso:'Progreso',
     nav_nutricion:'Nutrición', nav_pronostico:'Pronóstico',
     nav_ajustes:'Ajustes', nav_exportar:'Exportar', nav_importar:'Importar',
-    meal_desayuno:'Desayuno', meal_merienda:'Merienda', meal_almuerzo:'Almuerzo', meal_cena:'Cena',
+    meal_desayuno:'Desayuno', meal_merienda:'Merienda', meal_almuerzo:'Almuerzo', meal_comida:'Comida', meal_cena:'Cena',
     ejtipo_correr:'Correr', ejtipo_bici:'Bici', ejtipo_nadar:'Nadar', ejtipo_eliptica:'Elíptica', ejtipo_andar:'Andar',
     ejtipo_senderismo:'Senderismo', ejtipo_golf:'Golf', ejtipo_biciEstatica:'Bici estática', ejtipo_yoga:'Yoga', ejtipo_pilates:'Pilates',
     ejtipo_pesas:'Pesas', ejtipo_remo:'Remo',
@@ -336,6 +336,9 @@ const I18N = {
     welcome_continue_button:'Continuar',
     signin_reminder_text:'Inicia sesión para no perder tus datos si cambias de teléfono.',
     signin_reminder_dismiss:'Ahora no',
+    missed_day_text:'Parece que ayer no registraste nada. Puedes completarlo cuando quieras.',
+    missed_day_dismiss:'No, gracias', missed_day_button:'Completar ayer',
+    ejercicio_steps_connect_note:'Conecta tus pasos para verlos aquí automáticamente, sin tener que registrarlos a mano.',
     hc_settings_title:'Health Connect',
     hc_web_only_note:'Health Connect sincroniza automáticamente tus pasos, ritmo cardíaco y presión arterial desde otras apps — disponible por ahora solo en la app de Android.',
     hc_not_installed_note:'No se encontró la app Health Connect en este dispositivo.',
@@ -599,7 +602,7 @@ const I18N = {
     nav_composicion:'Body Comp', nav_calendario:'Calendar', nav_progreso:'Progress',
     nav_nutricion:'Nutrition', nav_pronostico:'Forecast',
     nav_ajustes:'Settings', nav_exportar:'Export', nav_importar:'Import',
-    meal_desayuno:'Breakfast', meal_merienda:'Snack', meal_almuerzo:'Lunch', meal_cena:'Dinner',
+    meal_desayuno:'Breakfast', meal_merienda:'Afternoon snack', meal_almuerzo:'Mid-morning snack', meal_comida:'Lunch', meal_cena:'Dinner',
     ejtipo_correr:'Running', ejtipo_bici:'Cycling', ejtipo_nadar:'Swimming', ejtipo_eliptica:'Elliptical', ejtipo_andar:'Walking',
     ejtipo_senderismo:'Hiking', ejtipo_golf:'Golf', ejtipo_biciEstatica:'Stationary Bike', ejtipo_yoga:'Yoga', ejtipo_pilates:'Pilates',
     ejtipo_pesas:'Weights', ejtipo_remo:'Rowing',
@@ -651,6 +654,9 @@ const I18N = {
     welcome_continue_button:'Continue',
     signin_reminder_text:'Sign in so you don\'t lose your data if you switch phones.',
     signin_reminder_dismiss:'Not now',
+    missed_day_text:"Looks like you didn't log anything yesterday. You can fill it in anytime.",
+    missed_day_dismiss:'No thanks', missed_day_button:'Fill in yesterday',
+    ejercicio_steps_connect_note:'Connect your steps to see them here automatically, without logging them by hand.',
     hc_settings_title:'Health Connect',
     hc_web_only_note:'Health Connect automatically syncs your steps, heart rate, and blood pressure from other apps — available for now only in the Android app.',
     hc_not_installed_note:"The Health Connect app wasn't found on this device.",
@@ -1015,10 +1021,16 @@ function jsq(s){ return esc(String(s ?? '').replace(/\\/g,'\\\\').replace(/'/g,"
 
 /* ================= data model ================= */
 const DEFAULT_GOALS = { calorieGoal:2000, waterGoal:4, exerciseGoal:30, waterUnitMl:1000 };
+// Order follows the day (desayuno → almuerzo → comida → merienda → cena), matching
+// how Spain-based users actually structure meals — added 'comida' (the midday main
+// meal, distinct from 'almuerzo' as a mid-morning snack) per direct tester feedback
+// that only 4 slots felt like a mismatch. 'almuerzo' keeps its existing id/meaning
+// so no stored meal.type on existing user data needs migrating.
 const MEAL_TYPES = [
   { id:'desayuno', label:'Desayuno', ic:'desayuno' },
-  { id:'merienda', label:'Merienda', ic:'merienda' },
   { id:'almuerzo', label:'Almuerzo', ic:'almuerzo' },
+  { id:'comida', label:'Comida', ic:'comida' },
+  { id:'merienda', label:'Merienda', ic:'merienda' },
   { id:'cena', label:'Cena', ic:'cena' },
 ];
 const EXERCISE_TYPES = [
@@ -2004,6 +2016,7 @@ const NAV_ICONS = {
   desayuno: '<rect x="5" y="9" width="11" height="9" rx="2"/><path d="M16 11a2.5 3.5 0 0 1 0 7"/><path d="M8 6c0-1 1-1 1-2M11 6c0-1 1-1 1-2"/>',
   merienda: '<circle cx="12" cy="13" r="7"/><path d="M12 6V4"/><path d="M12 5q2-2 3 0q-2 1.5-3 0"/>',
   almuerzo: '<circle cx="12" cy="12" r="4"/><path d="M12 3.5v3M12 17.5v3M20.5 12h-3M6.5 12h-3M17.5 6.5l-2.1 2.1M8.6 15.3l-2.1 2.1M17.5 17.5l-2.1-2.1M8.6 8.7L6.5 6.6"/>',
+  comida: '<circle cx="12" cy="13" r="7.5"/><path d="M12 8v2.2M12 15.8V18M8.5 9.5l1.5 1.5M14 13l1.5 1.5M15.5 9.5L14 11M10 15l-1.5 1.5" opacity="0"/><path d="M8 7v5.5a2 2 0 0 0 4 0V7M8 7v3M10 7v10"/><path d="M15.5 7c-1.2 0-2 1.3-2 3.2 0 1.5.6 2.6 1.5 3v6.3"/>',
   cena: '<path d="M15 4a8 8 0 1 0 5 13.5A9 9 0 0 1 15 4z"/>',
   calorias: '<path d="M12 21c-3.5 0-6-2.5-6-5.8C6 11 9 8 9.5 5c.3 2 1.5 3 1.5 3S9 4 12 2c0 3 2.5 4 4 6.5 1.3 2.2 2 4.3 2 6.7 0 3.3-2.5 5.8-6 5.8z"/>',
   peso: '<rect x="4" y="8" width="16" height="12" rx="2.5"/><path d="M9 8a3 3 0 0 1 6 0"/><circle class="fill" cx="12" cy="14" r="1.4"/>',
@@ -2091,6 +2104,14 @@ function renderApp(){
       <div style="display:flex;gap:6px;flex-shrink:0;">
         <button class="btn btn-ghost" style="padding:6px 10px;font-size:11px;" onclick="dismissSigninReminder()">${tr('signin_reminder_dismiss')}</button>
         <button class="btn btn-primary" style="padding:6px 10px;font-size:11px;" onclick="firebaseSignIn()">${tr('sync_iniciar_sesion')}</button>
+      </div>
+    </div>` : ''}
+    ${shouldShowMissedDayReminder() ? `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:14px;">
+      <div style="font-size:12px;color:var(--text);">${tr('missed_day_text')}</div>
+      <div style="display:flex;gap:6px;flex-shrink:0;">
+        <button class="btn btn-ghost" style="padding:6px 10px;font-size:11px;" onclick="dismissMissedDayReminder()">${tr('missed_day_dismiss')}</button>
+        <button class="btn btn-primary" style="padding:6px 10px;font-size:11px;" onclick="goToMissedDay()">${tr('missed_day_button')}</button>
       </div>
     </div>` : ''}
     ${state.toast ? `<div class="toast ${state.toast.isError?'':'ok'}">${esc(state.toast.msg)}</div>` : ''}
@@ -2542,11 +2563,33 @@ function renderPersonalMealBuilder(){
   </div>`;
 }
 
+// Real tester feedback: manual duration/kcal logging doesn't capture everyday walking
+// for people without a structured workout, and they already have step counts on their
+// phone or watch. Steps sync automatically via Health Connect/Apple Health (see
+// HC_READ_TYPES) but previously only surfaced buried in Progreso's trend charts --
+// this puts today's count front and center on the tab it's actually about.
+function stepsCardHTML(){
+  if(!(window.Capacitor && window.Capacitor.isNativePlatform())) return '';
+  const meta = getHCMeta();
+  if(!meta.connected){
+    return `<div class="card">
+      <div class="label">${tr('hc_scope_steps')}</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">${tr('ejercicio_steps_connect_note')}</div>
+      <button class="btn btn-ghost" style="width:100%;" onclick="connectHealthConnect()">${tr('hc_connect_button')}</button>
+    </div>`;
+  }
+  const steps = getHealthConnectDay(todayISO()).steps;
+  return `<div class="card">
+    <div class="label">${tr('hc_scope_steps')}</div>
+    <div class="display" style="font-size:28px;font-weight:700;">${steps!=null ? steps.toLocaleString(state.lang==='en'?'en-US':'es-ES') : '—'}</div>
+  </div>`;
+}
 function renderEjercicio(){
   const d = state.day;
   const totalMin = d.exercises.reduce((s,e)=>s+(Number(e.minutes)||0),0);
   return `
   <div class="stack">
+    ${stepsCardHTML()}
     <div class="card">
       <div class="label">${tr('ejercicio_agregar')}</div>
       <div class="grid-icons" style="margin-bottom:14px;">
@@ -4277,6 +4320,35 @@ function shouldShowSigninReminder(){
 function dismissSigninReminder(){
   LS.set('vl:signin-reminder-last-shown', Date.now());
   render();
+}
+// Real tester feedback: forgetting to log a day and not realizing it can still be
+// backfilled (Calendario already supports editing any past day, see MEAL_TYPES'
+// neighbors addMealForDay/setSleepForDay/etc.) led them to abandon the app entirely.
+// The feature already existed — the problem was purely discoverability. This banner
+// surfaces it right when it matters: yesterday has nothing logged at all.
+function dayIsEmpty(day){
+  return day.meals.length===0 && day.exercises.length===0 && day.weight==null
+    && day.sleepHours==null && day.water===0 && day.bp.length===0
+    && day.medsTaken.length===0 && day.bodyComp.length===0;
+}
+function shouldShowMissedDayReminder(){
+  if(window._modal==='welcome') return false;
+  // Never logged anything at all yet (fresh install) -- yesterday being "empty" is
+  // expected, not a missed day, so there's nothing to nudge about.
+  if(!localStorage.getItem('vl:_lastChangeAt')) return false;
+  const yestIso = isoDaysAgo(1);
+  if(!dayIsEmpty(getDay(yestIso))) return false;
+  return LS.get('vl:missed-day-dismissed') !== yestIso;
+}
+function dismissMissedDayReminder(){
+  LS.set('vl:missed-day-dismissed', isoDaysAgo(1));
+  render();
+}
+function goToMissedDay(){
+  const yestIso = isoDaysAgo(1);
+  LS.set('vl:missed-day-dismissed', yestIso);
+  state.selectedDate = yestIso;
+  setTab('calendario');
 }
 function saveSettings(){
   const calorieGoal = Number(document.getElementById('g-cal').value)||DEFAULT_GOALS.calorieGoal;
