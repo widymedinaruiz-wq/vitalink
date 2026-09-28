@@ -133,6 +133,15 @@
 
   #app{display:flex;min-height:100vh;max-width:1180px;margin:0 auto;}
   nav.side{width:210px;flex-shrink:0;padding:24px 12px;border-right:1px solid var(--line);position:sticky;top:0;height:100vh;display:flex;flex-direction:column;}
+  /* On desktop nav.side itself is the (non-scrolling) flex column, so this inner
+     wrapper must disappear from the box model entirely rather than nest another
+     flex context inside it -- display:contents makes its children (brand/tabs/
+     foot) direct flex items of nav.side exactly as before this wrapper existed.
+     The mobile media query below re-points it to be the actual horizontal
+     scroll container instead, with nav.side becoming the outer column that
+     stacks it above .nav-dots. */
+  nav.side .nav-scroll{display:contents;}
+  nav.side .nav-dots{display:none;}
   nav.side .brand{display:flex;align-items:center;justify-content:space-between;gap:10px;font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;padding:0 12px 22px;}
   nav.side .brand .owner{font-family:'Inter',sans-serif;font-size:12px;font-weight:500;color:var(--muted);margin-top:2px;}
   nav.side .brand-logo{width:36px;height:36px;flex-shrink:0;}
@@ -209,22 +218,19 @@
     /* Edge-to-edge Android (see syncNativeStatusBar) draws this bar behind the
        status bar / camera cutout — pad the top so tabs don't render under it
        (e.g. Pixel's centered punch-hole camera, reported by testers). */
-    nav.side{width:100%;height:auto;position:sticky;top:0;flex-direction:row;overflow-x:auto;padding:calc(12px + env(safe-area-inset-top)) 12px 12px;border-right:none;border-bottom:1px solid var(--line);z-index:20;background:var(--bg);scroll-snap-type:x mandatory;scroll-padding-right:40px;}
-    /* The OS/WebView scrollbar this row relies on for a "more to scroll" signal
-       doesn't reliably render on touch — a custom-styled scrollbar in particular
-       is usually suppressed outside an active drag. This chevron is a signal
-       that doesn't depend on the scrollbar rendering at all. */
-    nav.side::after{
-      content:'›'; position:absolute; top:0; right:0; bottom:0; width:32px;
-      background:linear-gradient(to right, transparent, var(--bg) 65%);
-      display:flex; align-items:center; justify-content:flex-end; padding-right:4px;
-      color:var(--muted); font-size:18px; font-weight:700; pointer-events:none;
-    }
-    /* Hidden once there's nothing left to scroll to (see syncNavScrollFade) --
-       otherwise this hint permanently covers whatever icon ends up at the
-       right edge once the user has actually scrolled all the way, since it
-       has no way to know scroll position from CSS alone. */
-    nav.side.at-scroll-end::after{ display:none; }
+    nav.side{width:100%;height:auto;position:sticky;top:0;flex-direction:column;overflow-x:visible;padding:calc(12px + env(safe-area-inset-top)) 0 8px;border-right:none;border-bottom:1px solid var(--line);z-index:20;background:var(--bg);}
+    /* A right-edge fade/chevron overlay used to hint "more to scroll" here, but
+       it has no reserved space of its own -- a real tester screenshot showed it
+       cutting straight through the currently-active tab's highlighted pill.
+       Centering the active tab (see centerActiveNavTab) fixed that specific
+       case, but the overlay could still fade out whatever *inactive* tab
+       happened to land at the edge, which still read as broken. A dot strip
+       below the row (populated by updateNavDots) replaces it entirely --
+       doesn't sit on top of anything, so there's nothing left to cut. */
+    nav.side .nav-scroll{display:flex;flex-direction:row;overflow-x:auto;padding:0 12px;scroll-snap-type:x mandatory;}
+    nav.side .nav-dots{display:flex;justify-content:center;align-items:center;gap:5px;padding-top:8px;}
+    nav.side .nav-dots .dot{width:14px;height:4px;border-radius:2px;background:var(--line);flex-shrink:0;}
+    nav.side .nav-dots .dot.active{background:var(--accent);}
     nav.side .brand{display:none;}
     nav.side .navbtn{flex-direction:column;font-size:10px;gap:4px;white-space:nowrap;scroll-snap-align:start;}
     /* Settings/Export/Import are actions, not tabs — riding along in the same
@@ -2118,6 +2124,7 @@ function renderApp(){
 
   return `
   <nav class="side" data-tab-count="${tabs.length}">
+   <div class="nav-scroll">
     <div class="brand">
       <div>VitaLinks<div class="owner">by WM Designs</div></div>
       <svg class="brand-logo" viewBox="0 0 120 120">
@@ -2139,6 +2146,8 @@ function renderApp(){
       <div class="navbtn" onclick="triggerImportBackup()">${navIcon('importar')}<span>${tr('nav_importar')}</span></div>
       <input type="file" id="import-file-input" accept="application/json" style="display:none;" onchange="handleImportFile(this)">
     </div>
+   </div>
+   <div class="nav-dots"></div>
   </nav>
   <main>
     <header>
@@ -4442,40 +4451,65 @@ function saveSettings(){
 
 /* ================= actions ================= */
 function render(){
-  const prevNav = document.querySelector('nav.side');
-  const navScrollLeft = prevNav ? prevNav.scrollLeft : 0;
-  const prevTabCount = prevNav ? prevNav.dataset.tabCount : null;
+  const prevOuterNav = document.querySelector('nav.side');
+  const prevScroll = document.querySelector('nav.side .nav-scroll');
+  const navScrollLeft = prevScroll ? prevScroll.scrollLeft : 0;
+  const prevTabCount = prevOuterNav ? prevOuterNav.dataset.tabCount : null;
   document.getElementById('app').innerHTML = renderApp();
-  const newNav = document.querySelector('nav.side');
+  const newOuterNav = document.querySelector('nav.side');
+  const newScroll = document.querySelector('nav.side .nav-scroll');
   // Only carry the scroll offset over when the tab row itself didn't just change
   // shape (e.g. a module was hidden/shown in Settings) -- a real tester screenshot
-  // showed the right-edge "more to scroll" fade/chevron landing mid-label because
-  // the old scrollLeft no longer lined up with any tab boundary once the row got
+  // showed the old "more to scroll" overlay landing mid-label because the old
+  // scrollLeft no longer lined up with any tab boundary once the row got
   // shorter. Resetting to the start in that case is simpler and always correct.
-  if(newNav && prevTabCount !== null && newNav.dataset.tabCount === prevTabCount){
-    newNav.scrollLeft = navScrollLeft;
+  if(newScroll && prevTabCount !== null && newOuterNav.dataset.tabCount === prevTabCount){
+    newScroll.scrollLeft = navScrollLeft;
   }
-  restoreWheelScroll(); runHoyEntranceAnimation(); syncNavScrollFade();
+  restoreWheelScroll(); runHoyEntranceAnimation(); updateNavDots();
 }
-// The mobile top nav's "more to scroll" chevron (nav.side::after) is a plain
-// CSS overlay with no way to know scroll position on its own -- without this,
-// it stays visible even once the user has scrolled all the way to the end,
-// permanently covering whatever tab/icon lands at the right edge (real tester
-// report). render() replaces nav.side's DOM every call, so the listener is
-// re-attached fresh each time rather than surviving on a stale element.
-function syncNavScrollFade(){
-  const nav = document.querySelector('nav.side');
-  if(!nav) return;
+// Real tester screenshots: a right-edge fade+chevron "more to scroll" overlay
+// used to sit here, but it had no reserved space of its own -- it ended up
+// cutting through whatever tab (sometimes the active, highlighted one) landed
+// at the edge. A dot strip below the row can't have that problem since it
+// never sits on top of anything. One dot per "page" (one row-width of tabs);
+// the filled dot tracks roughly how far scrolled in. render() replaces
+// nav.side's DOM every call, so the scroll listener is re-attached fresh each
+// time rather than surviving on a stale element.
+function updateNavDots(){
+  const scroller = document.querySelector('nav.side .nav-scroll');
+  const dots = document.querySelector('nav.side .nav-dots');
+  if(!scroller || !dots) return;
   const update = ()=>{
-    const atEnd = nav.scrollLeft + nav.clientWidth >= nav.scrollWidth - 1;
-    nav.classList.toggle('at-scroll-end', atEnd);
+    const maxScroll = scroller.scrollWidth - scroller.clientWidth;
+    if(maxScroll<=1){ dots.innerHTML=''; return; }
+    const pageCount = Math.max(2, Math.round(scroller.scrollWidth/scroller.clientWidth));
+    const currentPage = Math.round((scroller.scrollLeft/maxScroll)*(pageCount-1));
+    dots.innerHTML = Array.from({length:pageCount}).map((_,i)=>
+      `<span class="dot${i===currentPage?' active':''}"></span>`).join('');
   };
   update();
-  nav.addEventListener('scroll', update, { passive:true });
+  scroller.addEventListener('scroll', update, { passive:true });
 }
 function setTab(t){
   if(t==='hoy' && state.tab!=='hoy') window._hoyAnimate = true;
   state.tab=t; window._pmView=false; window._foodsView=false; render();
+  centerActiveNavTab();
+}
+// Real tester screenshots: the old right-edge fade could land the just-tapped
+// tab's own highlighted pill right under it, visibly cutting the active tab in
+// half. Center it instead, so the active tab is never near either edge to
+// begin with -- also keeps the dot strip's "current page" reading stable
+// right after a tap. Guarded to the mobile/native row layout only (checked via
+// actual horizontal overflow, not viewport width) -- .nav-scroll only scrolls
+// there, and block:'nearest' with no scrollable ancestor could otherwise fall
+// back to scrolling the whole page.
+function centerActiveNavTab(){
+  const scroller = document.querySelector('nav.side .nav-scroll');
+  if(!scroller || scroller.scrollWidth <= scroller.clientWidth) return;
+  const active = scroller.querySelector('.navbtn.active');
+  if(!active) return;
+  active.scrollIntoView({ inline:'center', block:'nearest' });
 }
 function animateCountUp(el, target, duration){
   if(!el) return;
