@@ -498,6 +498,9 @@ const I18N = {
     chart_no_data:'No hay suficientes datos aún',
     set_metas_diarias:'Metas diarias', set_ejercicio_min:'Ejercicio (min)',
     set_apariencia:'Apariencia', set_tema_sistema:'Sistema', set_tema_claro:'Claro', set_tema_oscuro:'Oscuro',
+    set_modules_title:'Módulos visibles',
+    set_modules_sub:'Oculta las pestañas que no uses. Tus datos no se borran — puedes volver a activarlas cuando quieras.',
+    welcome_modules_note:'Puedes ocultar las pestañas que no uses desde Ajustes.',
     set_apikey_label:'API key de Anthropic (opcional, para estimar calorías con IA)',
     set_apikey_note:'Se guarda solo en este dispositivo y nunca se comparte con nadie.',
     err_storage_save:'No se pudo guardar en este dispositivo (¿modo privado / almacenamiento lleno?)',
@@ -820,6 +823,9 @@ const I18N = {
     chart_no_data:'Not enough data yet',
     set_metas_diarias:'Daily goals', set_ejercicio_min:'Exercise (min)',
     set_apariencia:'Appearance', set_tema_sistema:'System', set_tema_claro:'Light', set_tema_oscuro:'Dark',
+    set_modules_title:'Visible modules',
+    set_modules_sub:"Hide the tabs you don't use. Your data isn't deleted — turn them back on anytime.",
+    welcome_modules_note:"You can hide the tabs you don't use from Settings.",
     set_apikey_label:'Anthropic API key (optional, for AI calorie estimates)',
     set_apikey_note:"Stored only on this device, and never shared with anyone.",
     err_storage_save:"Couldn't save to this device (private mode / storage full?)",
@@ -1206,6 +1212,31 @@ function setGoals(g){ return LS.set('vl:goals', g); }
 // correct across restarts instead of relying on the user reopening Settings.
 function getDailyReminderSettings(){ return { on:false, time:'20:00', ...(LS.get('vl:daily-reminder') || {}) }; }
 function setDailyReminderSettings(s){ return LS.set('vl:daily-reminder', s); }
+// Real tester feedback: too many things to track at once. Hoy/Comidas/Ejercicio/
+// Calendario stay always-on (the core logging loop, and Calendario specifically is
+// how the missed-day backfill above actually works) -- these five are the only ones
+// a user can turn off. Hiding one doesn't just remove its nav tab: its data is also
+// pulled off Hoy's stat tiles, Progreso's charts, and the PDF report (see stepsCardHTML
+// neighbors, renderProgreso, generateHealthReportPDF) so it genuinely feels gone
+// rather than half-hidden. Nothing is deleted -- turning a module back on brings all
+// its old data back untouched. Rides the same 'vl:' sync sweep as goals, so the
+// choice follows the account across devices.
+const HIDEABLE_MODULES = ['salud','composicion','progreso','nutricion','pronostico'];
+function getHiddenModules(){
+  const h = LS.get('vl:hidden-modules') || [];
+  return Array.isArray(h) ? h.filter(id=>HIDEABLE_MODULES.includes(id)) : [];
+}
+function setHiddenModules(arr){ return LS.set('vl:hidden-modules', arr); }
+function isModuleHidden(id){ return state.hiddenModules.includes(id); }
+function toggleModuleVisibility(id){
+  if(!HIDEABLE_MODULES.includes(id)) return;
+  const wasHidden = state.hiddenModules.includes(id);
+  state.hiddenModules = wasHidden ? state.hiddenModules.filter(m=>m!==id) : [...state.hiddenModules, id];
+  setHiddenModules(state.hiddenModules);
+  // Bounce off a tab the user just hid out from under themselves.
+  if(!wasHidden && state.tab===id) state.tab = 'hoy';
+  render();
+}
 function getMeds(){ return LS.get('vl:meds') || []; }
 function setMeds(m){ return LS.set('vl:meds', m); }
 // Personal meals are user-composed groups of components (e.g. "my chicken salad").
@@ -1473,6 +1504,7 @@ const state = {
   toast: null,
   alertsOn: false,
   dailyReminder: getDailyReminderSettings(),
+  hiddenModules: getHiddenModules(),
   progressRange: getProgressRange(),
   nutritionRange: 30,
   bodyCompFormOpen: false,
@@ -2071,6 +2103,7 @@ function renderApp(){
   // Composición used to sit between Salud and Calendario, splitting the trend
   // group across two non-adjacent zones for no reason a user could infer.
   const tabs = ['hoy','comidas','ejercicio','salud','calendario','composicion','progreso','nutricion','pronostico']
+    .filter(id => !isModuleHidden(id))
     .map(id=>({ id, label: tr('nav_'+id) }));
   const navBtns = tabs.map(t=>`
     <div class="navbtn ${state.tab===t.id?'active':''}" onclick="setTab('${t.id}')">
@@ -2212,10 +2245,12 @@ function renderHoy(){
     </div>
     ${weeklyGoalsCard()}
     <div class="grid4 full-span">
-      ${statTile(navIcon('calorias',14),tr('stat_quemadas'), exCal+' kcal')}
-      ${statTile(navIcon('ejercicio',14),tr('stat_ejercicio'), exMin+' min')}
-      ${statTile(navIcon('peso',14),tr('stat_peso'), d.weight? d.weight+' kg':'—')}
-      ${statTile(navIcon('salud',14),tr('stat_presion'), lastBP? lastBP.systolic+'/'+lastBP.diastolic+(lastBP.pulse?' · '+lastBP.pulse+'bpm':'')+'<div style="margin-top:4px;">'+bpBadge(lastBP.systolic,lastBP.diastolic)+'</div>' : '—')}
+      ${[
+        statTile(navIcon('calorias',14),tr('stat_quemadas'), exCal+' kcal'),
+        statTile(navIcon('ejercicio',14),tr('stat_ejercicio'), exMin+' min'),
+        statTile(navIcon('peso',14),tr('stat_peso'), d.weight? d.weight+' kg':'—'),
+        !isModuleHidden('salud') ? statTile(navIcon('salud',14),tr('stat_presion'), lastBP? lastBP.systolic+'/'+lastBP.diastolic+(lastBP.pulse?' · '+lastBP.pulse+'bpm':'')+'<div style="margin-top:4px;">'+bpBadge(lastBP.systolic,lastBP.diastolic)+'</div>' : '—') : '',
+      ].filter(Boolean).join('')}
     </div>
     ${macroCard(d.meals)}
     ${microCard(d.meals)}
@@ -3323,6 +3358,7 @@ function renderProgreso(){
         <div class="chart-box">${lineChartSVG(weightPts,{color:'var(--chart-weight)', gridLines:true, gridSteps:isExp('weight')?5:4, unit:'kg', maValues:weightMA, h:isExp('weight')?320:150})}</div>
         ${weightPts.filter(p=>p.v!=null).length>=2 ? `<button class="btn btn-ghost" style="width:100%;margin-top:10px;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="event.stopPropagation();shareWeightProgress()">${navIcon('exportar',14)}${tr('share_boton')}</button>` : ''}
       </div>
+      ${isModuleHidden('salud') ? '' : `
       <div class="card expand-card ${pexp('bp')}" onclick="toggleChartExpand('progreso','bp')">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
           <div class="label" style="margin:0;">${tr('salud_presion')}</div>
@@ -3344,7 +3380,7 @@ function renderProgreso(){
           ${pulseSummaryHTML()}
         </div>
         <div class="chart-box">${lineChartSVG(pulsePts,{color:'var(--danger)', gridLines:true, gridSteps:isExp('pulse')?5:4, unit:'bpm', maValues:pulseMA, h:isExp('pulse')?320:150})}</div>
-      </div>
+      </div>`}
       <div class="card expand-card ${pexp('steps')}" onclick="toggleChartExpand('progreso','steps')">
         <div class="label">${tr('hc_steps_label')}</div>
         <div class="chart-box">${barChartSVG(stepsPts,{color:'var(--chart-steps)', gridLines:true, gridSteps:isExp('steps')?5:4, unit:'pasos', maValues:stepsMA, h:isExp('steps')?320:150})}</div>
@@ -4013,6 +4049,14 @@ function modalHTML(){
           <button class="btn ${state.theme==='light'?'btn-primary':'btn-ghost'}" style="flex:1;padding:8px;font-size:12px;" onclick="setTheme('light')">${tr('set_tema_claro')}</button>
           <button class="btn ${state.theme==='dark'?'btn-primary':'btn-ghost'}" style="flex:1;padding:8px;font-size:12px;" onclick="setTheme('dark')">${tr('set_tema_oscuro')}</button>
         </div>
+        <div class="label">${tr('set_modules_title')}</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">${tr('set_modules_sub')}</div>
+        <div style="margin-bottom:16px;">
+          ${HIDEABLE_MODULES.map(id=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;">
+            <span style="font-size:13px;">${tr('nav_'+id)}</span>
+            <div class="switch ${!isModuleHidden(id)?'on':''}" onclick="toggleModuleVisibility('${id}')"><div class="knob"></div></div>
+          </div>`).join('')}
+        </div>
         <div class="label">${tr('set_apikey_label')}</div>
         <input id="g-apikey" type="password" value="${getApiKey()}" placeholder="sk-ant-..." style="width:100%;margin-bottom:6px;">
         <div style="font-size:11px;color:var(--muted);margin-bottom:16px;">${tr('set_apikey_note')}</div>
@@ -4197,6 +4241,7 @@ function modalHTML(){
         ${window.Capacitor && window.Capacitor.isNativePlatform() ? `
         <div class="label">${tr('hc_settings_title')}</div>
         <div style="margin-bottom:16px;">${healthConnectSectionHTML()}</div>` : ''}
+        <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">${tr('welcome_modules_note')}</div>
         <button class="btn btn-ghost" style="width:100%;" onclick="closeWelcomeModal()">${(window._syncState && window._syncState.user) ? tr('welcome_continue_button') : tr('welcome_skip_button')}</button>
       </div>
     </div>`;
@@ -6105,18 +6150,21 @@ function buildHealthReportDoc(days){
   pdfLineChart(doc, MX, y, CW, 110, [{ color:TEAL, values:data.weight.daily }], {});
   y += 148;
 
-  const bcRows = BODYCOMP_FIELDS.filter(f=>data.bodyComp.latest[f.key]!=null).map(f=>[tr('bc_'+f.key), `${data.bodyComp.latest[f.key]} ${bcUnit(f)}`.trim()]);
-  if(bcRows.length){
-    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...DARK);
-    doc.text(tr('report_ultima_medicion'), MX, y); y += 8;
-    doc.autoTable(Object.assign({}, tableTheme, { startY:y, head:[[tr('report_col_metrica'), tr('report_col_valor')]], body:bcRows, columnStyles:{0:{cellWidth:CW*0.65}} }));
-    y = doc.lastAutoTable.finalY + 24;
-  } else {
-    doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(...MUTED);
-    doc.text(tr('report_sin_mediciones'), MX, y); y += 20;
+  if(!isModuleHidden('composicion')){
+    const bcRows = BODYCOMP_FIELDS.filter(f=>data.bodyComp.latest[f.key]!=null).map(f=>[tr('bc_'+f.key), `${data.bodyComp.latest[f.key]} ${bcUnit(f)}`.trim()]);
+    if(bcRows.length){
+      doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...DARK);
+      doc.text(tr('report_ultima_medicion'), MX, y); y += 8;
+      doc.autoTable(Object.assign({}, tableTheme, { startY:y, head:[[tr('report_col_metrica'), tr('report_col_valor')]], body:bcRows, columnStyles:{0:{cellWidth:CW*0.65}} }));
+      y = doc.lastAutoTable.finalY + 24;
+    } else {
+      doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(...MUTED);
+      doc.text(tr('report_sin_mediciones'), MX, y); y += 20;
+    }
   }
 
-  // ---- Blood pressure ----
+  // ---- Blood pressure ---- (module can be hidden in Settings; the whole page is skipped then)
+  if(!isModuleHidden('salud')){
   doc.addPage(); y = 56;
   pdfSectionTitle(doc, tr('report_presion_arterial'), MX, y, CW); y += 26;
   if(data.bp.readings.length){
@@ -6142,6 +6190,7 @@ function buildHealthReportDoc(days){
   } else {
     doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(...MUTED);
     doc.text(tr('report_sin_lecturas_pa'), MX, y);
+  }
   }
 
   // ---- Nutrition ----
@@ -6180,7 +6229,8 @@ function buildHealthReportDoc(days){
   doc.text(tr('hoy_sueno'), MX, y); y += 8;
   pdfLineChart(doc, MX, y, CW, 100, [{ color:YELLOW, values:data.sleep.daily }], {});
 
-  // ---- Medications ----
+  // ---- Medications ---- (bundled under the Salud module toggle, same as blood pressure)
+  if(!isModuleHidden('salud')){
   doc.addPage(); y = 56;
   pdfSectionTitle(doc, tr('report_medicamentos'), MX, y, CW); y += 26;
   if(data.meds.list.length){
@@ -6192,24 +6242,29 @@ function buildHealthReportDoc(days){
     doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(...MUTED);
     doc.text(tr('report_sin_medicamentos'), MX, y);
   }
+  }
 
   // ---- Daily log appendix ----
   doc.addPage(); y = 56;
   pdfSectionTitle(doc, tr('report_registro_diario'), MX, y, CW); y += 26;
+  const showPA = !isModuleHidden('salud');
   const dailyRows = data.rows.map(r=>{
     const lastBP = r.bp[r.bp.length-1];
-    return [
+    const row = [
       longDateReport(r.iso),
       r.weight!=null?r.weight:'—',
       r.calEaten||'—',
       r.exMin||'—',
-      lastBP ? `${lastBP.systolic}/${lastBP.diastolic}` : '—',
-      r.sleepHours!=null?r.sleepHours:'—',
-      r.water||'—',
     ];
+    if(showPA) row.push(lastBP ? `${lastBP.systolic}/${lastBP.diastolic}` : '—');
+    row.push(r.sleepHours!=null?r.sleepHours:'—', r.water||'—');
+    return row;
   });
+  const dailyHead = [tr('report_col_fecha'), tr('report_col_peso'), tr('report_col_calorias'), tr('report_col_ejercicio')];
+  if(showPA) dailyHead.push(tr('report_col_pa'));
+  dailyHead.push(tr('report_col_sueno'), tr('report_col_agua'));
   doc.autoTable(Object.assign({}, tableTheme, { startY:y,
-    head:[[tr('report_col_fecha'), tr('report_col_peso'), tr('report_col_calorias'), tr('report_col_ejercicio'), tr('report_col_pa'), tr('report_col_sueno'), tr('report_col_agua')]],
+    head:[dailyHead],
     body:dailyRows, styles:Object.assign({}, tableTheme.styles, { fontSize:7.5 }) }));
 
   // ---- Footer on every page ----
