@@ -538,6 +538,10 @@ const I18N = {
     err_goals_rango:'Revisa que tus metas estén en un rango razonable',
     err_bodycomp_rango:'{field}: fuera de un rango posible ({min}–{max})',
     set_sync_title:'Sincronización entre dispositivos', set_cancelar:'Cancelar', set_ajustes_guardados:'Ajustes guardados',
+    daily_reminder_title:'Recordatorio diario',
+    daily_reminder_sub:'Un aviso a la hora que elijas si aún no has registrado tu día.',
+    daily_reminder_time_label:'Hora',
+    daily_reminder_notif_body:'¿Registraste tu día hoy? Solo toma un minuto.',
     invite_titulo:'Invita a un amigo', invite_boton:'Compartir invitación', invite_copiado:'Enlace copiado al portapapeles',
     invite_asunto:'Invitación a VitaLinks',
     feedback_title:'Enviar comentarios', feedback_explainer:'¿Algo no funciona bien o tienes una idea? Cuéntanoslo — incluimos automáticamente la versión de la app y la pantalla actual para ayudarnos a investigar.',
@@ -856,6 +860,10 @@ const I18N = {
     err_goals_rango:'Check that your goals are within a reasonable range',
     err_bodycomp_rango:'{field}: outside a possible range ({min}–{max})',
     set_sync_title:'Cross-device sync', set_cancelar:'Cancel', set_ajustes_guardados:'Settings saved',
+    daily_reminder_title:'Daily reminder',
+    daily_reminder_sub:"A nudge at the time you choose if you haven't logged your day yet.",
+    daily_reminder_time_label:'Time',
+    daily_reminder_notif_body:'Did you log your day yet? It only takes a minute.',
     invite_titulo:'Invite a friend', invite_boton:'Share invite', invite_copiado:'Link copied to clipboard',
     invite_asunto:'Invitation to VitaLinks',
     feedback_title:'Send feedback', feedback_explainer:"Something not working right, or have an idea? Let us know — we automatically include the app version and current screen to help us investigate.",
@@ -1190,6 +1198,14 @@ function getHCMeta(){
 function setHCMeta(m){ localStorage.setItem('hc:meta', JSON.stringify(m)); }
 function getGoals(){ return { ...DEFAULT_GOALS, ...(LS.get('vl:goals') || {}) }; }
 function setGoals(g){ return LS.set('vl:goals', g); }
+// Real tester feedback: forgetting to log a day (and not knowing it could still be
+// backfilled -- see the missed-day banner) led them to abandon the app. Unlike
+// state.alertsOn (medication alerts) which is never persisted and silently resets to
+// off on every app restart, this is saved properly and re-synced on boot (see
+// window.syncDailyReminder() near the module-script bottom) so the schedule stays
+// correct across restarts instead of relying on the user reopening Settings.
+function getDailyReminderSettings(){ return { on:false, time:'20:00', ...(LS.get('vl:daily-reminder') || {}) }; }
+function setDailyReminderSettings(s){ return LS.set('vl:daily-reminder', s); }
 function getMeds(){ return LS.get('vl:meds') || []; }
 function setMeds(m){ return LS.set('vl:meds', m); }
 // Personal meals are user-composed groups of components (e.g. "my chicken salad").
@@ -1456,6 +1472,7 @@ const state = {
   selectedDate: todayISO(),
   toast: null,
   alertsOn: false,
+  dailyReminder: getDailyReminderSettings(),
   progressRange: getProgressRange(),
   nutritionRange: 30,
   bodyCompFormOpen: false,
@@ -4005,6 +4022,16 @@ function modalHTML(){
         <div style="margin-bottom:16px;">${plusSectionHTML()}</div>
         <div class="label">${tr('hc_settings_title')}</div>
         <div style="margin-bottom:16px;">${healthConnectSectionHTML()}</div>
+        ${window.Capacitor && window.Capacitor.isNativePlatform() ? `
+        <div class="label">${tr('daily_reminder_title')}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <div style="font-size:11px;color:var(--muted);flex:1;padding-right:10px;">${tr('daily_reminder_sub')}</div>
+          <div class="switch ${state.dailyReminder.on?'on':''}" onclick="toggleDailyReminder()"><div class="knob"></div></div>
+        </div>
+        ${state.dailyReminder.on ? `<div style="margin-top:10px;margin-bottom:16px;">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('daily_reminder_time_label')}</div>
+          <input type="time" value="${esc(state.dailyReminder.time)}" style="width:100%;" onchange="setDailyReminderTime(this.value)">
+        </div>` : `<div style="margin-bottom:16px;"></div>`}` : ''}
         <div class="label">${tr('invite_titulo')}</div>
         <button class="btn btn-ghost" style="width:100%;margin-bottom:16px;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="shareInvite()">${navIcon('exportar',14)}${tr('invite_boton')}</button>
         <div class="label">${tr('feedback_title')}</div>
@@ -5283,6 +5310,56 @@ setInterval(()=>{
     });
   });
 }, 20000);
+
+// Real tester feedback: a soft, opt-in daily nudge to log the day. Native-only
+// (Android/iOS) -- the medication reminders' web fallback only fires while a browser
+// tab is physically open (20s poll above), which is too weak a simulation of "remind
+// me at 8pm" to be worth building for this. Reuses the exact same LocalNotifications
+// primitive as medication reminders, with one deliberate difference: this fires
+// unconditionally at the set time (a native OS-scheduled notification can't check
+// live app state at fire time), same accepted limitation as medication reminders,
+// but unlike state.alertsOn this setting is actually persisted and re-synced on boot
+// (see window.syncDailyReminder() call near the module-script bottom) instead of
+// silently resetting to off every relaunch.
+const DAILY_REMINDER_NOTIF_ID = 990001; // fixed id: only ever one instance of this reminder
+function toggleDailyReminder(){
+  state.dailyReminder.on = !state.dailyReminder.on;
+  setDailyReminderSettings(state.dailyReminder);
+  syncDailyReminder();
+  render();
+}
+function setDailyReminderTime(value){
+  if(!/^\d{2}:\d{2}$/.test(value)) return;
+  state.dailyReminder.time = value;
+  setDailyReminderSettings(state.dailyReminder);
+  syncDailyReminder();
+}
+async function syncDailyReminder(){
+  if(!(window.Capacitor && window.Capacitor.isNativePlatform())) return;
+  const LN = window.Capacitor.Plugins.LocalNotifications;
+  if(!LN) return;
+  try{ await LN.cancel({ notifications:[{ id: DAILY_REMINDER_NOTIF_ID }] }); }catch(e){}
+  if(!state.dailyReminder.on) return;
+  try{
+    let perm = await LN.checkPermissions();
+    if(perm.display!=='granted') perm = await LN.requestPermissions();
+    if(perm.display!=='granted'){
+      state.dailyReminder.on = false;
+      setDailyReminderSettings(state.dailyReminder);
+      render();
+      return;
+    }
+    const [hour,minute] = state.dailyReminder.time.split(':').map(Number);
+    if(Number.isNaN(hour) || Number.isNaN(minute)) return;
+    await LN.schedule({ notifications:[{
+      id: DAILY_REMINDER_NOTIF_ID,
+      title: 'VitaLinks',
+      body: tr('daily_reminder_notif_body'),
+      schedule: { on:{ hour, minute }, allowWhileIdle:true },
+    }] });
+  }catch(e){ console.error('daily reminder schedule error', e); }
+}
+window.syncDailyReminder = syncDailyReminder;
 
 /* ================= calendar nav ================= */
 function shiftMonth(dir){
@@ -6925,6 +7002,7 @@ if(localStorage.getItem('vl:_lastChangeAt') && !localStorage.getItem('vl:backup-
   });
 
   window.hcCheckAvailability();
+  window.syncDailyReminder();
 </script>
 </body>
 </html>
