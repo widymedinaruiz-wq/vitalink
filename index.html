@@ -227,7 +227,10 @@
        happened to land at the edge, which still read as broken. A dot strip
        below the row (populated by updateNavDots) replaces it entirely --
        doesn't sit on top of anything, so there's nothing left to cut. */
-    nav.side .nav-scroll{display:flex;flex-direction:row;overflow-x:auto;padding:0 12px;scroll-snap-type:x mandatory;}
+    /* The dot strip below is the "more to scroll" signal now -- a visible native
+       scrollbar on top of that is redundant, per direct user feedback. */
+    nav.side .nav-scroll{display:flex;flex-direction:row;overflow-x:auto;padding:0 12px;scroll-snap-type:x mandatory;scrollbar-width:none;}
+    nav.side .nav-scroll::-webkit-scrollbar{display:none;}
     nav.side .nav-dots{display:flex;justify-content:center;align-items:center;gap:5px;padding-top:8px;}
     nav.side .nav-dots .dot{width:14px;height:4px;border-radius:2px;background:var(--line);flex-shrink:0;}
     nav.side .nav-dots .dot.active{background:var(--accent);}
@@ -4480,13 +4483,25 @@ function updateNavDots(){
   const scroller = document.querySelector('nav.side .nav-scroll');
   const dots = document.querySelector('nav.side .nav-dots');
   if(!scroller || !dots) return;
+  // Fixed 3-dot design per direct user feedback: left/right dots mean "you're at
+  // that true edge," not a proportional page count -- the middle dot covers the
+  // entire in-between range, however many tabs that actually is.
   const update = ()=>{
     const maxScroll = scroller.scrollWidth - scroller.clientWidth;
     if(maxScroll<=1){ dots.innerHTML=''; return; }
-    const pageCount = Math.max(2, Math.round(scroller.scrollWidth/scroller.clientWidth));
-    const currentPage = Math.round((scroller.scrollLeft/maxScroll)*(pageCount-1));
-    dots.innerHTML = Array.from({length:pageCount}).map((_,i)=>
-      `<span class="dot${i===currentPage?' active':''}"></span>`).join('');
+    if(dots.children.length!==3){
+      dots.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+    }
+    // scroll-snap-type + the row's own edge padding mean scrollLeft can never
+    // actually reach exactly 0/maxScroll -- the real resting position at each
+    // edge sits ~12px short. A tight <=1 threshold missed it entirely (the true
+    // start read as "somewhere in the middle"), caught while testing on device.
+    const EDGE_TOLERANCE = 20;
+    const atStart = scroller.scrollLeft<=EDGE_TOLERANCE, atEnd = scroller.scrollLeft>=maxScroll-EDGE_TOLERANCE;
+    const [dStart,dMid,dEnd] = dots.children;
+    dStart.classList.toggle('active', atStart);
+    dEnd.classList.toggle('active', atEnd);
+    dMid.classList.toggle('active', !atStart && !atEnd);
   };
   update();
   scroller.addEventListener('scroll', update, { passive:true });
