@@ -6529,12 +6529,9 @@ if(localStorage.getItem('vl:_lastChangeAt') && !localStorage.getItem('vl:backup-
   window.callStoreAppleAuthCode = httpsCallable(functions, 'storeAppleAuthCode');
 
   // RevenueCat public SDK keys — safe to ship in client code, like Firebase's own apiKey
-  // above (a public identifier, not a secret). iOS key is a placeholder until the
-  // RevenueCat iOS app + App Store Connect subscription products exist; configuring with
-  // a placeholder just fails Purchases.configure(), which syncPurchasesIdentity already
-  // treats as non-fatal.
+  // above (a public identifier, not a secret).
   const REVENUECAT_ANDROID_API_KEY = 'goog_QMRwVufcfrIeKhnBTwuRrhkkvdX';
-  const REVENUECAT_IOS_API_KEY = 'appl_REPLACE_ME';
+  const REVENUECAT_IOS_API_KEY = 'appl_qXYlgNQoqamcNNVQLsvJiizJxqq';
   let purchasesConfigured = false;
   async function syncPurchasesIdentity(user){
     if(!(window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins.Purchases)) return;
