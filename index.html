@@ -7009,7 +7009,7 @@ if(localStorage.getItem('vl:_lastChangeAt') && !localStorage.getItem('vl:backup-
   // of the app's language. Unmapped codes fall back to a generic translated
   // message — never the raw e.message.
   function friendlyFirebaseError(e){
-    const key = ({
+    const mapped = ({
       'auth/popup-blocked': 'err_auth_popup_blocked',
       'auth/popup-closed-by-user': 'err_auth_popup_closed',
       'auth/cancelled-popup-request': 'err_auth_popup_closed',
@@ -7022,8 +7022,12 @@ if(localStorage.getItem('vl:_lastChangeAt') && !localStorage.getItem('vl:backup-
       'unavailable': 'err_auth_network',
       'deadline-exceeded': 'err_auth_network',
       'resource-exhausted': 'err_auth_too_many',
-    })[e && e.code] || 'err_sync_generic';
-    return window.tr(key);
+    })[e && e.code];
+    if(mapped) return window.tr(mapped);
+    // Unmapped error: append the raw code/message so it's diagnosable from a device
+    // screenshot alone, without needing Mac/Safari Web Inspector tethering.
+    const detail = (e && (e.code || e.message)) ? ` (${e.code || e.message})` : '';
+    return window.tr('err_sync_generic') + detail;
   }
   window.firebaseSignIn = async function(){
     try{
