@@ -326,16 +326,20 @@ const I18N = {
     plus_active_label:'VitaLinks Plus está activo',
     plus_renews_on:'Se renueva el {date}',
     plus_manage_subscription:'Gestionar suscripción',
-    plus_web_only_note:'VitaLinks Plus agrega estimación de calorías por foto y análisis más profundos — disponible por ahora solo en la app de Android.',
+    plus_web_only_note:'VitaLinks Plus agrega estimación de calorías por foto y análisis más profundos — disponible por ahora solo en la app móvil.',
     plus_upsell_note:'Estima calorías con IA sin necesidad de tu propia API key.',
     plus_upgrade_button:'Mejorar a Plus',
-    plus_ios_soon:'VitaLinks Plus llegará pronto a iOS.',
     plus_paywall_title:'VitaLinks Plus',
     plus_paywall_subtitle:'Estimación de calorías con IA incluida, sin necesidad de tu propia API key.',
     plus_feature_ai:'Hasta 15 estimaciones con IA al día, sin configurar nada',
     plus_feature_everything:'Todo lo que ya incluye VitaLinks gratis',
     plus_plan_yearly:'Anual', plus_plan_monthly:'Mensual',
     plus_purchase_success:'¡Bienvenido a VitaLinks Plus!',
+    plus_restore_purchases:'Restaurar compras',
+    plus_restore_success:'¡Compras restauradas!',
+    plus_restore_none:'No se encontraron compras para restaurar',
+    plus_terms_link:'Términos de uso',
+    plus_privacy_link:'Política de privacidad',
     welcome_title:'¡Bienvenido a VitaLinks!',
     welcome_subtitle:'Registra tu nutrición, ejercicio, presión arterial y más — todo en un solo lugar.',
     welcome_signin_title:'Guarda tu progreso',
@@ -651,16 +655,20 @@ const I18N = {
     plus_active_label:'VitaLinks Plus is active',
     plus_renews_on:'Renews on {date}',
     plus_manage_subscription:'Manage subscription',
-    plus_web_only_note:'VitaLinks Plus adds photo-based calorie estimation and deeper analytics — available for now only in the Android app.',
+    plus_web_only_note:'VitaLinks Plus adds photo-based calorie estimation and deeper analytics — available for now only in the mobile app.',
     plus_upsell_note:'Get AI calorie estimates without needing your own API key.',
     plus_upgrade_button:'Upgrade to Plus',
-    plus_ios_soon:'VitaLinks Plus is coming soon to iOS.',
     plus_paywall_title:'VitaLinks Plus',
     plus_paywall_subtitle:'AI calorie estimation included, no personal API key needed.',
     plus_feature_ai:'Up to 15 AI estimates a day, zero setup',
     plus_feature_everything:'Everything already included in VitaLinks free',
     plus_plan_yearly:'Yearly', plus_plan_monthly:'Monthly',
     plus_purchase_success:'Welcome to VitaLinks Plus!',
+    plus_restore_purchases:'Restore purchases',
+    plus_restore_success:'Purchases restored!',
+    plus_restore_none:'No purchases found to restore',
+    plus_terms_link:'Terms of Use',
+    plus_privacy_link:'Privacy Policy',
     welcome_title:'Welcome to VitaLinks!',
     welcome_subtitle:'Track your nutrition, exercise, blood pressure, and more — all in one place.',
     welcome_signin_title:'Save your progress',
@@ -3880,20 +3888,15 @@ function emptyState(key,text){
 function plusSectionHTML(){
   const p = window._planState || {plan:'free'};
   const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform());
-  // iOS has no in-app purchase wired up yet (purchases run through Google Play only), so
-  // it never offers an upgrade or links out to Google Play; an already-entitled account
-  // still shows as active.
   const isIOS = !!(window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform()==='ios');
+  const manageUrl = isIOS ? 'https://apps.apple.com/account/subscriptions' : 'https://play.google.com/store/account/subscriptions';
   if(p.plan === 'plus'){
     const until = p.planExpiresAt ? new Date(p.planExpiresAt).toLocaleDateString(state.lang==='en'?'en-US':'es-ES') : '';
     return `<div>
       <div style="font-size:12px;color:var(--accent3);font-weight:700;margin-bottom:4px;">✨ ${tr('plus_active_label')}</div>
-      ${until?`<div style="font-size:11px;color:var(--muted);margin-bottom:${isIOS?0:10}px;">${trf('plus_renews_on',{date:until})}</div>`:''}
-      ${isIOS?'':`<a href="https://play.google.com/store/account/subscriptions" target="_blank" class="btn btn-ghost" style="width:100%;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;">${tr('plus_manage_subscription')}</a>`}
+      ${until?`<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">${trf('plus_renews_on',{date:until})}</div>`:''}
+      <a href="${manageUrl}" target="_blank" class="btn btn-ghost" style="width:100%;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;">${tr('plus_manage_subscription')}</a>
     </div>`;
-  }
-  if(isIOS){
-    return `<div style="font-size:11px;color:var(--muted);">${tr('plus_ios_soon')}</div>`;
   }
   if(!isNative){
     return `<div style="font-size:11px;color:var(--muted);">${tr('plus_web_only_note')}</div>`;
@@ -4227,6 +4230,12 @@ function modalHTML(){
           <span>${tr('plus_plan_monthly')}</span><span>${esc(monthly.product.priceString)}</span>
         </button>`:''}
         ${!(monthly||annual)?`<div style="font-size:12px;color:var(--muted);margin-bottom:14px;">${tr('err_plus_offerings_failed')}</div>`:''}
+        <button class="btn btn-ghost" style="width:100%;margin-bottom:10px;" onclick="restorePlusPurchases()">${tr('plus_restore_purchases')}</button>
+        <div style="font-size:11px;color:var(--muted);text-align:center;margin-bottom:10px;">
+          <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank" style="color:var(--muted);">${tr('plus_terms_link')}</a>
+          &nbsp;·&nbsp;
+          <a href="https://vitalinks.eu/privacy.html" target="_blank" style="color:var(--muted);">${tr('plus_privacy_link')}</a>
+        </div>
         <button class="btn btn-ghost" style="width:100%;" onclick="closeModal()">${tr('set_cancelar')}</button>
       </div>
     </div>`;
@@ -4338,10 +4347,6 @@ async function confirmDeleteAccount(){
 }
 function openBodyCompInfo(key){ window._modal='bodycomp-info'; window._infoKey=key; render(); }
 async function openPlusPaywall(){
-  if(window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform()==='ios'){
-    toast(tr('plus_ios_soon'));
-    return;
-  }
   if(!(window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins.Purchases)){
     toast(tr('plus_web_only_note'), true);
     return;
@@ -4365,6 +4370,17 @@ async function purchasePlusPackage(which){
     toast(tr('plus_purchase_success'));
   }catch(e){
     if(e && e.userCancelled) return;
+    toast(tr('err_plus_purchase_failed'), true);
+  }
+}
+async function restorePlusPurchases(){
+  if(!(window.Capacitor && window.Capacitor.Plugins.Purchases)) return;
+  try{
+    const { customerInfo } = await window.Capacitor.Plugins.Purchases.restorePurchases();
+    const isPlus = !!(customerInfo.entitlements.active && customerInfo.entitlements.active['vitalinks_pro']);
+    toast(tr(isPlus ? 'plus_restore_success' : 'plus_restore_none'), !isPlus);
+    if(isPlus) closeModal();
+  }catch(e){
     toast(tr('err_plus_purchase_failed'), true);
   }
 }
@@ -6512,19 +6528,23 @@ if(localStorage.getItem('vl:_lastChangeAt') && !localStorage.getItem('vl:backup-
   window.callDeleteAccount = httpsCallable(functions, 'deleteAccount');
   window.callStoreAppleAuthCode = httpsCallable(functions, 'storeAppleAuthCode');
 
-  // RevenueCat public SDK key for the real "Vitalinks (Play Store)" app — safe to ship
-  // in client code, like Firebase's own apiKey above (a public identifier, not a secret).
+  // RevenueCat public SDK keys — safe to ship in client code, like Firebase's own apiKey
+  // above (a public identifier, not a secret). iOS key is a placeholder until the
+  // RevenueCat iOS app + App Store Connect subscription products exist; configuring with
+  // a placeholder just fails Purchases.configure(), which syncPurchasesIdentity already
+  // treats as non-fatal.
   const REVENUECAT_ANDROID_API_KEY = 'goog_QMRwVufcfrIeKhnBTwuRrhkkvdX';
+  const REVENUECAT_IOS_API_KEY = 'appl_REPLACE_ME';
   let purchasesConfigured = false;
   async function syncPurchasesIdentity(user){
     if(!(window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins.Purchases)) return;
-    // The only RevenueCat key here is the Android one; configuring iOS with it just errors.
-    if(window.Capacitor.getPlatform && window.Capacitor.getPlatform()==='ios') return;
+    const isIOS = window.Capacitor.getPlatform && window.Capacitor.getPlatform()==='ios';
+    const apiKey = isIOS ? REVENUECAT_IOS_API_KEY : REVENUECAT_ANDROID_API_KEY;
     const Purchases = window.Capacitor.Plugins.Purchases;
     try{
       if(user){
         if(!purchasesConfigured){
-          await Purchases.configure({ apiKey: REVENUECAT_ANDROID_API_KEY, appUserID: user.uid });
+          await Purchases.configure({ apiKey, appUserID: user.uid });
           purchasesConfigured = true;
         }else{
           await Purchases.logIn({ appUserID: user.uid });
