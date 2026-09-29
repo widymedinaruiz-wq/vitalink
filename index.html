@@ -6510,6 +6510,7 @@ if(localStorage.getItem('vl:_lastChangeAt') && !localStorage.getItem('vl:backup-
   window.callEstimateNutritionFromPhotoPlus = httpsCallable(functions, 'estimateNutritionFromPhotoPlus');
   window.callGenerateDailyInsightPlus = httpsCallable(functions, 'generateDailyInsightPlus');
   window.callDeleteAccount = httpsCallable(functions, 'deleteAccount');
+  window.callStoreAppleAuthCode = httpsCallable(functions, 'storeAppleAuthCode');
 
   // RevenueCat public SDK key for the real "Vitalinks (Play Store)" app — safe to ship
   // in client code, like Firebase's own apiKey above (a public identifier, not a secret).
@@ -7050,9 +7051,16 @@ if(localStorage.getItem('vl:_lastChangeAt') && !localStorage.getItem('vl:backup-
       const result = await window.Capacitor.Plugins.FirebaseAuthentication.signInWithApple();
       const idToken = result.credential && result.credential.idToken;
       const rawNonce = result.credential && result.credential.nonce;
+      const authorizationCode = result.credential && result.credential.authorizationCode;
       if(!idToken) throw new Error('No ID token returned from native Apple sign-in');
       const credential = new OAuthProvider('apple.com').credential({ idToken, rawNonce });
       await signInWithCredential(auth, credential);
+      // Best-effort: exchange the one-time authorization code for a refresh token we can
+      // later revoke on account deletion (Apple requires this for apps offering Sign in
+      // with Apple). Never block sign-in on this — it's a background compliance step.
+      if(authorizationCode){
+        window.callStoreAppleAuthCode({ code: authorizationCode }).catch(()=>{});
+      }
     }
     catch(e){
       if(e && (e.code === '1001' || /cancel/i.test(String(e.message||e.code||'')))) return;

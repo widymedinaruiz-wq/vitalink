@@ -7,6 +7,7 @@ const logger = require('firebase-functions/logger');
 const admin = require('firebase-admin');
 const { getFirestore, Timestamp, FieldValue } = require('firebase-admin/firestore');
 const { getAuth } = require('firebase-admin/auth');
+const crypto = require('crypto');
 
 admin.initializeApp();
 const db = getFirestore();
@@ -17,6 +18,13 @@ setGlobalOptions({ region: 'europe-west1' });
 const anthropicApiKey = defineSecret('ANTHROPIC_API_KEY');
 const revenueCatWebhookAuth = defineSecret('REVENUECAT_WEBHOOK_AUTH');
 const revenueCatSecretApiKey = defineSecret('REVENUECAT_SECRET_API_KEY');
+const appleSignInPrivateKey = defineSecret('APPLE_SIGNIN_PRIVATE_KEY');
+
+// Sign in with Apple — Team ID and Key ID aren't secret (they're visible in any Apple
+// client_secret JWT header/payload), only the .p8 private key content is.
+const APPLE_TEAM_ID = 'JV8L3RDCU7';
+const APPLE_KEY_ID = 'D82XSK68QG';
+const APPLE_CLIENT_ID = 'com.widymedina.vitalinks';
 
 const DAILY_AI_CAP = 15;
 const MODEL = 'claude-sonnet-5';
@@ -261,17 +269,116 @@ async function fetchRevenueCatEntitlement(appUserId, secretKey) {
  * separate id-mapping table is needed.
  */
 /**
+ * Builds the ES256-signed JWT Apple requires as `client_secret` for both the token-exchange
+ * and revoke endpoints. Hand-rolled (no jsonwebtoken dependency) since this is the only JWT
+ * VitaLinks' backend ever signs. `dsaEncoding: 'ieee-p1363'` is required — Node's default EC
+ * signature format is DER, but JWS ES256 needs the raw fixed-length r||s concatenation.
+ */
+function buildAppleClientSecret(privateKeyPem) {
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: 'ES256', kid: APPLE_KEY_ID };
+  const payload = {
+    iss: APPLE_TEAM_ID,
+    iat: now,
+    exp: now + 15777000, // ~6 months — Apple's documented maximum
+    aud: 'https://appleid.apple.com',
+    sub: APPLE_CLIENT_ID,
+  };
+  const signingInput = `${Buffer.from(JSON.stringify(header)).toString('base64url')}.${Buffer.from(JSON.stringify(payload)).toString('base64url')}`;
+  const signature = crypto.sign('sha256', Buffer.from(signingInput), {
+    key: privateKeyPem,
+    dsaEncoding: 'ieee-p1363',
+  });
+  return `${signingInput}.${signature.toString('base64url')}`;
+}
+
+/**
+ * Exchanges a one-time Sign in with Apple authorization code for a refresh token, storing
+ * it at users/{uid}/private/appleAuth. That refresh token is what deleteAccount later
+ * revokes — Apple has no way to revoke access from an ID token alone.
+ */
+exports.storeAppleAuthCode = onCall({ secrets: [appleSignInPrivateKey] }, async (request) => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Sign in required.');
+  const uid = request.auth.uid;
+  const code = request.data && request.data.code;
+  if (!code || typeof code !== 'string') {
+    throw new HttpsError('invalid-argument', 'Missing authorization code.');
+  }
+  try {
+    const params = new URLSearchParams({
+      grant_type: 'authorization_code',
+      code,
+      client_id: APPLE_CLIENT_ID,
+      client_secret: buildAppleClientSecret(appleSignInPrivateKey.value()),
+    });
+    const resp = await fetch('https://appleid.apple.com/auth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    });
+    const json = await resp.json();
+    if (!resp.ok || !json.refresh_token) {
+      logger.error('Apple token exchange failed', { uid, status: resp.status, body: json });
+      throw new HttpsError('internal', 'Apple token exchange failed.');
+    }
+    await db.doc(`users/${uid}/private/appleAuth`).set(
+      { refreshToken: json.refresh_token, updatedAt: FieldValue.serverTimestamp() },
+      { merge: true }
+    );
+    return { success: true };
+  } catch (e) {
+    if (e instanceof HttpsError) throw e;
+    logger.error('storeAppleAuthCode failed', { uid, error: String(e) });
+    throw new HttpsError('internal', 'Apple token exchange failed.');
+  }
+});
+
+/**
+ * Best-effort revoke of a stored Apple refresh token (App Store rule: apps offering Sign in
+ * with Apple must revoke the token on account deletion). Never throws — a failed revoke
+ * (Apple's endpoint down, token already invalid, etc.) must not block the user's own
+ * account-deletion request, which is the more important guarantee.
+ */
+async function revokeAppleTokenIfPresent(uid, privateKeyPem) {
+  const snap = await db.doc(`users/${uid}/private/appleAuth`).get();
+  const refreshToken = snap.exists ? snap.data().refreshToken : null;
+  if (!refreshToken) return;
+  try {
+    const params = new URLSearchParams({
+      token: refreshToken,
+      token_type_hint: 'refresh_token',
+      client_id: APPLE_CLIENT_ID,
+      client_secret: buildAppleClientSecret(privateKeyPem),
+    });
+    const resp = await fetch('https://appleid.apple.com/auth/revoke', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    });
+    if (!resp.ok) {
+      logger.warn('Apple token revoke returned non-OK', { uid, status: resp.status });
+    }
+  } catch (e) {
+    logger.warn('Apple token revoke failed, continuing deletion', { uid, error: String(e) });
+  }
+}
+
+/**
  * Self-service account deletion. Deletes the Firestore data subtree, the user's own
  * feedback/error reports (a separate top-level collection, not under users/{uid}, but
  * still carries uid+email per submitFeedback in index.html), then the Auth user itself.
- * Firestore first, Auth last: recursiveDelete is idempotent, so a retry after a partial
- * failure is safe, whereas deleting the Auth user first would strand orphaned data this
- * function could no longer be called (as that uid) to clean up.
+ * Apple revocation happens first (needs the appleAuth subdoc, which recursiveDelete
+ * would otherwise remove before it can be read). Firestore first, Auth last:
+ * recursiveDelete is idempotent, so a retry after a partial failure is safe, whereas
+ * deleting the Auth user first would strand orphaned data this function could no
+ * longer be called (as that uid) to clean up.
  */
-exports.deleteAccount = onCall(async (request) => {
+exports.deleteAccount = onCall({ secrets: [appleSignInPrivateKey] }, async (request) => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Sign in required.');
   const uid = request.auth.uid;
   try {
+    await revokeAppleTokenIfPresent(uid, appleSignInPrivateKey.value());
+
     await db.recursiveDelete(db.doc(`users/${uid}`));
 
     const feedbackSnap = await db.collection('feedback').where('uid', '==', uid).get();
