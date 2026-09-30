@@ -123,11 +123,15 @@ exports.estimateNutritionPlus = onCall({ secrets: [anthropicApiKey] }, async (re
   const uid = request.auth.uid;
   const desc = ((request.data && request.data.desc) || '').trim();
   if (!desc) throw new HttpsError('invalid-argument', 'Missing food description.');
+  const lang = (request.data && request.data.lang) === 'en' ? 'en' : 'es';
 
   await requirePlusEntitlement(uid);
   await checkAndIncrementDailyUsage(uid);
 
-  const prompt = `Eres un nutricionista. Estima el contenido nutricional para el siguiente alimento, considerando la cantidad/porción indicada, usando valores nutricionales típicos (USDA u equivalente). Si la porción no se especifica, asume una porción individual estándar. Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional, sin markdown, sin backticks:
+  const prompt = lang === 'en' ? `You are a nutritionist. Estimate the nutritional content for the following food, taking into account the quantity/portion indicated, using typical nutrition values (USDA or equivalent). If the portion isn't specified, assume a standard individual serving. Respond ONLY with a valid JSON object, no extra text, no markdown, no backticks:
+{"calories": <integer kcal>, "protein": <integer g>, "carbs": <integer g>, "fat": <integer g>, "fiber": <integer g>, "sugar": <integer g>, "sodium": <integer mg>, "iron": <integer mg>, "calcium": <integer mg>, "potassium": <integer mg>, "vitaminC": <integer mg>, "note": "<brief note in English, max 10 words>"}
+
+Food: "${desc}"` : `Eres un nutricionista. Estima el contenido nutricional para el siguiente alimento, considerando la cantidad/porción indicada, usando valores nutricionales típicos (USDA u equivalente). Si la porción no se especifica, asume una porción individual estándar. Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional, sin markdown, sin backticks:
 {"calories": <entero kcal>, "protein": <entero g>, "carbs": <entero g>, "fat": <entero g>, "fiber": <entero g>, "sugar": <entero g>, "sodium": <entero mg>, "iron": <entero mg>, "calcium": <entero mg>, "potassium": <entero mg>, "vitaminC": <entero mg>, "note": "<nota breve en español, max 10 palabras>"}
 
 Alimento: "${desc}"`;
@@ -176,11 +180,18 @@ exports.estimateNutritionFromPhotoPlus = onCall({ secrets: [anthropicApiKey] }, 
 
   const plateHint = PLATE_SCALE_HINTS[data.plateType] || PLATE_SCALE_HINTS.llano;
   const note = String(data.note || '').trim().slice(0, 300);
+  const lang = data.lang === 'en' ? 'en' : 'es';
 
   await requirePlusEntitlement(uid);
   await checkAndIncrementDailyUsage(uid);
 
-  const prompt = `Eres un nutricionista analizando ${images.length > 1 ? 'fotos' : 'una foto'} de un plato de comida real, tomada${images.length > 1 ? 's' : ''} para estimar calorías.
+  const prompt = lang === 'en' ? `You are a nutritionist analyzing ${images.length > 1 ? 'photos' : 'a photo'} of a real plate of food, taken to estimate calories.
+Scale context: ${plateHint}.
+${note ? 'User note: ' + note + '\n' : ''}
+Identify each visible food item separately. For each one, estimate the portion (in grams) using the given scale context, and calculate its nutritional content using typical values (USDA or equivalent). Consider the apparent height/volume of each food in the image, not just the area it occupies on the plate.
+
+Respond ONLY with a valid JSON array, no extra text, no markdown, no backticks:
+[{"name":"<name in English>","gramos":<integer>,"calories":<integer kcal>,"protein":<integer g>,"carbs":<integer g>,"fat":<integer g>}]` : `Eres un nutricionista analizando ${images.length > 1 ? 'fotos' : 'una foto'} de un plato de comida real, tomada${images.length > 1 ? 's' : ''} para estimar calorías.
 Contexto de escala: ${plateHint}.
 ${note ? 'Nota del usuario: ' + note + '\n' : ''}
 Identifica cada alimento visible por separado. Para cada uno, estima la porción (en gramos) usando el contexto de escala dado, y calcula su contenido nutricional usando valores típicos (USDA o equivalente). Considera la altura/volumen aparente de cada alimento en la imagen, no solo el área que ocupa en el plato.
