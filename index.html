@@ -274,7 +274,10 @@ const LS = {
       // history — if that alone bumped the timestamp, the empty new device would look
       // newer than the cloud and the safety guard in pushToCloud() would (correctly)
       // refuse to push, but also never triggers the pull that should happen instead.
-      if(k!=='vl:_lastChangeAt' && k!=='vl:apikey' && k!=='vl:welcome-shown'){
+      // vl:tour-nudge-shown is the same class of flag for the same reason: it can
+      // fire as an early no-op UI dismissal on a device that hasn't pulled real
+      // cloud history yet.
+      if(k!=='vl:_lastChangeAt' && k!=='vl:apikey' && k!=='vl:welcome-shown' && k!=='vl:tour-nudge-shown'){
         localStorage.setItem('vl:_lastChangeAt', String(Date.now()));
         if(typeof window._scheduleCloudPush==='function') window._scheduleCloudPush();
       }
@@ -346,12 +349,26 @@ const I18N = {
     plus_terms_link:'Términos de uso',
     plus_privacy_link:'Política de privacidad',
     welcome_title:'¡Bienvenido a VitaLinks!',
-    welcome_subtitle:'Registra tu nutrición, ejercicio, presión arterial y más — todo en un solo lugar.',
+    welcome_subtitle:'Registra tu nutrición, ejercicio, presión arterial y más — todo en un solo lugar. Pequeños momentos, grandes cambios.',
     welcome_signin_title:'Guarda tu progreso',
     welcome_signin_button:'Iniciar sesión con Google',
     welcome_signin_note:'Así tus datos se sincronizan entre dispositivos y no se pierden si cambias o reinstalas el teléfono. Puedes hacerlo más tarde desde Ajustes.',
     welcome_skip_button:'Tal vez luego',
     welcome_continue_button:'Continuar',
+    tour_tabs_title:'Las pestañas son tuyas',
+    tour_tabs_body:'No tienes que usarlas todas. Oculta las que no necesites y deja solo lo que te ayuda a entender tus hábitos.',
+    tour_sync_body:'Trae tus pasos, ritmo cardíaco, presión arterial y más desde otras apps — automáticamente, sin anotar nada a mano.',
+    tour_photo_title:'Tu comida, más clara',
+    tour_photo_step1:'Toma una foto de tu plato.',
+    tour_photo_step2:'VitaLinks estima calorías y macros.',
+    tour_photo_step3:'Entiende mejor lo que comes — sin básculas ni cálculos.',
+    tour_next_button:'Siguiente',
+    tour_skip_button:'Omitir',
+    tour_try_button:'Probar ahora',
+    set_replay_tour_button:'Ver el recorrido de la app',
+    tour_nudge_text:'¿Sabías que puedes personalizar tus pestañas y estimar calorías con una foto? Descúbrelo en un recorrido rápido.',
+    tour_nudge_dismiss:'No, gracias',
+    tour_nudge_button:'Ver recorrido',
     signin_reminder_text:'Inicia sesión para no perder tus datos si cambias de teléfono.',
     signin_reminder_dismiss:'Ahora no',
     missed_day_text:'Parece que ayer no registraste nada. Puedes completarlo cuando quieras.',
@@ -675,12 +692,26 @@ const I18N = {
     plus_terms_link:'Terms of Use',
     plus_privacy_link:'Privacy Policy',
     welcome_title:'Welcome to VitaLinks!',
-    welcome_subtitle:'Track your nutrition, exercise, blood pressure, and more — all in one place.',
+    welcome_subtitle:'Track your nutrition, exercise, blood pressure, and more — all in one place. Small moments, big changes.',
     welcome_signin_title:'Save your progress',
     welcome_signin_button:'Sign in with Google',
     welcome_signin_note:'This syncs your data across devices and keeps it safe if you switch or reinstall your phone. You can also do this later from Settings.',
     welcome_skip_button:'Maybe later',
     welcome_continue_button:'Continue',
+    tour_tabs_title:'The tabs are yours',
+    tour_tabs_body:"You don't have to use them all. Hide what you don't need and keep only what helps you understand your habits.",
+    tour_sync_body:'Bring in your steps, heart rate, blood pressure, and more from other apps — automatically, without logging anything by hand.',
+    tour_photo_title:'Your food, clearer',
+    tour_photo_step1:'Snap a photo of your plate.',
+    tour_photo_step2:'VitaLinks estimates calories and macros.',
+    tour_photo_step3:'Understand what you eat — no scales, no math.',
+    tour_next_button:'Next',
+    tour_skip_button:'Skip',
+    tour_try_button:'Try it now',
+    set_replay_tour_button:'Watch the app tour',
+    tour_nudge_text:'Did you know you can customize your tabs and estimate calories from a photo? Take a quick tour to see how.',
+    tour_nudge_dismiss:'No thanks',
+    tour_nudge_button:'Take the tour',
     signin_reminder_text:'Sign in so you don\'t lose your data if you switch phones.',
     signin_reminder_dismiss:'Not now',
     missed_day_text:"Looks like you didn't log anything yesterday. You can fill it in anytime.",
@@ -2190,6 +2221,14 @@ function renderApp(){
       <div style="display:flex;gap:6px;flex-shrink:0;">
         <button class="btn btn-ghost" style="padding:6px 10px;font-size:11px;" onclick="dismissMissedDayReminder()">${tr('missed_day_dismiss')}</button>
         <button class="btn btn-primary" style="padding:6px 10px;font-size:11px;" onclick="goToMissedDay()">${tr('missed_day_button')}</button>
+      </div>
+    </div>` : ''}
+    ${shouldShowTourNudge() ? `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:14px;">
+      <div style="font-size:12px;color:var(--text);">${tr('tour_nudge_text')}</div>
+      <div style="display:flex;gap:6px;flex-shrink:0;">
+        <button class="btn btn-ghost" style="padding:6px 10px;font-size:11px;" onclick="dismissTourNudge()">${tr('tour_nudge_dismiss')}</button>
+        <button class="btn btn-primary" style="padding:6px 10px;font-size:11px;" onclick="replayAppTour()">${tr('tour_nudge_button')}</button>
       </div>
     </div>` : ''}
     ${state.toast ? `<div class="toast ${state.toast.isError?'':'ok'}">${esc(state.toast.msg)}</div>` : ''}
@@ -4097,6 +4136,7 @@ function modalHTML(){
             <div class="switch ${!isModuleHidden(id)?'on':''}" onclick="toggleModuleVisibility('${id}')"><div class="knob"></div></div>
           </div>`).join('')}
         </div>
+        <button class="btn btn-ghost" style="width:100%;margin-bottom:16px;" onclick="replayAppTour()">${tr('set_replay_tour_button')}</button>
         <div class="label">${tr('set_apikey_label')}</div>
         <input id="g-apikey" type="password" value="${getApiKey()}" placeholder="sk-ant-..." style="width:100%;margin-bottom:6px;">
         <div style="font-size:11px;color:var(--muted);margin-bottom:16px;">${tr('set_apikey_note')}</div>
@@ -4266,16 +4306,18 @@ function modalHTML(){
     </div>`;
   }
   if(window._modal==='welcome'){
-    // Reuses healthConnectSectionHTML() verbatim rather than re-deriving its
-    // not-installed/not-connected/connected branches here — this modal only ever
-    // shows on a fresh install (see shouldShowWelcome()), so it inherits whatever
-    // that function already does, including its window._hcState-not-ready race.
-    return `<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;" onclick="closeWelcomeModal(event)">
-      <div class="card" style="width:400px;max-width:100%;max-height:85vh;overflow-y:auto;" onclick="event.stopPropagation()">
-        <div style="display:flex;justify-content:flex-end;gap:4px;margin-bottom:10px;">
-          <button class="btn ${state.lang==='es'?'btn-primary':'btn-ghost'}" style="padding:5px 10px;font-size:11px;" onclick="setLang('es')">ES</button>
-          <button class="btn ${state.lang==='en'?'btn-primary':'btn-ghost'}" style="padding:5px 10px;font-size:11px;" onclick="setLang('en')">EN</button>
-        </div>
+    // A short stepped tour (welcome/sign-in → tab customization → Health Connect/
+    // Apple Health → photo-to-calorie), reached two ways: automatically on a fresh
+    // install (shouldShowWelcome) or anytime via Settings' "Replay tour" button
+    // (replayAppTour) — the only path that reaches existing accounts, who already
+    // installed before this existed and will never hit the fresh-install trigger.
+    const step = window._welcomeStep || 0;
+    const dotsHTML = `<div style="display:flex;gap:5px;justify-content:center;margin-bottom:16px;">
+      ${Array.from({length:WELCOME_TOUR_STEPS}).map((_,i)=>`<span style="width:14px;height:4px;border-radius:2px;background:${i===step?'var(--accent)':'var(--line)'};"></span>`).join('')}
+    </div>`;
+    let body;
+    if(step===0){
+      body = `
         <div class="display" style="font-weight:700;font-size:18px;margin-bottom:6px;">${tr('welcome_title')}</div>
         <div style="font-size:13px;color:var(--muted);margin-bottom:18px;">${tr('welcome_subtitle')}</div>
         ${!(window._syncState && window._syncState.user) ? `
@@ -4284,11 +4326,55 @@ function modalHTML(){
         ${appleSignInButtonHTML()}
         <div style="font-size:11px;color:var(--muted);margin-bottom:16px;">${tr('welcome_signin_note')}</div>` : `
         <div style="font-size:12px;color:var(--accent2);margin-bottom:16px;">✅ ${esc(window._syncState.user.email)}</div>`}
-        ${window.Capacitor && window.Capacitor.isNativePlatform() ? `
-        <div class="label">${tr('hc_settings_title')}</div>
-        <div style="margin-bottom:16px;">${healthConnectSectionHTML()}</div>` : ''}
+      `;
+    } else if(step===1){
+      body = `
+        <div class="display" style="font-weight:700;font-size:18px;margin-bottom:6px;">${tr('tour_tabs_title')}</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">${tr('tour_tabs_body')}</div>
+        <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;padding:16px 10px;margin-bottom:12px;background:var(--raised);border-radius:12px;">
+          ${HIDEABLE_MODULES.map(id=>`<div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--muted);">${navIcon(id,20)}<span style="font-size:9px;text-align:center;">${tr('nav_'+id)}</span></div>`).join('')}
+        </div>
         <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">${tr('welcome_modules_note')}</div>
-        <button class="btn btn-ghost" style="width:100%;" onclick="closeWelcomeModal()">${(window._syncState && window._syncState.user) ? tr('welcome_continue_button') : tr('welcome_skip_button')}</button>
+      `;
+    } else if(step===2){
+      body = `
+        <div class="display" style="font-weight:700;font-size:18px;margin-bottom:6px;">${tr('hc_settings_title')}</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">${tr('tour_sync_body')}</div>
+        <div style="margin-bottom:16px;">${healthConnectSectionHTML()}</div>
+      `;
+    } else {
+      // Numbered steps in the logo's own three ring colors (accent/accent2/accent3)
+      // rather than any illustrated asset — echoes the brand's own visual language
+      // without shipping extra image weight into the app for a one-time, often-
+      // skipped first-run flow.
+      const photoStep = (n, color, textKey) => `<div style="display:flex;gap:10px;align-items:flex-start;">
+        <div style="flex-shrink:0;width:22px;height:22px;border-radius:50%;background:${color};color:var(--on-accent);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;">${n}</div>
+        <div style="font-size:13px;color:var(--text);padding-top:2px;">${tr(textKey)}</div>
+      </div>`;
+      body = `
+        <div class="display" style="font-weight:700;font-size:18px;margin-bottom:12px;">${tr('tour_photo_title')}</div>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:18px;">
+          ${photoStep(1,'var(--accent)','tour_photo_step1')}
+          ${photoStep(2,'var(--accent2)','tour_photo_step2')}
+          ${photoStep(3,'var(--accent3)','tour_photo_step3')}
+        </div>
+      `;
+    }
+    const isLast = step===WELCOME_TOUR_STEPS-1;
+    return `<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;" onclick="closeWelcomeModal(event)">
+      <div class="card" style="width:400px;max-width:100%;max-height:85vh;overflow-y:auto;" onclick="event.stopPropagation()">
+        <div style="display:flex;justify-content:flex-end;gap:4px;margin-bottom:10px;">
+          <button class="btn ${state.lang==='es'?'btn-primary':'btn-ghost'}" style="padding:5px 10px;font-size:11px;" onclick="setLang('es')">ES</button>
+          <button class="btn ${state.lang==='en'?'btn-primary':'btn-ghost'}" style="padding:5px 10px;font-size:11px;" onclick="setLang('en')">EN</button>
+        </div>
+        ${dotsHTML}
+        ${body}
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost" style="flex:1;" onclick="closeWelcomeModal()">${tr('tour_skip_button')}</button>
+          ${isLast
+            ? `<button class="btn btn-primary" style="flex:1;" onclick="finishWelcomeTourWithPhoto()">${tr('tour_try_button')}</button>`
+            : `<button class="btn btn-primary" style="flex:1;" onclick="nextWelcomeStep()">${tr('tour_next_button')}</button>`}
+        </div>
       </div>
     </div>`;
   }
@@ -4429,10 +4515,51 @@ function shouldShowWelcome(){
 function closeWelcomeModal(e){
   if(e && e.target!==e.currentTarget) return;
   LS.set('vl:welcome-shown', true);
+  // A user who just went through the tour (fresh install or a Settings replay)
+  // has already seen everything the nudge banner would point them at — mark it
+  // seen too, so completing/skipping the tour here never leaves a redundant
+  // "take the tour" banner waiting for them on their next launch.
+  LS.set('vl:tour-nudge-shown', true);
   // Skipped without signing in — seed the weekly reminder's clock now so it
   // doesn't immediately nag again the very next time the app opens today.
   if(!(window._syncState && window._syncState.user)) LS.set('vl:signin-reminder-last-shown', Date.now());
+  window._welcomeStep = 0;
   window._modal = null;
+  render();
+}
+const WELCOME_TOUR_STEPS = 4;
+function nextWelcomeStep(){
+  window._welcomeStep = (window._welcomeStep||0) + 1;
+  render();
+}
+// Reachable from Settings by anyone, old account or new — the fresh-install
+// auto-show (shouldShowWelcome) only ever reaches genuinely new installs, so
+// this is the only path that lets an existing user (the actual source of the
+// "features aren't discoverable" feedback this tour was built for) see it.
+function replayAppTour(){
+  window._welcomeStep = 0;
+  window._modal = 'welcome';
+  render();
+}
+// The tour's last step ends on a real action instead of just describing the
+// feature — closes the tour exactly like closeWelcomeModal (same flags) and
+// hands off straight into the photo flow.
+function finishWelcomeTourWithPhoto(){
+  LS.set('vl:welcome-shown', true);
+  LS.set('vl:tour-nudge-shown', true);
+  window._welcomeStep = 0;
+  openMealPhotoFlow();
+}
+// Reaches existing users the auto-shown tour (fresh installs only) never will.
+// Gated on vl:welcome-shown already being true from BEFORE this feature shipped
+// — closeWelcomeModal/finishWelcomeTourWithPhoto set both flags together, so
+// anyone who actually takes the new tour never also sees this as a followup.
+function shouldShowTourNudge(){
+  if(window._modal) return false;
+  return !!localStorage.getItem('vl:welcome-shown') && !localStorage.getItem('vl:tour-nudge-shown');
+}
+function dismissTourNudge(){
+  LS.set('vl:tour-nudge-shown', true);
   render();
 }
 function shouldShowSigninReminder(){
