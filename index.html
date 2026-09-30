@@ -86,7 +86,11 @@
   ::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px;}
   a{color:inherit;}
   button{font-family:inherit;}
-  input,select,textarea{font-family:inherit;background:var(--raised);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:9px 10px;font-size:14px;outline:none;}
+  /* iOS Safari/WKWebView auto-zooms the whole page on focus when a text input's
+     effective font-size is under 16px — the page then stays zoomed in (and thus
+     horizontally scrollable) after the field blurs. 16px is the documented
+     threshold to suppress that, so this can't go back below it. */
+  input,select,textarea{font-family:inherit;background:var(--raised);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:9px 10px;font-size:16px;outline:none;}
   input:focus,select:focus,textarea:focus{border-color:var(--accent);}
   .card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;}
   .label{font-family:'Space Grotesk',sans-serif;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
