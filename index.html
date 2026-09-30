@@ -1211,7 +1211,7 @@ function excludeHCExerciseId(externalId){
 // separate Firestore path (users/{uid}/healthConnect/{iso}), written directly by
 // the module script's hc* functions further down — never via LS.set, which would
 // pull this data into the fragile whole-document users/{uid} sync.
-function emptyHCDay(){ return { steps:null, heartRate:null, bp:[], spo2:null }; }
+function emptyHCDay(){ return { steps:null, heartRate:null, bp:[], spo2:null, weight:null, sleep:null }; }
 function getHealthConnectDay(iso){
   try{ return { ...emptyHCDay(), ...(JSON.parse(localStorage.getItem('hc:day:'+iso)||'null') || {}) }; }
   catch{ return emptyHCDay(); }
@@ -3365,6 +3365,8 @@ function renderProgreso(){
   const calMA = ma30('calories'), exMA = ma30('exercise'), waterMA = ma30('water'), sleepMA = ma30('sleep');
   const stepsMA = ma30('steps'), hrMA = ma30('hrAvg'), spo2MA = ma30('spo2Min');
   const todayHCBp = hcDayAt(todayISO()).bp;
+  const todayHCWeight = hcDayAt(todayISO()).weight;
+  const todayHCSleep = hcDayAt(todayISO()).sleep;
   const isExp = key => window._expandedProgresoChart===key;
   const pexp = key => isExp(key) ? 'expanded' : '';
 
@@ -3384,6 +3386,10 @@ function renderProgreso(){
           ${weightSummaryHTML(weightPts)}
         </div>
         <div class="chart-box">${lineChartSVG(weightPts,{color:'var(--chart-weight)', gridLines:true, gridSteps:isExp('weight')?5:4, unit:'kg', maValues:weightMA, h:isExp('weight')?320:150})}</div>
+        ${todayHCWeight ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;" onclick="event.stopPropagation()">
+          <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">${tr('hc_bp_synced_label')}</span>
+          <span style="display:flex;align-items:center;gap:6px;font-size:12px;">${todayHCWeight.kg} kg<span style="font-size:10px;color:var(--accent2);border:1px solid var(--accent2);border-radius:4px;padding:1px 5px;">${tr('hc_bp_synced_badge')}</span></span>
+        </div>` : ''}
         ${weightPts.filter(p=>p.v!=null).length>=2 ? `<button class="btn btn-ghost" style="width:100%;margin-top:10px;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="event.stopPropagation();shareWeightProgress()">${navIcon('exportar',14)}${tr('share_boton')}</button>` : ''}
       </div>
       ${isModuleHidden('salud') ? '' : `
@@ -3436,6 +3442,10 @@ function renderProgreso(){
           ${sleepAvgSummaryHTML()}
         </div>
         <div class="chart-box">${barChartSVG(sleepPts,{color:'var(--chart-sleep)', gridLines:true, gridSteps:isExp('sleep')?5:4, unit:'h', maValues:sleepMA, h:isExp('sleep')?320:150})}</div>
+        ${todayHCSleep ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;" onclick="event.stopPropagation()">
+          <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">${tr('hc_bp_synced_label')}</span>
+          <span style="display:flex;align-items:center;gap:6px;font-size:12px;">${todayHCSleep.hours} h<span style="font-size:10px;color:var(--accent2);border:1px solid var(--accent2);border-radius:4px;padding:1px 5px;">${tr('hc_bp_synced_badge')}</span></span>
+        </div>` : ''}
       </div>
     </div>
     ${renderPatternsCard()}
@@ -3482,11 +3492,18 @@ function computePatternData(days){
     const hasMeals = d.meals.length>0;
     const macros = hasMeals ? macroSums(d.meals) : null;
     const micros = hasMeals ? microSums(d.meals) : null;
+    // Health Connect weight/sleep only fill in a day the user never logged by hand —
+    // a real manual entry always wins, never gets overwritten or averaged with synced
+    // data. This is read-time only (unlike hc:day:*'s complete isolation elsewhere,
+    // e.g. the Progreso charts): Patrones needs sample size more than it needs to know
+    // the provenance of any single point, and a gap-fill can never conflict with a
+    // manual value since it only applies when that value is null to begin with.
+    const hc = hcDayAt(iso);
     return {
       iso,
-      weight: d.weight,
+      weight: d.weight!=null ? d.weight : (hc.weight ? hc.weight.kg : null),
       sys: lastBP ? lastBP.systolic : null,
-      sleep: d.sleepHours,
+      sleep: d.sleepHours!=null ? d.sleepHours : (hc.sleep ? hc.sleep.hours : null),
       protein: macros ? macros.protein : null,
       carbs: macros ? macros.carbs : null,
       fat: macros ? macros.fat : null,
@@ -6599,7 +6616,7 @@ if(localStorage.getItem('vl:_lastChangeAt') && !localStorage.getItem('vl:backup-
      keys (see emptyHCDay/getHealthConnectDay/etc. near emptyDay(), earlier in this file),
      never 'vl:' keys, so a device sync can never race the fragile main-doc sync. No live
      onSnapshot for this data — v1 only needs a one-shot reinstall/new-device backfill. */
-  const HC_READ_TYPES = ['steps','heartRate','restingHeartRate','bloodPressure','oxygenSaturation','workouts'];
+  const HC_READ_TYPES = ['steps','heartRate','restingHeartRate','bloodPressure','oxygenSaturation','workouts','weight','sleep'];
   // Exposed so the Settings UI (non-module script) can detect newly-added scopes an
   // already-connected user hasn't granted yet, without duplicating this list — see
   // the "grant additional access" branch in healthConnectSectionHTML().
@@ -6692,6 +6709,41 @@ if(localStorage.getItem('vl:_lastChangeAt') && !localStorage.getItem('vl:backup-
             // (per the team's stated COVID/respiratory motivation for adding this),
             // and would otherwise get smoothed away by an average alone.
             day.spo2 = { avgPct: Math.round(vals.reduce((s,v)=>s+v,0)/vals.length), minPct: Math.round(Math.min(...vals)), source:'healthconnect', syncedAt: Date.now() };
+            setHealthConnectDay(iso, day);
+            touchedDays.add(iso);
+          }
+        }
+        if(granted.has('weight')){
+          // Same readSamples-per-day approach as steps/heart rate/SpO2. A smart scale
+          // rarely logs more than once a day, but averaging multiple same-day readings
+          // (e.g. AM/PM weigh-ins) is a safe default. This stays in the isolated hc:day:*
+          // cache and is never written into state.day.weight — see the "never silently
+          // overwrite manual entries" decision near emptyHCDay(). It also deliberately
+          // does NOT feed getFirstEverWeight()/computeForecast() (manual-only, by design
+          // — device weight sync is scoped to Patrones/Progreso display for this pass).
+          const { samples } = await Health.readSamples({ dataType:'weight', startDate:dayStart, endDate:dayEnd, limit:100 });
+          if(samples.length){
+            const vals = samples.map(x=>Number(x.value)).filter(v=>isFinite(v));
+            const day = getHealthConnectDay(iso);
+            day.weight = { kg: +(vals.reduce((s,v)=>s+v,0)/vals.length).toFixed(1), source:'healthconnect', syncedAt: Date.now() };
+            setHealthConnectDay(iso, day);
+            touchedDays.add(iso);
+          }
+        }
+        if(granted.has('sleep')){
+          // Each sample represents a sleep session or, when the platform emits stage-level
+          // data, one stage segment within it — 'awake' stages are excluded so time spent
+          // awake in bed doesn't inflate the asleep total; sessions with no stage data
+          // (sleepState undefined) are kept as-is and trusted whole, same as every other
+          // HC metric here. Attribution follows the same calendar-day window every other
+          // metric uses (dayStart/dayEnd), not a "night of" convention — acceptable for a
+          // correlation feature that doesn't need night-precise accounting.
+          const { samples } = await Health.readSamples({ dataType:'sleep', startDate:dayStart, endDate:dayEnd, limit:200 });
+          const asleep = samples.filter(x=>x.sleepState!=='awake');
+          if(asleep.length){
+            const totalMinutes = asleep.reduce((s,x)=>s+(Number(x.value)||0), 0);
+            const day = getHealthConnectDay(iso);
+            day.sleep = { hours: +(totalMinutes/60).toFixed(1), source:'healthconnect', syncedAt: Date.now() };
             setHealthConnectDay(iso, day);
             touchedDays.add(iso);
           }
@@ -6794,7 +6846,7 @@ if(localStorage.getItem('vl:_lastChangeAt') && !localStorage.getItem('vl:backup-
         for(const iso of touchedDays){
           const day = getHealthConnectDay(iso);
           await setDoc(doc(db,'users',currentUser.uid,'healthConnect',iso), {
-            steps: day.steps, heartRate: day.heartRate, bp: day.bp, spo2: day.spo2, updatedAt: Date.now()
+            steps: day.steps, heartRate: day.heartRate, bp: day.bp, spo2: day.spo2, weight: day.weight, sleep: day.sleep, updatedAt: Date.now()
           }, { merge:true });
         }
         // Marks that this account has had at least one real opportunity to push local
