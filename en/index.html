@@ -11,7 +11,7 @@
   if(/[?&]landing=1(&|$)/.test(q)) return;
   var used=false;
   for(var i=0;i<localStorage.length;i++){ if(localStorage.key(i).indexOf('vl:day:')===0){ used=true; break; } }
-  if(used || /[?&]ref=/.test(q)) location.replace('/app/'+q);
+  if(used || /[?&]ref=/.test(q)){ window.__vlForwarding = true; location.replace('/app/'+q); }
 }catch(e){}})();
 </script>
 <title>VitaLinks — Nutrition, exercise and health, all in one place</title>
@@ -47,7 +47,7 @@
     <a class="brand" href="/en/?landing=1"><img src="/assets/logo.png" alt="" width="40" height="40">VitaLinks</a>
     <span class="spacer"></span>
     <a class="lang" href="/?landing=1" hreflang="es" lang="es">Español</a>
-    <a class="btn btn-primary btn-small" href="/app/">Open the app</a>
+    <a class="btn btn-primary btn-small" href="/app/" data-track="try">Open the app</a>
   </header>
 
   <main>
@@ -57,8 +57,8 @@
         <h1>Your health, <em>clearer.</em></h1>
         <p class="lede">Food, movement, sleep, water and blood pressure in one place. It isn’t about doing it perfectly. It’s about understanding your habits better.</p>
         <div class="cta">
-          <a class="btn btn-primary" href="/app/">Try it now</a>
-          <a class="btn btn-ghost" href="/app/?demo=1&amp;lang=en">See it with sample data</a>
+          <a class="btn btn-primary" href="/app/" data-track="try">Try it now</a>
+          <a class="btn btn-ghost" href="/app/?demo=1&amp;lang=en" data-track="demo">See it with sample data</a>
         </div>
         <p class="fine">Free, in your browser, no account needed.</p>
         <div class="stores" data-stores data-soon="Coming soon to Google Play and the App Store." data-label="Also on your phone:"></div>
@@ -149,7 +149,7 @@
 
     <section class="closing">
       <h2>You don’t need a perfect day.<br><em>You just need to keep going.</em></h2>
-      <div class="cta"><a class="btn btn-primary" href="/app/">Try it now</a></div>
+      <div class="cta"><a class="btn btn-primary" href="/app/" data-track="try">Try it now</a></div>
       <p class="fine">Free, in your browser, no account needed.</p>
     </section>
   </main>

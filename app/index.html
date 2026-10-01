@@ -7448,6 +7448,12 @@ if(localStorage.getItem('vl:_lastChangeAt') && !localStorage.getItem('vl:backup-
         await signInWithCredential(auth, credential);
       } else {
         await signInWithPopup(auth, provider);
+        // Anonymous count of web sign-ins (see /privacy.html): an event name, nothing else.
+        try{
+          if(location.hostname === 'vitalinks.eu' && navigator.doNotTrack !== '1' && !navigator.globalPrivacyControl){
+            navigator.sendBeacon('https://europe-west1-vitalink-widy.cloudfunctions.net/track', JSON.stringify({ e:'signin' }));
+          }
+        }catch(e){}
       }
     }
     catch(e){ window._syncState.error = friendlyFirebaseError(e); safeRender(); }

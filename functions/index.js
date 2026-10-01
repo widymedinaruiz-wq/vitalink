@@ -461,6 +461,52 @@ exports.revenueCatWebhook = onRequest(
 );
 
 /**
+ * Anonymous site counter for vitalinks.eu (landing views, button clicks, web sign-ins).
+ * Adds 1 to a named field of siteStats/{YYYY-MM-DD}; that is all it stores. No cookies,
+ * no identifiers, nothing about the visitor is written. Clients call it with
+ * navigator.sendBeacon, which sends a text/plain POST and ignores the response.
+ *
+ * It is a public endpoint, so it is built to be boring to abuse: only a fixed list of
+ * event names is accepted, only requests whose Origin is the real site are counted, one
+ * instance at most, and at most one Firestore write per second (anything arriving faster
+ * is added up in memory and written with the next one).
+ */
+const SITE_EVENTS = new Set(['view_es', 'view_en', 'try', 'demo', 'store_android', 'store_ios', 'signin']);
+const SITE_ORIGIN = 'https://vitalinks.eu';
+const SITE_BOT_UA = /bot|crawl|spider|slurp|preview|facebookexternalhit|whatsapp|headless|lighthouse/i;
+const TRACK_MIN_WRITE_GAP_MS = 1000;
+let trackPending = {};
+let trackLastWriteAt = 0;
+
+exports.track = onRequest({ invoker: 'public', maxInstances: 1 }, async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const done = () => res.status(204).end();
+  if (req.method !== 'POST' || req.get('origin') !== SITE_ORIGIN) return done();
+  if (SITE_BOT_UA.test(req.get('user-agent') || '')) return done();
+  let name = null;
+  try {
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    name = body && body.e;
+  } catch (e) { /* not JSON: ignored below */ }
+  if (!SITE_EVENTS.has(name)) return done();
+
+  trackPending[name] = (trackPending[name] || 0) + 1;
+  if (Date.now() - trackLastWriteAt < TRACK_MIN_WRITE_GAP_MS) return done();
+  trackLastWriteAt = Date.now();
+  const batch = trackPending;
+  trackPending = {};
+  const update = { updatedAt: FieldValue.serverTimestamp() };
+  for (const [k, n] of Object.entries(batch)) update[k] = FieldValue.increment(n);
+  try {
+    await db.doc(`siteStats/${todayKey()}`).set(update, { merge: true });
+  } catch (e) {
+    for (const [k, n] of Object.entries(batch)) trackPending[k] = (trackPending[k] || 0) + n;
+    logger.error('track: could not write site stats', { error: String(e) });
+  }
+  done();
+});
+
+/**
  * Feedback triage, Layer 1 (see project memory project_feedback_triage.md for the
  * broader design — this is deliberately just the per-document classification step,
  * not the cross-tester clustering/digest layer, which is a separate follow-up).

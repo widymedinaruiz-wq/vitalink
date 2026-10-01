@@ -227,3 +227,64 @@ test('digest: a truncated Claude answer still produces a digest that says so', a
   assert.match(digest.headline, /No se pudo generar/);
   assert.deepEqual(digest.issues, []);
 });
+
+/* ---------------- site counter ---------------- */
+
+const beacon = (name, { origin = 'https://vitalinks.eu', ua = 'Mozilla/5.0', method = 'POST', body } = {}) => ({
+  method,
+  body: body !== undefined ? body : JSON.stringify({ e: name }),
+  get: (h) => ({ origin, 'user-agent': ua })[h.toLowerCase()],
+});
+const fakeBeaconRes = () => {
+  const res = { statusCode: null, set: () => res, status: (c) => { res.statusCode = c; return res; }, end: () => res };
+  return res;
+};
+const statsDoc = (db) => [...db._docs.entries()].filter(([p]) => p.startsWith('siteStats/')).map(([, d]) => d)[0];
+
+test('track: counts a known event from the real site, and stores nothing but the count', async () => {
+  const { fns, db } = loadFunctions();
+  const res = fakeBeaconRes();
+  await fns.track(beacon('view_es'), res);
+  assert.equal(res.statusCode, 204);
+  const doc = statsDoc(db);
+  assert.equal(doc.view_es, 1);
+  assert.deepEqual(Object.keys(doc).sort(), ['updatedAt', 'view_es']);
+  assert.match([...db._docs.keys()][0], /^siteStats\/\d{4}-\d{2}-\d{2}$/);
+});
+
+test('track: ignores unknown events, other origins, bots, non-POST and junk bodies', async () => {
+  const { fns, db } = loadFunctions();
+  for (const req of [
+    beacon('made_up_event'),
+    beacon('view_es', { origin: 'https://evil.example' }),
+    beacon('view_es', { origin: null }),
+    beacon('view_es', { ua: 'Googlebot/2.1' }),
+    beacon('view_es', { method: 'GET' }),
+    beacon('view_es', { body: 'not json' }),
+    beacon('view_es', { body: '{"e":"__proto__"}' }),
+  ]) {
+    const res = fakeBeaconRes();
+    await fns.track(req, res);
+    assert.equal(res.statusCode, 204);
+  }
+  assert.equal(db._docs.size, 0);
+});
+
+test('track: a burst is written at most once a second and nothing is lost', async (t) => {
+  const { fns, db } = loadFunctions();
+  let now = 1_800_000_000_000;
+  t.mock.method(Date, 'now', () => now);
+  let writes = 0;
+  const realDoc = db.doc;
+  db.doc = (p) => { const ref = realDoc(p); const set = ref.set; ref.set = async (...a) => { writes++; return set(...a); }; return ref; };
+
+  for (let i = 0; i < 50; i++) await fns.track(beacon(i % 2 ? 'try' : 'view_en'), fakeBeaconRes());
+  assert.equal(writes, 1, 'a burst caused more than one write');
+  now += 1500;
+  await fns.track(beacon('demo'), fakeBeaconRes());
+  assert.equal(writes, 2);
+  const doc = statsDoc(db);
+  assert.equal(doc.view_en + doc.try + doc.demo, 51, 'events were dropped');
+  assert.equal(doc.view_en, 25);
+  assert.equal(doc.try, 25);
+});

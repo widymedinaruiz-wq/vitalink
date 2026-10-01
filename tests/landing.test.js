@@ -18,6 +18,7 @@ function forwardScript(html) {
 function visit(html, { search = '', keys = [] } = {}) {
   let target = null;
   vm.runInNewContext(forwardScript(html), {
+    window: {},
     location: { search, replace: (u) => { target = u; } },
     localStorage: { length: keys.length, key: (i) => keys[i] },
   });

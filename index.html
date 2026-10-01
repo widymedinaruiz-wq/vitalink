@@ -11,7 +11,7 @@
   if(/[?&]landing=1(&|$)/.test(q)) return;
   var used=false;
   for(var i=0;i<localStorage.length;i++){ if(localStorage.key(i).indexOf('vl:day:')===0){ used=true; break; } }
-  if(used || /[?&]ref=/.test(q)) location.replace('/app/'+q);
+  if(used || /[?&]ref=/.test(q)){ window.__vlForwarding = true; location.replace('/app/'+q); }
 }catch(e){}})();
 </script>
 <title>VitaLinks — Nutrición, ejercicio y salud, todo en un lugar</title>
@@ -47,7 +47,7 @@
     <a class="brand" href="/?landing=1"><img src="/assets/logo.png" alt="" width="40" height="40">VitaLinks</a>
     <span class="spacer"></span>
     <a class="lang" href="/en/?landing=1" hreflang="en" lang="en">English</a>
-    <a class="btn btn-primary btn-small" href="/app/">Abrir la app</a>
+    <a class="btn btn-primary btn-small" href="/app/" data-track="try">Abrir la app</a>
   </header>
 
   <main>
@@ -57,8 +57,8 @@
         <h1>Tu salud, <em>más clara.</em></h1>
         <p class="lede">Comida, movimiento, sueño, agua y presión arterial en un solo lugar. No se trata de hacerlo perfecto. Se trata de entender mejor tus hábitos.</p>
         <div class="cta">
-          <a class="btn btn-primary" href="/app/">Pruébala ahora</a>
-          <a class="btn btn-ghost" href="/app/?demo=1">Ver con datos de ejemplo</a>
+          <a class="btn btn-primary" href="/app/" data-track="try">Pruébala ahora</a>
+          <a class="btn btn-ghost" href="/app/?demo=1" data-track="demo">Ver con datos de ejemplo</a>
         </div>
         <p class="fine">Gratis, en tu navegador y sin crear cuenta.</p>
         <div class="stores" data-stores data-soon="Muy pronto en Google Play y App Store." data-label="También en tu móvil:"></div>
@@ -149,7 +149,7 @@
 
     <section class="closing">
       <h2>No necesitas un día perfecto.<br><em>Solo necesitas seguir adelante.</em></h2>
-      <div class="cta"><a class="btn btn-primary" href="/app/">Pruébala ahora</a></div>
+      <div class="cta"><a class="btn btn-primary" href="/app/" data-track="try">Pruébala ahora</a></div>
       <p class="fine">Gratis, en tu navegador y sin crear cuenta.</p>
     </section>
   </main>
