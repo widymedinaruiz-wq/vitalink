@@ -1589,6 +1589,33 @@ function toast(msg, isError){
   toast._t = setTimeout(()=>{ state.toast=null; render(); }, isError ? 6000 : 3500);
 }
 
+/* ================= remote config ================= */
+// The bring-your-own-key AI calls below go straight from this app to Anthropic, so the
+// model id ships inside every installed build — and store builds stay in use for months
+// after a model is retired. config.json (served from vitalinks.eu, which deploys in
+// minutes) lets the model be swapped for already-installed apps without a store release.
+// The built-in default always works offline or if the fetch fails; the last good remote
+// value is cached under a non-'vl:' key so it's never swept into cloud sync.
+const AI_MODEL_DEFAULT = 'claude-sonnet-5';
+const REMOTE_CONFIG_URL = 'https://vitalinks.eu/config.json';
+const REMOTE_CONFIG_KEY = 'cfg:remote';
+const isValidAiModel = m => typeof m==='string' && /^claude-[a-z0-9.-]{3,60}$/.test(m);
+function getAiModel(){
+  try{
+    const cfg = JSON.parse(localStorage.getItem(REMOTE_CONFIG_KEY)||'null');
+    if(cfg && isValidAiModel(cfg.aiModel)) return cfg.aiModel;
+  }catch(e){}
+  return AI_MODEL_DEFAULT;
+}
+async function refreshRemoteConfig(){
+  try{
+    const res = await fetch(REMOTE_CONFIG_URL, {cache:'no-store'});
+    if(!res.ok) return;
+    const cfg = await res.json();
+    if(cfg && isValidAiModel(cfg.aiModel)) localStorage.setItem(REMOTE_CONFIG_KEY, JSON.stringify({aiModel: cfg.aiModel}));
+  }catch(e){}
+}
+
 /* ================= nutrition AI estimate ================= */
 function friendlyPlusAiError(e){
   const code = ((e && e.code) || '').replace('functions/','');
@@ -1623,7 +1650,7 @@ Alimento: "${desc}"`;
       'anthropic-version':'2023-06-01',
       'anthropic-dangerous-direct-browser-access':'true'
     },
-    body: JSON.stringify({ model:'claude-sonnet-5', max_tokens:300, messages:[{role:'user', content:prompt}] })
+    body: JSON.stringify({ model:getAiModel(), max_tokens:300, messages:[{role:'user', content:prompt}] })
   });
   if(!res.ok){ const t = await res.text(); throw new Error('API error: '+t.slice(0,200)); }
   const data = await res.json();
@@ -1705,7 +1732,7 @@ Responde solo con la frase, sin comillas ni explicación adicional.`;
         'anthropic-version':'2023-06-01',
         'anthropic-dangerous-direct-browser-access':'true'
       },
-      body: JSON.stringify({ model:'claude-sonnet-5', max_tokens:100, messages:[{role:'user', content:prompt}] })
+      body: JSON.stringify({ model:getAiModel(), max_tokens:100, messages:[{role:'user', content:prompt}] })
     });
     if(!res.ok){ const t = await res.text(); throw new Error('API error: '+t.slice(0,200)); }
     const data = await res.json();
@@ -5141,7 +5168,7 @@ Responde ÚNICAMENTE con un array JSON válido, sin texto adicional, sin markdow
       'anthropic-dangerous-direct-browser-access':'true'
     },
     body: JSON.stringify({
-      model:'claude-sonnet-5',
+      model:getAiModel(),
       max_tokens: 1024,
       messages:[{ role:'user', content:[
         ...images.map(dataUrl=>({ type:'image', source:{ type:'base64', media_type:'image/jpeg', data: dataUrl.split(',')[1] } })),
@@ -6646,6 +6673,7 @@ async function sendFeedback(){
 
 /* ================= init ================= */
 checkInviteParam();
+refreshRemoteConfig();
 if(shouldShowWelcome()) window._modal = 'welcome';
 if(state.tab==='hoy') window._hoyAnimate = true;
 render();
