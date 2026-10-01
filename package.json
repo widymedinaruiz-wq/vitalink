@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build": "node -e \"require('fs').mkdirSync('www',{recursive:true});require('fs').copyFileSync('index.html','www/index.html')\"",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test \"tests/*.test.js\""
   },
   "repository": {
     "type": "git",
