@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+# Source and tooling folders are published with the site but are not pages.
+Disallow: /android/
+Disallow: /ios/
+Disallow: /functions/
+Disallow: /tests/
+Disallow: /prototypes/
+Disallow: /resources/
+
+Sitemap: https://vitalinks.eu/sitemap.xml
