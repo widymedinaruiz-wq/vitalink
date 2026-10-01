@@ -582,6 +582,7 @@ const I18N = {
     daily_reminder_notif_body:'¿Registraste tu día hoy? Solo toma un minuto.',
     invite_titulo:'Invita a un amigo', invite_boton:'Compartir invitación', invite_copiado:'Enlace copiado al portapapeles',
     invite_asunto:'Invitación a VitaLinks',
+    app_version_web:'versión web',
     feedback_title:'Enviar comentarios', feedback_explainer:'¿Algo no funciona bien o tienes una idea? Cuéntanoslo — incluimos automáticamente la versión de la app y la pantalla actual para ayudarnos a investigar.',
     feedback_placeholder:'Describe lo que viste...', feedback_send_button:'Enviar comentarios', feedback_sent:'¡Gracias! Comentarios enviados.',
     err_feedback_empty:'Escribe un mensaje antes de enviar.', err_feedback_failed:'No se pudo enviar. Inténtalo de nuevo.',
@@ -925,6 +926,7 @@ const I18N = {
     daily_reminder_notif_body:'Did you log your day yet? It only takes a minute.',
     invite_titulo:'Invite a friend', invite_boton:'Share invite', invite_copiado:'Link copied to clipboard',
     invite_asunto:'Invitation to VitaLinks',
+    app_version_web:'web version',
     feedback_title:'Send feedback', feedback_explainer:"Something not working right, or have an idea? Let us know — we automatically include the app version and current screen to help us investigate.",
     feedback_placeholder:'Describe what you saw...', feedback_send_button:'Send feedback', feedback_sent:'Thanks! Feedback sent.',
     err_feedback_empty:'Write a message before sending.', err_feedback_failed:"Couldn't send it. Try again.",
@@ -4206,6 +4208,7 @@ function modalHTML(){
           <button class="btn btn-ghost" style="flex:1;" onclick="closeModal()">${tr('set_cancelar')}</button>
           <button class="btn btn-primary" style="flex:1;" onclick="saveSettings()">${tr('cal_guardar')}</button>
         </div>
+        ${appVersionLabelHTML()}
       </div>
     </div>`;
   }
@@ -6626,6 +6629,15 @@ async function getAppInfo(){
   }catch(e){ _appInfoCache = { version: 'unknown', build: 'unknown' }; }
   return _appInfoCache;
 }
+// Shown at the bottom of Settings so a user (or support) can tell which build they're on.
+// Reads the cache only — getAppInfo() is primed at startup — because re-rendering the
+// Settings modal once the async lookup lands would wipe whatever is being typed in it.
+function appVersionLabelHTML(){
+  const info = _appInfoCache;
+  if(!info || info.version==='unknown') return '';
+  const label = info.version==='web' ? tr('app_version_web') : `${esc(info.version)} (${esc(info.build)})`;
+  return `<div style="font-size:10px;color:var(--muted);text-align:center;margin-top:12px;">VitaLinks ${label}</div>`;
+}
 function diagnosticContextBase(){
   return {
     tab: state.tab, lang: state.lang,
@@ -6674,6 +6686,7 @@ async function sendFeedback(){
 /* ================= init ================= */
 checkInviteParam();
 refreshRemoteConfig();
+getAppInfo();
 if(shouldShowWelcome()) window._modal = 'welcome';
 if(state.tab==='hoy') window._hoyAnimate = true;
 render();
