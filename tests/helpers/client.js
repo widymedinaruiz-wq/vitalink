@@ -7,7 +7,7 @@ const path = require('path');
 const vm = require('vm');
 
 // VL_INDEX_HTML lets a deliberately broken copy be loaded to check the tests catch it.
-const INDEX_HTML = process.env.VL_INDEX_HTML || path.join(__dirname, '..', '..', 'index.html');
+const INDEX_HTML = process.env.VL_INDEX_HTML || path.join(__dirname, '..', '..', 'app', 'index.html');
 
 function readModuleScript() {
   const html = fs.readFileSync(INDEX_HTML, 'utf8');

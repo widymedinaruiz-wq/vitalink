@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- People who already use the web app, and anyone arriving on an invite link, go straight
+     to the app. ?landing=1 shows this page regardless. -->
+<script>
+(function(){try{
+  var q=location.search;
+  if(/[?&]landing=1(&|$)/.test(q)) return;
+  var used=false;
+  for(var i=0;i<localStorage.length;i++){ if(localStorage.key(i).indexOf('vl:day:')===0){ used=true; break; } }
+  if(used || /[?&]ref=/.test(q)) location.replace('/app/'+q);
+}catch(e){}})();
+</script>
+<title>VitaLinks — Nutrition, exercise and health, all in one place</title>
+<meta name="description" content="Track your nutrition, exercise, blood pressure, medications, body composition, sleep and water — all in one place. Try it free in your browser, no account needed.">
+<link rel="canonical" href="https://vitalinks.eu/en/">
+<link rel="alternate" hreflang="es" href="https://vitalinks.eu/">
+<link rel="alternate" hreflang="en" href="https://vitalinks.eu/en/">
+<link rel="alternate" hreflang="x-default" href="https://vitalinks.eu/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="VitaLinks">
+<meta property="og:url" content="https://vitalinks.eu/en/">
+<meta property="og:title" content="VitaLinks — Nutrition, exercise and health, all in one place">
+<meta property="og:description" content="Track your nutrition, exercise, blood pressure, medications, body composition, sleep and water — all in one place. Try it free in your browser, no account needed.">
+<meta property="og:image" content="https://vitalinks.eu/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="VitaLinks — Nutrition, exercise and health, all in one place">
+<meta property="og:locale" content="en_GB">
+<meta property="og:locale:alternate" content="es_ES">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="VitaLinks — Nutrition, exercise and health, all in one place">
+<meta name="twitter:description" content="Track your nutrition, exercise, blood pressure, medications, body composition, sleep and water — all in one place. Try it free in your browser, no account needed.">
+<meta name="twitter:image" content="https://vitalinks.eu/og-image.png">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' rx='26' fill='%230E2723'/%3E%3Cdefs%3E%3Cmask id='t' maskUnits='userSpaceOnUse' x='0' y='0' width='120' height='120'%3E%3Crect width='120' height='120' fill='white'/%3E%3Ccircle cx='60' cy='80' r='34.641' fill='none' stroke='black' stroke-width='16'/%3E%3C/mask%3E%3Cmask id='o' maskUnits='userSpaceOnUse' x='0' y='0' width='120' height='120'%3E%3Crect width='120' height='120' fill='white'/%3E%3Ccircle cx='77.32' cy='50' r='34.641' fill='none' stroke='black' stroke-width='16'/%3E%3C/mask%3E%3Cmask id='y' maskUnits='userSpaceOnUse' x='0' y='0' width='120' height='120'%3E%3Crect width='120' height='120' fill='white'/%3E%3Ccircle cx='42.68' cy='50' r='34.641' fill='none' stroke='black' stroke-width='16'/%3E%3C/mask%3E%3C/defs%3E%3Ccircle cx='77.32' cy='50' r='34.641' fill='none' stroke='%237FC8B0' stroke-width='10' mask='url(%23t)'/%3E%3Ccircle cx='42.68' cy='50' r='34.641' fill='none' stroke='%23F2A65A' stroke-width='10' mask='url(%23o)'/%3E%3Ccircle cx='60' cy='80' r='34.641' fill='none' stroke='%23E8C468' stroke-width='10' mask='url(%23y)'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/landing.css">
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <a class="brand" href="/en/?landing=1"><img src="/assets/logo.png" alt="" width="40" height="40">VitaLinks</a>
+    <span class="spacer"></span>
+    <a class="lang" href="/?landing=1" hreflang="es" lang="es">Español</a>
+    <a class="btn btn-primary btn-small" href="/app/">Open the app</a>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <span class="tagline">Small moments. Big changes.</span>
+        <h1>Your health, <em>clearer.</em></h1>
+        <p class="lede">Food, movement, sleep, water and blood pressure in one place. It isn’t about doing it perfectly. It’s about understanding your habits better.</p>
+        <div class="cta">
+          <a class="btn btn-primary" href="/app/">Try it now</a>
+        </div>
+        <p class="fine">Free, in your browser, no account needed.</p>
+        <div class="stores" data-stores data-soon="Coming soon to Google Play and the App Store." data-label="Also on your phone:"></div>
+      </div>
+      <div class="phone"><img src="/assets/shot-today.webp" width="540" height="1080" alt="VitaLinks Today screen (shown in Spanish): the day’s vitality score and a summary of calories, water and exercise."></div>
+    </section>
+
+    <ul class="chips" aria-label="What you can track">
+      <li>Meals</li><li>Exercise</li><li>Water</li><li>Sleep</li><li>Blood pressure</li><li>Medications</li><li>Weight and body composition</li>
+    </ul>
+
+    <section class="feature">
+      <div>
+        <div class="kicker k-food">Food</div>
+        <h2>Eating isn’t just counting calories.</h2>
+        <p>Log your meals and understand your habits. Type what you ate, scan a barcode, or save the dishes you eat often.</p>
+        <ol class="steps" aria-label="Calories from a photo, in three steps">
+          <li><div><strong>Take a photo</strong><span>Just point at your plate and let VitaLinks do the rest.</span></div></li>
+          <li><div><strong>VitaLinks estimates</strong><span>Calories and macros, quickly and simply.</span></div></li>
+          <li><div><strong>Understand your plate</strong><span>See what each meal adds to your day. You review and adjust before saving.</span></div></li>
+        </ol>
+        <p class="note">Calories from a photo are included in VitaLinks Plus, in the mobile app. Values are AI-generated estimates, not medical advice.</p>
+      </div>
+      <div class="media">
+        <figure class="plate">
+          <img src="/assets/plate.jpg" width="772" height="1028" alt="A banana on a wooden plate, seen from above." loading="lazy">
+          <figcaption>Your food, clearer.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="feature flip">
+      <div>
+        <div class="kicker k-exercise">Movement</div>
+        <h2>Moving counts too.</h2>
+        <p>It doesn’t have to be intense. It just has to be yours. Log a walk, a yoga class or a weights session.</p>
+        <p class="note">In the mobile app, VitaLinks brings in your steps and workouts from Health Connect or Apple Health.</p>
+      </div>
+      <div class="media">
+        <div class="phone"><img src="/assets/shot-exercise.webp" width="540" height="1080" alt="VitaLinks Exercise screen (shown in Spanish): activities to choose from and today’s logged exercise." loading="lazy"></div>
+      </div>
+    </section>
+
+    <section class="feature">
+      <div>
+        <div class="kicker k-water">Health</div>
+        <h2>What you measure, in one place.</h2>
+        <p>Blood pressure, medication, weight and body composition, each with its history. Yours to look at, at your own pace.</p>
+      </div>
+      <div class="media">
+        <div class="phone"><img src="/assets/shot-health.webp" width="540" height="1080" alt="VitaLinks Health screen (shown in Spanish): blood pressure log and today’s medications." loading="lazy"></div>
+      </div>
+    </section>
+
+    <section class="feature flip">
+      <div>
+        <div class="kicker k-water">Progress</div>
+        <h2>It’s about understanding your habits better.</h2>
+        <p>See how your weight, blood pressure, sleep and steps move over 7, 14 or 30 days. Share it or download it as a PDF if you want to.</p>
+      </div>
+      <div class="media">
+        <div class="phone"><img src="/assets/shot-progress.webp" width="540" height="1080" alt="VitaLinks Progress screen (shown in Spanish): weight and blood pressure charts for the last 30 days." loading="lazy"></div>
+      </div>
+    </section>
+
+    <section class="cards">
+      <div class="card">
+        <div class="kicker k-water">Sleep</div>
+        <h3>Sleeping well isn’t always about counting hours.</h3>
+        <p>It’s also about understanding how you rest.</p>
+      </div>
+      <div class="card">
+        <div class="kicker k-water">Water</div>
+        <h3>A glass of water is a way of looking after yourself, too.</h3>
+        <p>Log it. Every small habit counts.</p>
+      </div>
+      <div class="card">
+        <div class="kicker k-exercise">On all your devices</div>
+        <h3>Start on the web, carry on from your phone.</h3>
+        <p>Sign in with your Google account and what you log here shows up in the app. Without an account, your data stays in this browser.</p>
+      </div>
+      <div class="card">
+        <div class="kicker k-food">Free and Plus</div>
+        <h3>Daily tracking is free.</h3>
+        <p>VitaLinks Plus adds calories from a photo and the daily AI summary, with nothing to set up.</p>
+      </div>
+    </section>
+
+    <section class="closing">
+      <h2>You don’t need a perfect day.<br><em>You just need to keep going.</em></h2>
+      <div class="cta"><a class="btn btn-primary" href="/app/">Try it now</a></div>
+      <p class="fine">Free, in your browser, no account needed.</p>
+    </section>
+  </main>
+
+  <footer>
+    <nav aria-label="Links">
+      <a href="/privacy.html">Privacy policy</a>
+      <a href="/delete-account.html">Delete my account</a>
+      <a href="/?landing=1" hreflang="es" lang="es">Español</a>
+    </nav>
+    <p>VitaLinks is a personal tracking tool. It does not provide diagnosis or medical advice.</p>
+    <p>VitaLinks by WM Designs</p>
+  </footer>
+</div>
+<script src="/assets/landing.js" defer></script>
+</body>
+</html>

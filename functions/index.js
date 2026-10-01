@@ -770,7 +770,7 @@ Ordena "issues" de mayor a menor urgencia real, combinando cuántos usuarios dis
   if (issues.length) {
     let verifyTextForDebug = null;
     try {
-      const sourceRes = await fetch('https://vitalinks.eu/index.html');
+      const sourceRes = await fetch('https://vitalinks.eu/app/index.html');
       if (sourceRes.ok) {
         const source = await sourceRes.text();
         const issuesText = issues.map((iss, i) => `[${i}] ${iss.title}`).join('\n');

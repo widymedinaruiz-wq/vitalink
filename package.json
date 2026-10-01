@@ -7,7 +7,7 @@
     "doc": "docs"
   },
   "scripts": {
-    "build": "node -e \"require('fs').mkdirSync('www',{recursive:true});require('fs').copyFileSync('index.html','www/index.html')\"",
+    "build": "node -e \"require('fs').mkdirSync('www',{recursive:true});require('fs').copyFileSync('app/index.html','www/index.html')\"",
     "test": "node --test \"tests/*.test.js\""
   },
   "repository": {

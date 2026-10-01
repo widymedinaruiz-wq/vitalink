@@ -1,0 +1,104 @@
+/* Landing page for vitalinks.eu. Palette and type follow the brand guide: dark is the
+   default, light is the alternate; the three accents keep their category meaning
+   (food / exercise / water). */
+:root{
+  --bg:#0E2723; --surface:#153934; --raised:#1B453F; --line:#2A5049;
+  --food:#F2A65A; --exercise:#90D161; --water:#7FC8B0;
+  --text:#EFF6F2; --muted:#8FB2A8; --on-accent:#2B1A05;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){
+  :root{
+    --bg:#F4F7F5; --surface:#FFFFFF; --raised:#EAF0EE; --line:#D5DFDB;
+    --food:#C9731D; --exercise:#4A8421; --water:#358D6F;
+    --text:#132A25; --muted:#55716A; --on-accent:#FFFFFF;
+    color-scheme:light;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:17px;line-height:1.55}
+img{max-width:100%;height:auto;display:block}
+a{color:inherit}
+h1,h2,h3,.display{font-family:'Space Grotesk',Inter,system-ui,sans-serif;letter-spacing:-.015em;line-height:1.1;margin:0;text-wrap:balance}
+p{margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+
+/* header */
+.top{display:flex;align-items:center;gap:12px;padding:18px 0}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:22px}
+.brand img{width:40px;height:40px;border-radius:10px}
+.top .spacer{flex:1}
+.lang{font-size:14px;font-weight:600;color:var(--muted);text-decoration:none;padding:8px 10px;border-radius:10px}
+.lang:hover{color:var(--text);background:var(--raised)}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px;text-decoration:none;border-radius:14px;padding:14px 22px;border:1px solid transparent;min-height:48px}
+.btn-primary{background:var(--food);color:var(--on-accent)}
+.btn-ghost{border-color:var(--line);color:var(--text);background:var(--surface)}
+.btn-small{padding:9px 14px;min-height:40px;font-size:14px;border-radius:12px}
+.btn:focus-visible,.lang:focus-visible{outline:3px solid var(--water);outline-offset:2px}
+
+/* hero */
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;padding:36px 0 64px}
+.tagline{display:inline-block;font-size:14px;font-weight:600;color:var(--water);border:1px solid var(--line);border-radius:999px;padding:6px 14px;margin-bottom:20px}
+.hero h1{font-size:clamp(40px,7vw,68px);font-weight:700}
+.hero h1 em{font-style:normal;color:var(--food)}
+.lede{font-size:clamp(18px,2.2vw,21px);color:var(--muted);margin-top:20px;max-width:34em}
+.cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+.fine{font-size:14px;color:var(--muted);margin-top:12px}
+.stores{margin-top:22px;font-size:14px;color:var(--muted);display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+
+/* phone frame around real screenshots */
+.phone{width:min(300px,78vw);margin:0 auto;border-radius:38px;border:9px solid var(--raised);background:var(--raised);overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.28)}
+.phone img{width:100%;height:auto}
+
+/* what you can track */
+.chips{display:flex;flex-wrap:wrap;gap:10px;list-style:none;padding:0;margin:0 0 72px}
+.chips li{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:8px 16px;font-size:15px;font-weight:500}
+
+/* feature rows */
+.feature{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;padding:56px 0;border-top:1px solid var(--line)}
+.feature.flip .media{order:-1}
+.kicker{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px}
+.k-food{color:var(--food)} .k-exercise{color:var(--exercise)} .k-water{color:var(--water)}
+.feature h2{font-size:clamp(28px,4vw,40px);font-weight:700}
+.feature p{color:var(--muted);margin-top:16px;max-width:32em}
+.note{font-size:14px;margin-top:14px;padding:10px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--line);color:var(--muted)}
+
+/* photo-calorie steps */
+.steps{list-style:none;padding:0;margin:22px 0 0;display:grid;gap:14px;counter-reset:s}
+.steps li{counter-increment:s;display:grid;grid-template-columns:36px 1fr;gap:12px;align-items:start}
+.steps li::before{content:counter(s);width:36px;height:36px;border-radius:50%;background:var(--food);color:var(--on-accent);font-family:'Space Grotesk',sans-serif;font-weight:700;display:flex;align-items:center;justify-content:center}
+.steps strong{display:block;font-family:'Space Grotesk',sans-serif;font-size:19px}
+.steps span{color:var(--muted);font-size:16px}
+.plate{border-radius:28px;overflow:hidden;border:1px solid var(--line);max-width:380px;margin:0 auto}
+.plate img{width:100%;aspect-ratio:4/5;object-fit:cover;object-position:center 62%}
+.plate figcaption{font-size:13px;color:var(--muted);padding:10px 14px;background:var(--surface)}
+figure{margin:0}
+
+/* small cards */
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;padding:56px 0;border-top:1px solid var(--line)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:26px}
+.card h3{font-size:24px;font-weight:700}
+.card p{color:var(--muted);margin-top:12px}
+
+/* closing */
+.closing{text-align:center;padding:72px 0 80px;border-top:1px solid var(--line)}
+.closing h2{font-size:clamp(30px,5vw,48px);font-weight:700}
+.closing h2 em{font-style:normal;color:var(--food)}
+.closing .cta{justify-content:center}
+
+footer{border-top:1px solid var(--line);padding:28px 0 40px;font-size:14px;color:var(--muted)}
+footer nav{display:flex;flex-wrap:wrap;gap:8px 20px;margin-bottom:14px}
+footer a{color:var(--muted)}
+footer a:hover{color:var(--text)}
+
+@media (max-width:820px){
+  .hero,.feature{grid-template-columns:1fr;gap:32px}
+  .hero{padding:20px 0 48px}
+  .feature{padding:44px 0}
+  .feature.flip .media{order:0}
+  .cards{grid-template-columns:1fr;padding:44px 0}
+  .top .btn-small{display:none}
+}
