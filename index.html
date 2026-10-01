@@ -4016,9 +4016,19 @@ function healthConnectSectionHTML(){
     <div style="font-size:10px;color:var(--muted);">${tr('hc_manage_permissions_note')}</div>
   </div>`;
 }
-function openHealthConnectSettingsOrInstall(){
+// This is the button shown when Health Connect is NOT available, which is exactly when
+// its settings screen can't be opened either (the plugin call rejects) — so on Android
+// fall back to the Health Connect Play Store listing instead of failing silently.
+const HEALTH_CONNECT_STORE_URL = 'https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata';
+async function openHealthConnectSettingsOrInstall(){
   const Health = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Health;
-  if(Health && Health.openHealthConnectSettings) Health.openHealthConnectSettings();
+  try{
+    if(!(Health && Health.openHealthConnectSettings)) throw new Error('Health plugin unavailable');
+    await Health.openHealthConnectSettings();
+  }catch(e){
+    if(window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform()==='android') window.open(HEALTH_CONNECT_STORE_URL, '_blank');
+    else toast(tr('err_hc_not_installed'), true);
+  }
 }
 async function connectHealthConnect(){
   if(typeof window.hcConnect !== 'function') return;
@@ -6567,7 +6577,11 @@ if(window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.P
   // v1) — foreground/resume plus a manual "sync now" button (see Settings) is the sync
   // model. hcMaybeSync() throttles itself, so this is safe to call on every resume.
   window.Capacitor.Plugins.App.addListener('appStateChange', ({isActive}) => {
-    if(isActive && typeof window.hcMaybeSync==='function') window.hcMaybeSync();
+    if(!isActive) return;
+    // Availability is otherwise only checked at launch — re-check on resume so coming
+    // back from installing Health Connect swaps the "install" button for "connect".
+    if(window._hcState && window._hcState.availability!=='available' && typeof window.hcCheckAvailability==='function') window.hcCheckAvailability();
+    if(typeof window.hcMaybeSync==='function') window.hcMaybeSync();
   });
 }
 
