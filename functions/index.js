@@ -475,7 +475,68 @@ exports.revenueCatWebhook = onRequest(
  * Deliberately does not throw on failure (logs and returns instead) — an
  * unclassified doc just sits without these fields for manual review; retrying
  * indefinitely on a bad Claude response would be worse than that.
+ *
+ * Cost guards (added for production, where the reporter population is no longer
+ * 12 testers): the client only dedupes automatic error reports per app session, so
+ * one bug shipped in a release arrives once per user per session. Error reports are
+ * therefore grouped server-side by a normalized-message signature and only the
+ * FIRST report of each signature is sent to Claude — later ones copy its
+ * classification. A global daily cap on Claude calls backstops everything else
+ * (many distinct signatures, or someone spamming the Send Feedback box).
  */
+const CLASSIFY_DAILY_CAP = 200;
+// How long a signature's first reporter gets to finish classifying before a later
+// report of the same error is allowed to retry (covers a failed/timed-out Claude call).
+const SIGNATURE_CLAIM_RETRY_MS = 10 * 60 * 1000;
+
+// Digits are collapsed so messages that only differ by an embedded id, line number
+// or timestamp still land on the same signature.
+function errorSignature(message) {
+  const normalized = String(message || '').toLowerCase().replace(/\d+/g, '#').replace(/\s+/g, ' ').trim().slice(0, 200);
+  return crypto.createHash('sha1').update(normalized).digest('hex').slice(0, 20);
+}
+
+/**
+ * Counts this report against errorSignatures/{sig} and decides who classifies it.
+ * Returns {classification} when the signature is already classified, {claimed:true}
+ * when this report should call Claude, or {} when another report's classification
+ * is still in flight. Admin-SDK only — no client rule matches this collection.
+ */
+async function claimErrorSignature(sigRef, message, data) {
+  return db.runTransaction(async (tx) => {
+    const s = await tx.get(sigRef);
+    const seen = {
+      count: FieldValue.increment(1),
+      lastSeenAt: FieldValue.serverTimestamp(),
+      lastAppVersion: data.appVersion || null,
+      lastPlatform: data.platform || null,
+    };
+    if (!s.exists) {
+      tx.set(sigRef, { ...seen, message: message.slice(0, 200), firstSeenAt: FieldValue.serverTimestamp(), claimedAt: Timestamp.now() });
+      return { claimed: true };
+    }
+    const sig = s.data();
+    if (sig.classification) {
+      tx.update(sigRef, seen);
+      return { classification: sig.classification };
+    }
+    const claimStale = !sig.claimedAt || Date.now() - sig.claimedAt.toMillis() > SIGNATURE_CLAIM_RETRY_MS;
+    tx.update(sigRef, claimStale ? { ...seen, claimedAt: Timestamp.now() } : seen);
+    return claimStale ? { claimed: true } : {};
+  });
+}
+
+async function underClassifyDailyCap() {
+  const ref = db.doc(`ops/classifyUsage-${todayKey()}`);
+  return db.runTransaction(async (tx) => {
+    const s = await tx.get(ref);
+    const count = s.exists ? s.data().count || 0 : 0;
+    if (count >= CLASSIFY_DAILY_CAP) return false;
+    tx.set(ref, { count: count + 1 }, { merge: true });
+    return true;
+  });
+}
+
 exports.classifyFeedback = onDocumentCreated(
   { document: 'feedback/{docId}', secrets: [anthropicApiKey] },
   async (event) => {
@@ -484,6 +545,29 @@ exports.classifyFeedback = onDocumentCreated(
     const data = snap.data();
     const message = String(data.message || '').trim();
     if (!message) return;
+
+    let sigRef = null;
+    try {
+      if (data.type === 'error') {
+        sigRef = db.doc(`errorSignatures/${errorSignature(message)}`);
+        const claim = await claimErrorSignature(sigRef, message, data);
+        if (!claim.claimed) {
+          await snap.ref.update({
+            errorSignature: sigRef.id,
+            ...(claim.classification ? { ...claim.classification, classifiedAt: FieldValue.serverTimestamp() } : {}),
+          });
+          return;
+        }
+        await snap.ref.update({ errorSignature: sigRef.id });
+      }
+      if (!(await underClassifyDailyCap())) {
+        logger.warn('classifyFeedback: daily classification cap reached, leaving doc unclassified', { docId: event.params.docId, cap: CLASSIFY_DAILY_CAP });
+        return;
+      }
+    } catch (e) {
+      logger.error('classifyFeedback: dedupe/cap check failed', { docId: event.params.docId, error: String(e) });
+      return;
+    }
 
     const context = [
       `Tipo: ${data.type === 'error' ? 'error automático capturado por la app' : 'feedback escrito por el usuario'}`,
@@ -515,15 +599,16 @@ Guía: "noise" es feedback sin contenido accionable (agradecimientos genéricos,
     const category = validCategories.includes(parsed.category) ? parsed.category : 'unclassified';
     const priority = Number.isInteger(parsed.priority) ? Math.max(1, Math.min(5, parsed.priority)) : null;
 
+    const classification = {
+      category,
+      priority,
+      isNoise: !!parsed.isNoise,
+      churnRisk: !!parsed.churnRisk,
+      classificationSummary: typeof parsed.summary === 'string' ? parsed.summary.slice(0, 200) : null,
+    };
     try {
-      await snap.ref.update({
-        category,
-        priority,
-        isNoise: !!parsed.isNoise,
-        churnRisk: !!parsed.churnRisk,
-        classificationSummary: typeof parsed.summary === 'string' ? parsed.summary.slice(0, 200) : null,
-        classifiedAt: FieldValue.serverTimestamp(),
-      });
+      await snap.ref.update({ ...classification, classifiedAt: FieldValue.serverTimestamp() });
+      if (sigRef) await sigRef.update({ classification });
     } catch (e) {
       logger.error('classifyFeedback: Firestore update failed', { docId: event.params.docId, error: String(e) });
     }
@@ -548,25 +633,63 @@ Guía: "noise" es feedback sin contenido accionable (agradecimientos genéricos,
  * admin-gated callable endpoint just for testing.
  */
 const FEEDBACK_DIGEST_PERIOD_DAYS = 7;
+// Bounds on what one digest run reads and sends to Claude. The clustering call has
+// already failed twice from growing past its output budget as report volume rose, so
+// the prompt size is now capped outright instead of scaling with the week's volume;
+// what didn't fit is reported on the digest (omittedItems) rather than silently lost.
+const FEEDBACK_DIGEST_MAX_DOCS = 5000;
+const FEEDBACK_DIGEST_MAX_ITEMS = 120;
 
 async function runFeedbackDigest() {
   const periodStart = Timestamp.fromMillis(Date.now() - FEEDBACK_DIGEST_PERIOD_DAYS * 24 * 60 * 60 * 1000);
   const periodEnd = Timestamp.now();
-  const snap = await db.collection('feedback').where('createdAt', '>=', periodStart).get();
+  const snap = await db.collection('feedback')
+    .where('createdAt', '>=', periodStart)
+    .orderBy('createdAt', 'desc')
+    .limit(FEEDBACK_DIGEST_MAX_DOCS)
+    .get();
 
-  const items = [];
+  // User-typed feedback stays one item per report. Automatic error reports are
+  // collapsed to one item per error signature (the same grouping classifyFeedback
+  // uses), carrying how many reports and distinct users hit it — otherwise one
+  // widespread crash would fill the whole prompt with copies of itself.
+  const allItems = [];
+  const errorGroups = new Map();
+  let noiseCount = 0;
   snap.forEach((doc) => {
     const d = doc.data();
-    if (d.isNoise === true) return;
-    items.push({
-      id: doc.id,
-      uid: d.uid || 'unknown',
+    if (d.isNoise === true) { noiseCount++; return; }
+    const message = String(d.message || '');
+    if (d.type === 'error') {
+      const sig = d.errorSignature || errorSignature(message);
+      let g = errorGroups.get(sig);
+      if (!g) {
+        g = { ids: [], uids: new Set(), reports: 0, category: 'unclassified', priority: null, churnRisk: false, message: message.slice(0, 300) };
+        errorGroups.set(sig, g);
+        allItems.push(g);
+      }
+      g.reports++;
+      g.uids.add(d.uid || 'unknown');
+      if (g.ids.length < 5) g.ids.push(doc.id);
+      if (d.category) g.category = d.category;
+      if (typeof d.priority === 'number') g.priority = Math.max(g.priority || 0, d.priority);
+      if (d.churnRisk) g.churnRisk = true;
+      return;
+    }
+    allItems.push({
+      ids: [doc.id],
+      uids: new Set([d.uid || 'unknown']),
+      reports: 1,
       category: d.category || 'unclassified',
       priority: typeof d.priority === 'number' ? d.priority : null,
       churnRisk: !!d.churnRisk,
-      message: String(d.message || '').slice(0, 300),
+      message: message.slice(0, 300),
     });
   });
+  const totalReports = snap.size - noiseCount;
+  allItems.sort((a, b) => (b.priority || 0) - (a.priority || 0) || b.uids.size - a.uids.size);
+  const items = allItems.slice(0, FEEDBACK_DIGEST_MAX_ITEMS);
+  const omittedItems = allItems.length - items.length;
 
   if (!items.length) {
     await db.collection('feedbackDigests').add({
@@ -582,10 +705,15 @@ async function runFeedbackDigest() {
   }
 
   const itemsText = items
-    .map((it, i) => `[${i}] usuario=${it.uid.slice(0, 8)} categoria=${it.category} prioridad=${it.priority ?? '?'} churnRisk=${it.churnRisk} mensaje="${it.message}"`)
+    .map((it, i) => {
+      const who = it.reports > 1
+        ? `usuarios_distintos=${it.uids.size} reportes=${it.reports}`
+        : `usuario=${[...it.uids][0].slice(0, 8)}`;
+      return `[${i}] ${who} categoria=${it.category} prioridad=${it.priority ?? '?'} churnRisk=${it.churnRisk} mensaje="${it.message}"`;
+    })
     .join('\n');
 
-  const prompt = `Eres un analista de producto revisando feedback de testers de VitaLinks, una app de salud personal (nutrición, ejercicio, presión arterial, sueño, medicamentos). A continuación hay ${items.length} reportes recientes, ya filtrados de ruido (cada uno ya tiene una categoría y prioridad asignadas individualmente). Tu trabajo es encontrar patrones que un análisis reporte-por-reporte no vería: agrupa los reportes que describen el mismo problema de fondo aunque estén redactados distinto, y para cada grupo cuenta cuántos usuarios DISTINTOS lo reportaron (no cuántos reportes — si el mismo usuario lo repite, cuenta 1).
+  const prompt = `Eres un analista de producto revisando feedback de usuarios de VitaLinks, una app de salud personal (nutrición, ejercicio, presión arterial, sueño, medicamentos). A continuación hay ${items.length} reportes recientes, ya filtrados de ruido (cada uno ya tiene una categoría y prioridad asignadas individualmente). Tu trabajo es encontrar patrones que un análisis reporte-por-reporte no vería: agrupa los reportes que describen el mismo problema de fondo aunque estén redactados distinto, y para cada grupo cuenta cuántos usuarios DISTINTOS lo reportaron (no cuántos reportes — si el mismo usuario lo repite, cuenta 1). Un reporte marcado con "usuarios_distintos=N" es un error automático ya agrupado que afectó a N usuarios: súmalos como N.
 
 Reportes:
 ${itemsText}
@@ -620,7 +748,7 @@ Ordena "issues" de mayor a menor urgencia real, combinando cuántos usuarios dis
         churnRisk: !!issue.churnRisk,
         category: typeof issue.category === 'string' ? issue.category : 'unclassified',
         docIds: Array.isArray(issue.itemIndexes)
-          ? issue.itemIndexes.map((i) => items[i] && items[i].id).filter(Boolean)
+          ? issue.itemIndexes.flatMap((i) => (items[i] ? items[i].ids : [])).slice(0, 50)
           : [],
       }));
     }
@@ -717,8 +845,9 @@ Para cada problema, busca la línea o bloque de código específico que sea rele
     periodStart,
     periodEnd,
     generatedAt: FieldValue.serverTimestamp(),
-    totalReports: items.length,
-    noiseCount: snap.size - items.length,
+    totalReports,
+    noiseCount,
+    omittedItems,
     headline,
     issues,
   });
