@@ -276,6 +276,109 @@
 <div id="app"></div>
 
 <script>
+/* ================= demo mode (begin) ================= */
+// vitalinks.eu/app/?demo=1 opens the app on sample data, so a visitor coming from the
+// landing page sees it populated instead of empty. Everything the app stores while in
+// the demo goes to an in-memory stand-in for localStorage, installed here before any
+// other code reads storage: the visitor's real browser storage is never touched, and
+// the sync layer stays signed out (see window.__vlDemo in the module script), so sample
+// data cannot reach a real account. Reloading starts the demo fresh; leaving it is just
+// opening the app without ?demo. Never active in the native apps.
+(function(){
+  window.__vlDemo = false;
+  let params;
+  try{
+    params = new URLSearchParams(location.search);
+    if(!params.has('demo')) return;
+    if(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) return;
+  }catch(e){ return; }
+
+  const mem = new Map();
+  const store = {
+    get length(){ return mem.size; },
+    key(i){ return [...mem.keys()][i] ?? null; },
+    getItem(k){ k = String(k); return mem.has(k) ? mem.get(k) : null; },
+    setItem(k, v){ mem.set(String(k), String(v)); },
+    removeItem(k){ mem.delete(String(k)); },
+    clear(){ mem.clear(); },
+  };
+  // If the stand-in can't be installed, fall back to the normal app rather than run a
+  // "demo" that writes sample data into the visitor's real storage.
+  try{
+    Object.defineProperty(window, 'localStorage', { value: store, configurable: true });
+    if(window.localStorage !== store) return;
+  }catch(e){ return; }
+  window.__vlDemo = true;
+
+  const en = params.get('lang') === 'en';
+  const put = (k, v) => mem.set(k, JSON.stringify(v));
+  const pad2 = n => String(n).padStart(2, '0');
+  const isoOf = d => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+  // Small fixed-seed generator: the sample looks the same on every visit.
+  let seed = 20261002;
+  const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+  const between = (a, b) => a + (b - a) * rnd();
+  const pick = arr => arr[Math.floor(rnd() * arr.length)];
+  let nextId = 0;
+  const id = () => 'demo' + (++nextId);
+
+  // name ES, name EN, kcal, protein, carbs, fat
+  const FOODS = {
+    desayuno: [['Avena con plátano y nueces','Oatmeal with banana and walnuts',380,12,58,11], ['Tostadas con aguacate y huevo','Avocado toast with egg',420,17,36,23], ['Yogur con fruta y granola','Yogurt with fruit and granola',310,14,45,8]],
+    comida: [['Pollo a la plancha con quinoa y ensalada','Grilled chicken with quinoa and salad',560,42,48,20], ['Lentejas con verduras','Lentil and vegetable stew',480,26,68,10], ['Salmón con arroz integral y brócoli','Salmon with brown rice and broccoli',610,38,52,26]],
+    merienda: [['Manzana y un puñado de almendras','Apple and a handful of almonds',210,5,24,12], ['Yogur natural','Plain yogurt',120,9,10,5]],
+    cena: [['Tortilla francesa con ensalada','Omelette with salad',340,20,10,24], ['Crema de calabaza y tostada','Pumpkin soup with toast',290,8,42,9], ['Merluza al horno con verduras','Baked hake with vegetables',380,34,18,17]],
+  };
+  const TIMES = { desayuno:'08:10', comida:'14:05', merienda:'17:30', cena:'21:00' };
+  const MOVES = [['andar','Andar','Walk',40,170], ['bici','Bici','Bike ride',45,320], ['yoga','Yoga','Yoga',30,95], ['pesas','Pesas','Weights',35,210], ['correr','Correr','Run',25,260]];
+  const meal = (type) => {
+    const f = pick(FOODS[type]);
+    return { id:id(), type, name: en ? f[1] : f[0], calories:f[2], protein:f[3], carbs:f[4], fat:f[5],
+      fiber:0, sugar:0, sodium:0, iron:0, calcium:0, potassium:0, vitaminC:0, time:TIMES[type] };
+  };
+
+  const DAYS = 30;
+  const med = { id:'demo-med', name: en ? 'Vitamin D' : 'Vitamina D', dose:'1000 UI', times:['08:00'] };
+  const today = new Date();
+  for(let i = DAYS - 1; i >= 0; i--){
+    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
+    const isToday = i === 0;
+    const day = { meals:[], exercises:[], weight:null, sleepHours:null, water:0, bp:[], medsTaken:[], bodyComp:[] };
+    const progress = (DAYS - 1 - i) / (DAYS - 1);                       // 0 on the oldest day, 1 today
+    day.weight = Math.round((82.4 - 1.7 * progress + between(-0.25, 0.25)) * 10) / 10;
+    day.sleepHours = Math.round(between(6.2, 8.1) * 2) / 2;
+    day.meals.push(meal('desayuno'), meal('comida'));
+    if(!isToday){
+      if(rnd() < 0.5) day.meals.push(meal('merienda'));
+      day.meals.push(meal('cena'));
+    }
+    day.water = isToday ? 1 : Math.round(between(1.25, 2.5) * 4) / 4;
+    if(rnd() < 0.7 || isToday){
+      const m = pick(MOVES);
+      day.exercises.push({ id:id(), name: en ? m[2] : m[1], minutes:m[3], calories:m[4], time: isToday ? '07:30' : '18:45', type:m[0] });
+    }
+    if(i % 2 === 0){
+      day.bp.push({ id:id(), systolic: Math.round(between(109, 119)), diastolic: Math.round(between(70, 78)), pulse: Math.round(between(60, 70)), time:'07:45' });
+    }
+    if(rnd() < 0.9) day.medsTaken.push({ key: med.id + ':08:00', time:'08:05' });
+    if(i % 7 === 0){
+      day.bodyComp.push({ id:id(), time:'07:50', bmi: Math.round((day.weight / (1.76 * 1.76)) * 10) / 10,
+        bodyFatPct: Math.round((24.6 - 1.2 * progress) * 10) / 10, skeletalMusclePct: Math.round((38.2 + 0.6 * progress) * 10) / 10 });
+    }
+    put('vl:day:' + isoOf(d), day);
+  }
+  put('vl:meds', [med]);
+  put('vl:goals', { calorieGoal:2000, waterGoal:2, exerciseGoal:30, waterUnitMl:1000 });
+  put('vl:lang', en ? 'en' : 'es');
+  // A demo visitor shouldn't be walked through first-run prompts meant for real installs.
+  put('vl:welcome-shown', true);
+  put('vl:tour-nudge-shown', true);
+  put('vl:backup-encryption-notice-shown', true);
+  put('vl:signin-reminder-last-shown', Date.now());
+  mem.set('vl:_lastChangeAt', String(Date.now()));
+})();
+/* ================= demo mode (end) ================= */
+
 /* ================= utils ================= */
 const LS = {
   get(k){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; }catch{ return null; } },
@@ -601,6 +704,7 @@ const I18N = {
     invite_titulo:'Invita a un amigo', invite_boton:'Compartir invitación', invite_copiado:'Enlace copiado al portapapeles',
     invite_asunto:'Invitación a VitaLinks',
     app_version_web:'versión web',
+    demo_banner:'Estás viendo datos de ejemplo. Nada de lo que hagas aquí se guarda.', demo_exit:'Empezar con mis datos', demo_sync_note:'La sincronización está desactivada mientras ves los datos de ejemplo.',
     feedback_title:'Enviar comentarios', feedback_explainer:'¿Algo no funciona bien o tienes una idea? Cuéntanoslo — incluimos automáticamente la versión de la app y la pantalla actual para ayudarnos a investigar.',
     feedback_placeholder:'Describe lo que viste...', feedback_send_button:'Enviar comentarios', feedback_sent:'¡Gracias! Comentarios enviados.',
     err_feedback_empty:'Escribe un mensaje antes de enviar.', err_feedback_failed:'No se pudo enviar. Inténtalo de nuevo.',
@@ -945,6 +1049,7 @@ const I18N = {
     invite_titulo:'Invite a friend', invite_boton:'Share invite', invite_copiado:'Link copied to clipboard',
     invite_asunto:'Invitation to VitaLinks',
     app_version_web:'web version',
+    demo_banner:"You're looking at sample data. Nothing you do here is saved.", demo_exit:'Start with my own data', demo_sync_note:'Sync is off while you are viewing sample data.',
     feedback_title:'Send feedback', feedback_explainer:"Something not working right, or have an idea? Let us know — we automatically include the app version and current screen to help us investigate.",
     feedback_placeholder:'Describe what you saw...', feedback_send_button:'Send feedback', feedback_sent:'Thanks! Feedback sent.',
     err_feedback_empty:'Write a message before sending.', err_feedback_failed:"Couldn't send it. Try again.",
@@ -4094,6 +4199,7 @@ function appleSignInButtonHTML(){
   return `<button class="btn" style="width:100%;margin-bottom:6px;background:#000;color:#fff;border:1px solid #fff;display:inline-flex;align-items:center;justify-content:center;gap:8px;" onclick="firebaseSignInApple()"><svg width="14" height="14" viewBox="0 0 384 512" fill="currentColor" aria-hidden="true"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>${tr('sync_iniciar_sesion_apple')}</button>`;
 }
 function syncSectionHTML(){
+  if(window.__vlDemo) return `<div style="font-size:12px;color:var(--muted);">${tr('demo_sync_note')}</div>`;
   const s = window._syncState;
   if(!s.ready){
     return `<div style="font-size:12px;color:var(--muted);">${tr('sync_cargando')}</div>`;
@@ -4679,7 +4785,21 @@ function saveSettings(){
 }
 
 /* ================= actions ================= */
+// Fixed bar shown only in the sample-data demo: says what this is and offers the way out.
+function renderDemoBanner(){
+  if(!window.__vlDemo) return;
+  let bar = document.getElementById('demo-banner');
+  if(!bar){
+    bar = document.createElement('div');
+    bar.id = 'demo-banner';
+    bar.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 14px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:var(--raised);border-top:1px solid var(--line);font-size:13px;';
+    document.body.appendChild(bar);
+    document.body.style.paddingBottom = '72px';
+  }
+  bar.innerHTML = `<span>${esc(tr('demo_banner'))}</span><a class="btn btn-primary" style="padding:6px 12px;font-size:13px;text-decoration:none;" href="${esc(location.pathname)}">${esc(tr('demo_exit'))}</a>`;
+}
 function render(){
+  renderDemoBanner();
   const prevOuterNav = document.querySelector('nav.side');
   const prevScroll = document.querySelector('nav.side .nav-scroll');
   const navScrollLeft = prevScroll ? prevScroll.scrollLeft : 0;
@@ -7165,6 +7285,7 @@ if(localStorage.getItem('vl:_lastChangeAt') && !localStorage.getItem('vl:backup-
   }
 
   async function pushToCloud(){
+    if(window.__vlDemo) return;
     if(!currentUser) return;
     if(!remoteSnapshotSeen) return;
     const payload = collectLocalData();
@@ -7313,6 +7434,7 @@ if(localStorage.getItem('vl:_lastChangeAt') && !localStorage.getItem('vl:backup-
     return window.tr('err_sync_generic') + detail;
   }
   window.firebaseSignIn = async function(){
+    if(window.__vlDemo) return;
     try{
       if(window.Capacitor && window.Capacitor.isNativePlatform()){
         // Firebase Auth's signInWithPopup needs a real browser window/tab, which the
@@ -7334,6 +7456,7 @@ if(localStorage.getItem('vl:_lastChangeAt') && !localStorage.getItem('vl:backup-
   // returns the identity token plus the raw nonce it hashed for Apple; both are needed
   // to build the Firebase credential.
   window.firebaseSignInApple = async function(){
+    if(window.__vlDemo) return;
     try{
       const result = await window.Capacitor.Plugins.FirebaseAuthentication.signInWithApple();
       const idToken = result.credential && result.credential.idToken;
@@ -7363,6 +7486,9 @@ if(localStorage.getItem('vl:_lastChangeAt') && !localStorage.getItem('vl:backup-
   };
 
   onAuthStateChanged(auth, (user) => {
+    // In the sample-data demo a visitor who happens to be signed in on this browser is
+    // treated as signed out: no snapshot listener, no pull, no push.
+    if(window.__vlDemo) user = null;
     currentUser = user;
     // Apple can withhold the email entirely, so never leave the account label empty.
     window._syncState.user = user ? { email: user.email || 'Apple ID', uid: user.uid } : null;

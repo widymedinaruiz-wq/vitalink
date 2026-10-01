@@ -44,7 +44,7 @@ function fakeSnap(data) {
  * signIn(user) fires onAuthStateChanged, and the captured onSnapshot listeners are
  * invoked directly with fake snapshots.
  */
-function loadClient({ localStorage: initialLS = {}, capacitor = undefined } = {}) {
+function loadClient({ localStorage: initialLS = {}, capacitor = undefined, demo = false } = {}) {
   const localStorage = makeLocalStorage(initialLS);
   const calls = { setDoc: [], addDoc: [], getDoc: [] };
   const listeners = []; // { path, onNext, onError }
@@ -56,6 +56,8 @@ function loadClient({ localStorage: initialLS = {}, capacitor = undefined } = {}
     _planState: { plan: 'free', planExpiresAt: null },
     syncDailyReminder: () => {},
     addEventListener: () => {},
+    // Set by the demo-mode block at the top of the classic script (see tests/demo.test.js).
+    __vlDemo: demo,
   };
 
   const context = {
@@ -116,6 +118,7 @@ function loadClient({ localStorage: initialLS = {}, capacitor = undefined } = {}
     calls,
     signIn: (user) => authCallback(user),
     signOut: () => authCallback(null),
+    listenerCount: () => listeners.filter((l) => l.active).length,
     /** Deliver a users/{uid} snapshot; pass undefined for "document does not exist". */
     userDocSnapshot: (uid, docData) => activeListener(`users/${uid}`).onNext(fakeSnap(docData)),
     billingSnapshot: (uid, docData) => {
