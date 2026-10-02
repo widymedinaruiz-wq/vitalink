@@ -6936,7 +6936,7 @@ if(localStorage.getItem('vl:_lastChangeAt') && !localStorage.getItem('vl:backup-
      keys (see emptyHCDay/getHealthConnectDay/etc. near emptyDay(), earlier in this file),
      never 'vl:' keys, so a device sync can never race the fragile main-doc sync. No live
      onSnapshot for this data — v1 only needs a one-shot reinstall/new-device backfill. */
-  const HC_READ_TYPES = ['steps','heartRate','restingHeartRate','bloodPressure','oxygenSaturation','workouts','weight','sleep'];
+  const HC_READ_TYPES = ['steps','heartRate','bloodPressure','oxygenSaturation','workouts','weight','sleep'];
   // Exposed so the Settings UI (non-module script) can detect newly-added scopes an
   // already-connected user hasn't granted yet, without duplicating this list — see
   // the "grant additional access" branch in healthConnectSectionHTML().
@@ -7002,16 +7002,6 @@ if(localStorage.getItem('vl:_lastChangeAt') && !localStorage.getItem('vl:backup-
             const vals = samples.map(x=>Number(x.value)).filter(v=>isFinite(v));
             const day = getHealthConnectDay(iso);
             day.heartRate = { ...(day.heartRate||{}), avgBpm: Math.round(vals.reduce((s,v)=>s+v,0)/vals.length), minBpm: Math.round(Math.min(...vals)), maxBpm: Math.round(Math.max(...vals)), source:'healthconnect', syncedAt: Date.now() };
-            setHealthConnectDay(iso, day);
-            touchedDays.add(iso);
-          }
-        }
-        if(granted.has('restingHeartRate')){
-          const { samples } = await Health.readSamples({ dataType:'restingHeartRate', startDate:dayStart, endDate:dayEnd, limit:100 });
-          if(samples.length){
-            const vals = samples.map(x=>Number(x.value)).filter(v=>isFinite(v));
-            const day = getHealthConnectDay(iso);
-            day.heartRate = { ...(day.heartRate||{}), restingBpm: Math.round(vals.reduce((s,v)=>s+v,0)/vals.length), source:'healthconnect', syncedAt: Date.now() };
             setHealthConnectDay(iso, day);
             touchedDays.add(iso);
           }
