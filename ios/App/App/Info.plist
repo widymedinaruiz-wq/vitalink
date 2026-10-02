@@ -46,9 +46,9 @@
 	<key>NSCameraUsageDescription</key>
 	<string>VitaLinks uses the camera to scan food barcodes and to estimate calories from photos of your meals.</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>VitaLinks reads health data such as steps, heart rate, blood pressure, oxygen saturation, and exercise from Apple Health so it can sync with your VitaLinks profile and help you track your wellbeing.</string>
+	<string>VitaLinks reads steps, heart rate, blood pressure, oxygen saturation, workouts, weight and sleep from Apple Health, with your permission, to show them alongside what you log in the app.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>VitaLinks may save health data you log in the app to Apple Health so it stays in sync with your other health apps.</string>
+	<string>VitaLinks does not save data to Apple Health. If a future version does, it will ask for your permission first.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
