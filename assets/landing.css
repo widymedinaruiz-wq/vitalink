@@ -53,6 +53,11 @@ p{margin:0}
 .phone{width:min(300px,78vw);margin:0 auto;border-radius:38px;border:9px solid var(--raised);background:var(--raised);overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.28)}
 .phone img{width:100%;height:auto}
 
+/* a photo with a real screenshot overlapping its corner */
+.duo{position:relative;width:min(400px,100%);margin:0 auto;padding-bottom:44px}
+.duo .pic{width:80%;aspect-ratio:4/5;object-fit:cover;border-radius:28px;border:1px solid var(--line)}
+.duo .phone{position:absolute;right:0;bottom:0;width:46%;margin:0;border-width:6px;border-radius:26px}
+
 /* what you can track */
 .chips{display:flex;flex-wrap:wrap;gap:10px;list-style:none;padding:0;margin:0 0 72px}
 .chips li{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:8px 16px;font-size:15px;font-weight:500}
@@ -66,20 +71,40 @@ p{margin:0}
 .feature p{color:var(--muted);margin-top:16px;max-width:32em}
 .note{font-size:14px;margin-top:14px;padding:10px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--line);color:var(--muted)}
 
-/* photo-calorie steps */
-.steps{list-style:none;padding:0;margin:22px 0 0;display:grid;gap:14px;counter-reset:s}
-.steps li{counter-increment:s;display:grid;grid-template-columns:36px 1fr;gap:12px;align-items:start}
-.steps li::before{content:counter(s);width:36px;height:36px;border-radius:50%;background:var(--food);color:var(--on-accent);font-family:'Space Grotesk',sans-serif;font-weight:700;display:flex;align-items:center;justify-content:center}
-.steps strong{display:block;font-family:'Space Grotesk',sans-serif;font-size:19px}
-.steps span{color:var(--muted);font-size:16px}
-.plate{border-radius:28px;overflow:hidden;border:1px solid var(--line);max-width:380px;margin:0 auto}
-.plate img{width:100%;aspect-ratio:4/5;object-fit:cover;object-position:center 62%}
-.plate figcaption{font-size:13px;color:var(--muted);padding:10px 14px;background:var(--surface)}
+/* photo-calorie steps: three cards in a row; a swipeable strip on phones */
+.feature.photo{display:block}
+.feature.photo .intro p{max-width:38em}
+.steps{list-style:none;padding:0;margin:32px 0 0;display:grid;grid-template-columns:repeat(3,1fr);gap:20px;counter-reset:s}
+.steps>li{counter-increment:s;background:var(--surface);border:1px solid var(--line);border-radius:24px;overflow:hidden}
+.steps>li>div{position:relative;padding:18px 18px 22px 64px}
+.steps>li>div::before{content:counter(s);position:absolute;left:16px;top:18px;width:36px;height:36px;border-radius:50%;background:var(--food);color:var(--on-accent);font-family:'Space Grotesk',sans-serif;font-weight:700;display:flex;align-items:center;justify-content:center}
+.steps>li>div>strong{display:block;font-family:'Space Grotesk',sans-serif;font-size:19px}
+.steps>li>div>span{color:var(--muted);font-size:15px}
+.shot{position:relative;aspect-ratio:4/5;overflow:hidden;background:var(--raised)}
+.shot>img{width:100%;height:100%;object-fit:cover}
+.shot.screen{padding:9% 15% 0}
+.shot.screen>img{height:auto;border-radius:26px 26px 0 0;border:7px solid var(--bg);border-bottom:0;box-shadow:0 18px 40px rgba(0,0,0,.25)}
+/* viewfinder corners over the phone screen in the first photo */
+.finder{position:absolute;left:21.5%;top:29.5%;width:23%;height:41%;opacity:.92;background:
+  linear-gradient(#fff,#fff) 0 0/20px 3px,linear-gradient(#fff,#fff) 0 0/3px 20px,
+  linear-gradient(#fff,#fff) 100% 0/20px 3px,linear-gradient(#fff,#fff) 100% 0/3px 20px,
+  linear-gradient(#fff,#fff) 0 100%/20px 3px,linear-gradient(#fff,#fff) 0 100%/3px 20px,
+  linear-gradient(#fff,#fff) 100% 100%/20px 3px,linear-gradient(#fff,#fff) 100% 100%/3px 20px;
+  background-repeat:no-repeat}
+/* example estimate labels over the second photo */
+.tags{list-style:none;margin:0;padding:0}
+.tag{position:absolute;display:flex;align-items:center;gap:7px;background:#fff;color:#132A25;border-radius:14px;padding:6px 11px 6px 6px;font-size:11px;font-weight:600;line-height:1.2;box-shadow:0 8px 20px rgba(0,0,0,.2)}
+.tag img{width:30px;height:30px}
+.tag b{display:block;font-family:'Space Grotesk',sans-serif;font-size:15px}
+.tag.t1{left:5%;top:5%} .tag.t2{right:5%;top:5%} .tag.t3{left:5%;bottom:9%} .tag.t4{right:5%;bottom:9%}
+.example{position:absolute;left:50%;bottom:2.2%;transform:translateX(-50%);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:rgba(14,39,35,.72);border-radius:999px;padding:2px 10px}
+.feature.photo .note{max-width:none}
 figure{margin:0}
 
 /* small cards */
 .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;padding:56px 0;border-top:1px solid var(--line)}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:26px}
+.card-img{width:calc(100% + 52px);max-width:none;margin:-26px -26px 22px;aspect-ratio:3/2;object-fit:cover;border-radius:23px 23px 0 0}
 .card h3{font-size:24px;font-weight:700}
 .card p{color:var(--muted);margin-top:12px}
 
@@ -99,6 +124,8 @@ footer a:hover{color:var(--text)}
   .hero{padding:20px 0 48px}
   .feature{padding:44px 0}
   .feature.flip .media{order:0}
+  .steps{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:80%;overflow-x:auto;scroll-snap-type:x mandatory;margin:28px -20px 0;padding:0 20px 8px;scroll-padding:0 20px}
+  .steps>li{scroll-snap-align:start}
   .cards{grid-template-columns:1fr;padding:44px 0}
   .top .btn-small{display:none}
 }
