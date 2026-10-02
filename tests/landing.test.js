@@ -51,6 +51,9 @@ test('every local file the pages reference exists', () => {
     for (const [, ref] of html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)) {
       assert.ok(fs.existsSync(path.join(root, ref)), `missing ${ref}`);
     }
+    for (const [, ref] of html.matchAll(/content="https:\/\/vitalinks\.eu(\/[^"]+\.png)"/g)) {
+      assert.ok(fs.existsSync(path.join(root, ref)), `missing share image ${ref}`);
+    }
   }
   assert.ok(fs.existsSync(path.join(root, 'app', 'index.html')), 'the app is not at /app/');
 });
