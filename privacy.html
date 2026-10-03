@@ -67,11 +67,11 @@
 
     <div data-lang="es">
       <h1>Política de Privacidad</h1>
-      <div class="meta">Vigente desde el 28 de agosto de 2026 · Aplica a la app web de VitaLinks y a su app de Android</div>
+      <div class="meta">Última actualización: 3 de octubre de 2026 · Aplica a VitaLinks en la web, Android, iPhone y iPad</div>
     </div>
     <div data-lang="en">
       <h1>Privacy Policy</h1>
-      <div class="meta">Effective August 28, 2026 · Applies to the VitaLinks web app and its Android app</div>
+      <div class="meta">Last updated: October 3, 2026 · Applies to VitaLinks on the web, Android, iPhone and iPad</div>
     </div>
   </header>
 
@@ -82,11 +82,21 @@
 
     <h2>Qué recopilamos</h2>
     <h3>Datos que tú ingresas</h3>
-    <p>Comidas, ejercicio, presión arterial, medicamentos, mediciones de composición corporal, peso, sueño, y consumo de agua — todo lo que registras en la app. Esto se guarda localmente en tu dispositivo (almacenamiento local del navegador, o almacenamiento de la app en Android) por defecto. Nunca lo vemos a menos que actives la sincronización.</p>
+    <p>Comidas, ejercicio, presión arterial, medicamentos, mediciones de composición corporal, peso, sueño, y consumo de agua — todo lo que registras en la app. Esto se guarda localmente en tu dispositivo (almacenamiento local del navegador, o almacenamiento de la app en Android, iPhone y iPad) por defecto. Nunca lo vemos a menos que actives la sincronización.</p>
+    <h3>Datos de Health Connect y Salud de Apple, si los conectas</h3>
+    <p>En Android puedes conectar Health Connect, y en iPhone y iPad, Salud de Apple. Si lo haces, VitaLinks lee de ahí tus pasos, frecuencia cardiaca, presión arterial, saturación de oxígeno, entrenamientos, peso y sueño, para mostrarlos junto a lo que registras. Solo los lee: VitaLinks nunca escribe ni modifica datos en Health Connect ni en Salud de Apple. Se guardan en tu dispositivo y, si has iniciado sesión, en tu registro privado sincronizado. No los usamos para publicidad ni para estudios de mercado, no los vendemos y no los compartimos con terceros, salvo lo descrito abajo para el resumen diario que tú pides. Puedes retirar el permiso en cualquier momento desde los ajustes del sistema.</p>
     <h3>Datos de cuenta, si inicias sesión</h3>
-    <p>Iniciar sesión con Google es opcional y solo se necesita para sincronizar tus datos entre tus propios dispositivos. Si inicias sesión, tus datos se copian a un registro privado vinculado a tu cuenta, legible solo por ti — no por nosotros, no por otros usuarios, ni por nadie con quien no lo hayas compartido explícitamente.</p>
+    <p>Iniciar sesión con Google (o con Apple en iPhone y iPad) es opcional y solo se necesita para sincronizar tus datos entre tus propios dispositivos. Recibimos tu correo y un identificador de cuenta; si usas "Ocultar mi correo" de Apple, recibimos la dirección de reenvío de Apple en lugar de la tuya. Si inicias sesión con Apple, guardamos además un código que Apple nos da para poder revocar ese acceso cuando eliminas tu cuenta. Tus datos se copian a un registro privado vinculado a tu cuenta: las reglas de la base de datos solo permiten que tu cuenta lo lea, ningún otro usuario puede verlo, y nosotros no lo consultamos salvo que nos pidas ayuda con un problema o que lo eliminemos.</p>
     <h3>Tu clave de API de Anthropic, si agregas una</h3>
     <p>La función opcional de estimación de calorías con IA usa tu propia clave de API de Anthropic, que tú proporcionas. Esa clave se guarda solo en el almacenamiento local de tu navegador/app — nunca se sincroniza a nuestros servidores y nunca sale de tu dispositivo, excepto en la solicitud directa que tu dispositivo hace a Anthropic para estimar la nutrición de un alimento.</p>
+    <h3>VitaLinks Plus</h3>
+    <p>Las compras de VitaLinks Plus las procesan Google Play o la App Store; nosotros nunca vemos tus datos de pago. RevenueCat gestiona el estado de tu suscripción: recibe la compra junto con tu identificador de cuenta de VitaLinks, sin ningún dato de salud.</p>
+    <ul>
+      <li><b>Calorías por foto:</b> la foto o fotos de tu plato se envían a nuestro servidor y a Anthropic para estimar sus calorías y macronutrientes. No guardamos las fotos.</li>
+      <li><b>Resumen diario con IA:</b> cuando lo pides, se envía a Anthropic un resumen breve de tu día para generar una frase: puntuación de vitalidad, calorías, agua y minutos de ejercicio frente a tus metas, horas de sueño, la última presión arterial, la adherencia a medicamentos y el cambio de peso de la semana. Los minutos de ejercicio pueden incluir entrenamientos importados de Health Connect o Salud de Apple. No guardamos ese resumen.</li>
+    </ul>
+    <h3>Comentarios e informes de errores</h3>
+    <p>Si has iniciado sesión y usas "Enviar comentarios" en Ajustes, recibimos tu mensaje, la versión de la app, datos técnicos del dispositivo y tu correo, para poder responderte. Además, la app nos envía automáticamente informes de errores (el mensaje de error, la versión de la app, datos técnicos y tu identificador de cuenta, sin tu correo) para que podamos corregirlos. Estos informes se borran cuando eliminas tu cuenta.</p>
     <h3>Recuentos anónimos de uso de la web</h3>
     <p>En vitalinks.eu contamos cuántas veces se ve la página de presentación, cuántas veces se pulsan sus botones y cuántas veces alguien inicia sesión desde la web. Guardamos solo totales diarios: no usamos cookies ni identificadores, y no guardamos tu dirección IP ni nada sobre ti junto a esos totales. Si tu navegador envía la señal "No rastrear" o Global Privacy Control, no se cuenta nada. Las apps móviles no envían estos recuentos.</p>
 
@@ -97,12 +107,15 @@
     <h2>Terceros involucrados</h2>
     <ul>
       <li><b>Firebase (Google)</b> — provee el inicio de sesión y, si lo activas, la sincronización privada entre dispositivos. Las propias prácticas de privacidad de Google aplican a esta infraestructura; consulta la <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Política de Privacidad de Google</a>.</li>
-      <li><b>Anthropic</b> — solo es contactada directamente por tu dispositivo si has agregado tu propia clave de API y usas la función de estimación con IA. Consulta la <a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener">Política de Privacidad de Anthropic</a>.</li>
+      <li><b>Anthropic</b> — genera las estimaciones con IA: desde nuestro servidor para las funciones de VitaLinks Plus, o directamente desde tu dispositivo si has agregado tu propia clave de API. Consulta la <a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener">Política de Privacidad de Anthropic</a>.</li>
+      <li><b>Apple</b> — inicio de sesión con Apple, Salud de Apple y las compras en la App Store. Consulta la <a href="https://www.apple.com/es/legal/privacy/" target="_blank" rel="noopener">Política de Privacidad de Apple</a>.</li>
+      <li><b>Google Play</b> — las compras en Android.</li>
+      <li><b>RevenueCat</b> — el estado de tu suscripción a VitaLinks Plus. Consulta la <a href="https://www.revenuecat.com/privacy/" target="_blank" rel="noopener">Política de Privacidad de RevenueCat</a>.</li>
       <li><b>Open Food Facts</b> — una base de datos de alimentos pública y abierta, usada para búsquedas por código de barras. Solo se envía el código de barras escaneado; ningún dato personal.</li>
     </ul>
 
     <h2>Tus derechos</h2>
-    <p>Puedes exportar una copia completa de tus datos en cualquier momento desde Ajustes → Exportar, como un archivo JSON plano que conservas tú mismo. Si has iniciado sesión y quieres que tu copia sincronizada en la nube sea eliminada, contáctanos al correo de abajo y la eliminaremos.</p>
+    <p>Puedes exportar una copia completa de tus datos en cualquier momento desde Ajustes → Exportar, como un archivo JSON plano que conservas tú mismo. Si has iniciado sesión, puedes eliminar tu cuenta y tu copia sincronizada al instante desde Ajustes → Eliminar mi cuenta, o pedírnoslo al correo de abajo. Más detalles en <a href="/delete-account.html">Eliminar tu cuenta y datos</a>.</p>
     <p>Si estás en el Espacio Económico Europeo, tienes los derechos garantizados por el RGPD, incluyendo acceso, corrección, eliminación, y portabilidad de tus datos personales, y el derecho de presentar una queja ante tu autoridad local de protección de datos.</p>
 
     <h2>Retención de datos</h2>
@@ -118,7 +131,7 @@
     <p>Si esta política cambia, actualizaremos la fecha de vigencia de arriba. Seguir usando VitaLinks después de un cambio significa que aceptas la actualización.</p>
 
     <h2>Contacto</h2>
-    <p>Preguntas sobre esta política o tus datos — escribe a <a href="mailto:widymedinaruiz@gmail.com">widymedinaruiz@gmail.com</a>.</p>
+    <p>Preguntas sobre esta política o tus datos — escribe a <a href="mailto:vitalinks.app@gmail.com">vitalinks.app@gmail.com</a>.</p>
   </div>
 
   <div data-lang="en">
@@ -128,11 +141,21 @@
 
     <h2>What we collect</h2>
     <h3>Data you enter</h3>
-    <p>Meals, exercise, blood pressure, medications, body composition measurements, weight, sleep, and water intake — everything you log in the app. This is stored locally on your device (browser local storage, or app storage on Android) by default. We never see it unless you enable sync.</p>
+    <p>Meals, exercise, blood pressure, medications, body composition measurements, weight, sleep, and water intake — everything you log in the app. This is stored locally on your device (browser local storage, or app storage on Android, iPhone and iPad) by default. We never see it unless you enable sync.</p>
+    <h3>Health Connect and Apple Health data, if you connect them</h3>
+    <p>On Android you can connect Health Connect, and on iPhone and iPad, Apple Health. If you do, VitaLinks reads your steps, heart rate, blood pressure, oxygen saturation, workouts, weight and sleep from there, to show them alongside what you log. It only reads: VitaLinks never writes or changes data in Health Connect or Apple Health. This data is stored on your device and, if you're signed in, in your private synced record. We don't use it for advertising or marketing research, we don't sell it, and we don't share it with third parties, except as described below for the daily summary you request. You can remove the permission at any time in your system settings.</p>
     <h3>Account data, if you sign in</h3>
-    <p>Signing in with Google is optional and only needed for syncing your data across your own devices. If you sign in, your data is copied to a private record tied to your account, readable only by you — not by us, not by other users, not by anyone you haven't explicitly shared it with.</p>
+    <p>Signing in with Google (or with Apple on iPhone and iPad) is optional and only needed for syncing your data across your own devices. We receive your email address and an account identifier; if you use Apple's "Hide My Email", we receive Apple's relay address instead of yours. If you sign in with Apple, we also keep a code Apple gives us so we can revoke that access when you delete your account. Your data is copied to a private record tied to your account: the database rules only let your account read it, no other user can see it, and we don't look at it unless you ask us for help with a problem or to delete it.</p>
     <h3>Your Anthropic API key, if you add one</h3>
     <p>The optional AI calorie-estimation feature uses your own Anthropic API key, which you provide. That key is stored only in your local browser/app storage — it is never synced to our servers and never leaves your device except in the direct request your device makes to Anthropic to estimate a food's nutrition.</p>
+    <h3>VitaLinks Plus</h3>
+    <p>VitaLinks Plus purchases are processed by Google Play or the App Store; we never see your payment details. RevenueCat manages your subscription status: it receives the purchase together with your VitaLinks account identifier, and no health data.</p>
+    <ul>
+      <li><b>Calories from a photo:</b> the photo or photos of your plate are sent to our server and to Anthropic to estimate calories and macronutrients. We don't keep the photos.</li>
+      <li><b>Daily AI summary:</b> when you ask for it, a short summary of your day is sent to Anthropic to generate one sentence: vitality score, calories, water and exercise minutes against your goals, hours of sleep, your latest blood pressure, medication adherence and the week's weight change. Exercise minutes can include workouts imported from Health Connect or Apple Health. We don't keep that summary.</li>
+    </ul>
+    <h3>Feedback and error reports</h3>
+    <p>If you're signed in and use "Send feedback" in Settings, we receive your message, the app version, technical details about your device and your email address, so we can reply. The app also sends us error reports automatically (the error message, the app version, technical details and your account identifier, without your email) so we can fix problems. These reports are deleted when you delete your account.</p>
     <h3>Anonymous website usage counts</h3>
     <p>On vitalinks.eu we count how many times the landing page is viewed, how many times its buttons are used, and how many times someone signs in on the web. We keep daily totals only: no cookies, no identifiers, and neither your IP address nor anything about you is stored with those totals. If your browser sends a "Do Not Track" or Global Privacy Control signal, nothing is counted. The mobile apps do not send these counts.</p>
 
@@ -143,12 +166,15 @@
     <h2>Third parties involved</h2>
     <ul>
       <li><b>Firebase (Google)</b> — provides sign-in and, if you enable it, private cross-device sync. Google's own privacy practices apply to this infrastructure; see <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google's Privacy Policy</a>.</li>
-      <li><b>Anthropic</b> — only contacted directly by your device if you've added your own API key and use the AI-estimate feature. See <a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener">Anthropic's Privacy Policy</a>.</li>
+      <li><b>Anthropic</b> — produces the AI estimates: from our server for the VitaLinks Plus features, or directly from your device if you've added your own API key. See <a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener">Anthropic's Privacy Policy</a>.</li>
+      <li><b>Apple</b> — Sign in with Apple, Apple Health and App Store purchases. See <a href="https://www.apple.com/legal/privacy/" target="_blank" rel="noopener">Apple's Privacy Policy</a>.</li>
+      <li><b>Google Play</b> — purchases on Android.</li>
+      <li><b>RevenueCat</b> — your VitaLinks Plus subscription status. See <a href="https://www.revenuecat.com/privacy/" target="_blank" rel="noopener">RevenueCat's Privacy Policy</a>.</li>
       <li><b>Open Food Facts</b> — a public, open food database used for barcode lookups. Only the scanned barcode is sent; no personal data.</li>
     </ul>
 
     <h2>Your rights</h2>
-    <p>You can export a complete copy of your data at any time from Settings → Export, as a plain JSON file you keep yourself. If you've signed in and want your synced cloud copy deleted, contact us at the email below and we'll remove it.</p>
+    <p>You can export a complete copy of your data at any time from Settings → Export, as a plain JSON file you keep yourself. If you're signed in, you can delete your account and your synced copy instantly from Settings → Delete my account, or ask us at the email below. More details on <a href="/delete-account.html">Delete your account and data</a>.</p>
     <p>If you're in the European Economic Area, you have the rights guaranteed under the GDPR, including access, correction, deletion, and portability of your personal data, and the right to lodge a complaint with your local data protection authority.</p>
 
     <h2>Data retention</h2>
@@ -164,7 +190,7 @@
     <p>If this policy changes, we'll update the effective date above. Continued use of VitaLinks after a change means you accept the update.</p>
 
     <h2>Contact</h2>
-    <p>Questions about this policy or your data — email <a href="mailto:widymedinaruiz@gmail.com">widymedinaruiz@gmail.com</a>.</p>
+    <p>Questions about this policy or your data — email <a href="mailto:vitalinks.app@gmail.com">vitalinks.app@gmail.com</a>.</p>
   </div>
 
   <footer>

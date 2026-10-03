@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ayuda y soporte — VitaLinks</title>
+<meta name="description" content="Ayuda y soporte de VitaLinks: cómo contactarnos y respuestas a las preguntas más habituales. VitaLinks help and support.">
+<link rel="canonical" href="https://vitalinks.eu/support.html">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' rx='26' fill='%230E2723'/%3E%3Cdefs%3E%3Cmask id='t' maskUnits='userSpaceOnUse' x='0' y='0' width='120' height='120'%3E%3Crect width='120' height='120' fill='white'/%3E%3Ccircle cx='60' cy='80' r='34.641' fill='none' stroke='black' stroke-width='16'/%3E%3C/mask%3E%3Cmask id='o' maskUnits='userSpaceOnUse' x='0' y='0' width='120' height='120'%3E%3Crect width='120' height='120' fill='white'/%3E%3Ccircle cx='77.32' cy='50' r='34.641' fill='none' stroke='black' stroke-width='16'/%3E%3C/mask%3E%3Cmask id='y' maskUnits='userSpaceOnUse' x='0' y='0' width='120' height='120'%3E%3Crect width='120' height='120' fill='white'/%3E%3Ccircle cx='42.68' cy='50' r='34.641' fill='none' stroke='black' stroke-width='16'/%3E%3C/mask%3E%3C/defs%3E%3Ccircle cx='77.32' cy='50' r='34.641' fill='none' stroke='%237FC8B0' stroke-width='10' mask='url(%23t)'/%3E%3Ccircle cx='42.68' cy='50' r='34.641' fill='none' stroke='%23F2A65A' stroke-width='10' mask='url(%23o)'/%3E%3Ccircle cx='60' cy='80' r='34.641' fill='none' stroke='%23E8C468' stroke-width='10' mask='url(%23y)'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0E2723; --surface:#153934; --raised:#1B453F; --line:#2A5049;
+    --accent:#F2A65A; --accent2:#E8C468; --accent3:#7FC8B0;
+    --text:#EFF6F2; --muted:#8FB2A8; --danger:#E07A5F;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;line-height:1.65;}
+  a{color:var(--accent3);}
+  .display{font-family:'Space Grotesk',sans-serif;}
+  .page{max-width:760px;margin:0 auto;padding:56px 24px 100px;}
+  header{margin-bottom:40px;}
+  .brand-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;}
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand svg{width:36px;height:36px;flex-shrink:0;}
+  .brand span{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;}
+  .lang-toggle{display:flex;gap:6px;}
+  .lang-toggle button{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px;border:1px solid var(--line);background:var(--raised);color:var(--muted);padding:7px 14px;border-radius:8px;cursor:pointer;}
+  .lang-toggle button.active{background:var(--accent);color:#12241f;border-color:var(--accent);}
+  h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(26px,4.5vw,34px);font-weight:700;margin:0 0 10px;}
+  .meta{font-size:13px;color:var(--muted);}
+  h2{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;margin:40px 0 12px;color:var(--accent3);}
+  h3{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;margin:20px 0 8px;}
+  p{margin:0 0 12px;font-size:14.5px;}
+  ul{margin:0 0 12px;padding-left:20px;}
+  li{margin-bottom:6px;font-size:14.5px;}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 22px;margin-bottom:14px;}
+  .card.good{border-left:3px solid var(--accent3);}
+  .steps{list-style:none;margin:0 0 12px;padding:0;counter-reset:step;}
+  .steps li{counter-increment:step;position:relative;padding:0 0 12px 34px;font-size:14.5px;}
+  .steps li::before{content:counter(step);position:absolute;left:0;top:-1px;width:22px;height:22px;border-radius:50%;background:var(--raised);border:1px solid var(--line);color:var(--accent3);font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;}
+  .btn{display:inline-block;background:var(--accent);color:#12241f;font-weight:700;text-decoration:none;padding:11px 20px;border-radius:10px;font-family:'Space Grotesk',sans-serif;}
+  code{font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:.9em;background:var(--raised);padding:1px 6px;border-radius:5px;color:var(--accent3);}
+  footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);}
+  footer a{color:var(--accent3);}
+  [data-lang]{display:none;}
+  [data-lang].active-lang{display:block;}
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="brand-row">
+      <div class="brand">
+        <svg viewBox="0 0 120 120">
+          <defs>
+            <mask id="bt" maskUnits="userSpaceOnUse" x="0" y="0" width="120" height="120"><rect width="120" height="120" fill="white"/><circle cx="60" cy="80" r="34.641" fill="none" stroke="black" stroke-width="16"/></mask>
+            <mask id="bo" maskUnits="userSpaceOnUse" x="0" y="0" width="120" height="120"><rect width="120" height="120" fill="white"/><circle cx="77.32" cy="50" r="34.641" fill="none" stroke="black" stroke-width="16"/></mask>
+            <mask id="by" maskUnits="userSpaceOnUse" x="0" y="0" width="120" height="120"><rect width="120" height="120" fill="white"/><circle cx="42.68" cy="50" r="34.641" fill="none" stroke="black" stroke-width="16"/></mask>
+          </defs>
+          <circle cx="77.32" cy="50" r="34.641" fill="none" stroke="var(--accent3)" stroke-width="10" mask="url(#bt)"/>
+          <circle cx="42.68" cy="50" r="34.641" fill="none" stroke="var(--accent)" stroke-width="10" mask="url(#bo)"/>
+          <circle cx="60" cy="80" r="34.641" fill="none" stroke="var(--accent2)" stroke-width="10" mask="url(#by)"/>
+        </svg>
+        <span>VitaLinks</span>
+      </div>
+      <div class="lang-toggle">
+        <button type="button" id="lang-es" onclick="setLang('es')">ES</button>
+        <button type="button" id="lang-en" onclick="setLang('en')">EN</button>
+      </div>
+    </div>
+
+    <div data-lang="es">
+      <h1>Ayuda y soporte</h1>
+      <div class="meta">VitaLinks en la web, Android, iPhone y iPad</div>
+    </div>
+    <div data-lang="en">
+      <h1>Help and support</h1>
+      <div class="meta">VitaLinks on the web, Android, iPhone and iPad</div>
+    </div>
+  </header>
+
+  <div data-lang="es">
+    <div class="card good">
+      <p style="margin:0;"><b>¿Necesitas ayuda?</b> La forma más rápida es escribirnos desde la propia app: abre VitaLinks → Ajustes → <i>Enviar comentarios</i>. El mensaje nos llega con la versión de la app y del sistema, sin que tengas que buscarlas.</p>
+    </div>
+    <div class="card">
+      <p style="margin:0;"><b>¿Prefieres el correo?</b> Escríbenos a <a href="mailto:vitalinks.app@gmail.com?subject=Soporte%20de%20VitaLinks">vitalinks.app@gmail.com</a>. Respondemos normalmente en unos días hábiles, en español o en inglés.</p>
+    </div>
+
+    <h2>Preguntas frecuentes</h2>
+
+    <h3>¿Necesito una cuenta?</h3>
+    <p>No. VitaLinks funciona sin cuenta, gratis, en el navegador y en el móvil; tus datos se quedan en ese dispositivo. Si inicias sesión con Google (o con Apple en iPhone y iPad), lo que registres se sincroniza entre tus dispositivos.</p>
+
+    <h3>No veo mis datos en otro dispositivo</h3>
+    <p>Comprueba que has iniciado sesión con la misma cuenta en los dos. En Ajustes verás cuándo se sincronizó por última vez. Si sigue sin aparecer, escríbenos desde <i>Enviar comentarios</i>: el mensaje incluye lo que necesitamos para revisarlo.</p>
+
+    <h3>Health Connect y Salud de Apple</h3>
+    <p>En Ajustes puedes conectar Health Connect (Android) o Salud de Apple (iPhone) para traer tus pasos, frecuencia cardiaca, presión arterial, saturación de oxígeno, entrenamientos, peso y sueño. VitaLinks solo lee esos datos, no escribe nada, y puedes retirar el permiso cuando quieras desde los ajustes del sistema.</p>
+
+    <h3>VitaLinks Plus</h3>
+    <p>Plus incluye las calorías por foto y el resumen diario con IA, en la app móvil. Las calorías por foto son estimaciones generadas por IA, no consejo médico.</p>
+    <ul>
+      <li><b>Cancelar:</b> en Android, desde las suscripciones de Google Play; en iPhone y iPad, en Ajustes → tu nombre → Suscripciones. Borrar la app o la cuenta no cancela la suscripción.</li>
+      <li><b>Has cambiado de móvil:</b> en Ajustes → VitaLinks Plus → <i>Restaurar compras</i>, con la misma cuenta de la tienda.</li>
+    </ul>
+
+    <h3>Eliminar tu cuenta y tus datos</h3>
+    <p>Desde la app, en Ajustes → <i>Eliminar mi cuenta</i>. Todos los detalles están en <a href="/delete-account.html">Eliminar tu cuenta y datos</a>.</p>
+
+    <h3>Privacidad</h3>
+    <p>Qué datos guardamos y para qué: <a href="/privacy.html">Política de privacidad</a>.</p>
+
+    <p class="meta" style="margin-top:32px;">VitaLinks es una herramienta de registro personal. No ofrece diagnóstico ni consejo médico. Ante cualquier duda sobre tu salud, consulta a un profesional.</p>
+  </div>
+
+  <div data-lang="en">
+    <div class="card good">
+      <p style="margin:0;"><b>Need help?</b> The quickest way is to write to us from inside the app: open VitaLinks → Settings → <i>Send feedback</i>. Your message reaches us with the app and system version, so you don't have to look them up.</p>
+    </div>
+    <div class="card">
+      <p style="margin:0;"><b>Prefer email?</b> Write to <a href="mailto:vitalinks.app@gmail.com?subject=VitaLinks%20support">vitalinks.app@gmail.com</a>. We usually reply within a few business days, in English or Spanish.</p>
+    </div>
+
+    <h2>Frequently asked questions</h2>
+
+    <h3>Do I need an account?</h3>
+    <p>No. VitaLinks works without an account, for free, in your browser and on your phone; your data stays on that device. If you sign in with Google (or with Apple on iPhone and iPad), what you log syncs across your devices.</p>
+
+    <h3>My data doesn't show up on another device</h3>
+    <p>Check that you're signed in with the same account on both. Settings shows when the last sync happened. If it still doesn't appear, write to us from <i>Send feedback</i>: the message includes what we need to look into it.</p>
+
+    <h3>Health Connect and Apple Health</h3>
+    <p>In Settings you can connect Health Connect (Android) or Apple Health (iPhone) to bring in your steps, heart rate, blood pressure, oxygen saturation, workouts, weight and sleep. VitaLinks only reads this data, never writes any, and you can remove the permission at any time in your system settings.</p>
+
+    <h3>VitaLinks Plus</h3>
+    <p>Plus includes calories from a photo and the daily AI summary, in the mobile app. Calories from a photo are AI-generated estimates, not medical advice.</p>
+    <ul>
+      <li><b>Cancel:</b> on Android, from your Google Play subscriptions; on iPhone and iPad, in Settings → your name → Subscriptions. Deleting the app or your account doesn't cancel the subscription.</li>
+      <li><b>New phone:</b> go to Settings → VitaLinks Plus → <i>Restore purchases</i>, using the same store account.</li>
+    </ul>
+
+    <h3>Delete your account and data</h3>
+    <p>From the app, in Settings → <i>Delete my account</i>. Full details are on <a href="/delete-account.html">Delete your account and data</a>.</p>
+
+    <h3>Privacy</h3>
+    <p>What we store and why: <a href="/privacy.html">Privacy policy</a>.</p>
+
+    <p class="meta" style="margin-top:32px;">VitaLinks is a personal tracking tool. It does not provide diagnosis or medical advice. For any question about your health, talk to a professional.</p>
+  </div>
+
+  <footer>
+    <a href="/">← VitaLinks</a> · <a href="/privacy.html">Privacidad / Privacy</a> · <a href="/delete-account.html">Eliminar cuenta / Delete account</a>
+  </footer>
+</div>
+<script>
+  function setLang(lang){
+    document.querySelectorAll('[data-lang]').forEach(function(el){
+      el.classList.toggle('active-lang', el.getAttribute('data-lang') === lang);
+    });
+    document.getElementById('lang-es').classList.toggle('active', lang === 'es');
+    document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+    document.documentElement.lang = lang;
+    try{ localStorage.setItem('vl:support-lang', lang); }catch(e){}
+  }
+  // ?lang=en|es wins, then the visitor's last choice, then the browser language.
+  var q = (location.search.match(/[?&]lang=(es|en)\b/) || [])[1];
+  var saved = null;
+  try{ saved = localStorage.getItem('vl:support-lang'); }catch(e){}
+  setLang(q || saved || ((navigator.language || 'es').toLowerCase().indexOf('es') === 0 ? 'es' : 'en'));
+</script>
+</body>
+</html>

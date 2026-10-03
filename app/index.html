@@ -59,8 +59,8 @@
        points at --text instead. Kept as its own token so both callers update
        together instead of drifting. */
     --on-accent:#0E2723;
-    /* Dial/ring tracks (Hoy's calorie/water/exercise rings, the weekly-goals
-       mini-dials, the Vitality score ring) need a decorative stroke thick and
+    /* Progress tracks (Hoy's food/water/exercise bars, the weekly-goals day bars,
+       the Vitality half gauge) need a decorative stroke thick and
        visible enough to read as "the unfilled part of a ring" — --line works
        for that on dark, but light theme's --line is a near-invisible hairline
        border color (fine for 1px borders, not for a 10px ring) so it needs
@@ -186,7 +186,15 @@
   .dial-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;padding:14px 0;}
   .legend{display:flex;gap:16px;}
   .ring-fill-animate{transition:stroke-dashoffset 1000ms cubic-bezier(.16,1,.3,1);}
-  @media (prefers-reduced-motion:reduce){ .ring-fill-animate{transition:none;} }
+  .bar-fill-animate{transition:width 1000ms cubic-bezier(.16,1,.3,1),height 1000ms cubic-bezier(.16,1,.3,1);}
+  @media (prefers-reduced-motion:reduce){ .ring-fill-animate,.bar-fill-animate{transition:none;} }
+  .goal-bars{width:100%;display:flex;flex-direction:column;gap:12px;}
+  .goal-bar-head{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;margin-bottom:5px;}
+  .goal-bar-track{height:10px;border-radius:99px;background:var(--ring-track);overflow:hidden;}
+  .goal-bar-fill{height:100%;border-radius:99px;}
+  .day-bars{display:flex;gap:3px;align-items:flex-end;height:44px;}
+  .day-bar{width:6px;height:44px;border-radius:99px;background:var(--ring-track);display:flex;align-items:flex-end;overflow:hidden;}
+  .day-bar>span{display:block;width:100%;border-radius:99px;}
   .legend span{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);}
   .dot{width:8px;height:8px;border-radius:99px;display:inline-block;}
 
@@ -2201,6 +2209,12 @@ function barChartSVG(points, opts){
     ${goalLine}${bars}${maPath}${grid.labels}${labels}
   </svg>`;
 }
+// The iOS app draws progress as bars and a half gauge: App Review (guideline 5.2.5)
+// rejected the concentric rings for resembling Apple's Activity rings. Android and the web
+// keep the rings. Global so a browser console can switch it on to preview the iOS look.
+function ringFreeUI(){
+  return !!(window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform()==='ios');
+}
 function dialSVG(calPct, waterPct, exPct, size, responsive, animate){
   const s = size || 168;
   const scale = s/168;
@@ -2221,7 +2235,23 @@ function dialSVG(calPct, waterPct, exPct, size, responsive, animate){
   const styleAttr = responsive ? ' style="width:100%;height:auto;display:block;"' : '';
   return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}"${styleAttr}>${circles}</svg>`;
 }
-function weeklyGoalsCard(){
+function barPct(pct){ return Math.round(Math.max(0, Math.min(1, pct||0))*100); }
+function goalBarsHTML(rows, animate){
+  return `<div class="goal-bars">${rows.map(r=>{
+    const w = barPct(r.pct);
+    return `<div>
+      <div class="goal-bar-head"><span>${r.label}</span><span style="color:var(--muted);font-size:12px;">${r.value}</span></div>
+      <div class="goal-bar-track"><div class="goal-bar-fill ${animate?'bar-fill-animate':''}" data-target-width="${w}%" style="width:${animate?0:w}%;background:${r.color};"></div></div>
+    </div>`;
+  }).join('')}</div>`;
+}
+function dayBarsHTML(calPct, waterPct, exPct, animate){
+  return `<div class="day-bars">${[[calPct,'var(--accent)'],[waterPct,'var(--accent3)'],[exPct,'var(--accent2)']].map(([pct,color])=>{
+    const h = Math.max(4, barPct(pct));
+    return `<div class="day-bar"><span class="${animate?'bar-fill-animate':''}" data-target-height="${h}%" style="height:${animate?0:h}%;background:${color};"></span></div>`;
+  }).join('')}</div>`;
+}
+function weeklyGoalsCard(animate){
   const g = state.goals;
   const n = 7;
   const isos = Array.from({length:n}).map((_,i)=>isoDaysAgo(n-1-i));
@@ -2236,7 +2266,7 @@ function weeklyGoalsCard(){
     calSum += clamp(calPct,0,1); waterSum += clamp(waterPct,0,1); exSum += clamp(exPct,0,1);
     const isToday = d.iso===todayISO();
     return `<div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1 1 auto;max-width:56px;min-width:0;">
-      ${dialSVG(calPct, waterPct, exPct, 44, true)}
+      ${ringFreeUI() ? dayBarsHTML(calPct, waterPct, exPct, animate) : dialSVG(calPct, waterPct, exPct, 44, true, animate)}
       <span style="font-size:11px;color:${isToday?'var(--accent)':'var(--muted)'};font-weight:${isToday?'700':'400'};">${dayLetter(d.iso)}</span>
     </div>`;
   }).join('');
@@ -2420,11 +2450,25 @@ function renderHoy(){
   const animateHoy = !!window._hoyAnimate;
   window._hoyAnimate = false;
   if(animateHoy) window._hoyAnimateTargets = { vitality: vScore, calories: calEaten };
-  const vCirc = 2*Math.PI*52, vTargetOffset = vCirc*(1-clamp(vScore,0,100)/100);
+  const ringFree = ringFreeUI();
+  const vCirc = 2*Math.PI*52;
+  const vTargetOffset = ringFree ? 100 - clamp(vScore,0,100) : vCirc*(1-clamp(vScore,0,100)/100);
   return `
   <div class="stack grid-desktop">
     ${vScore!=null ? `<div class="card" style="text-align:center;padding:22px;">
       <div class="label" style="margin-bottom:12px;">${tr('hoy_vitality')}</div>
+      ${ringFree ? `
+      <div style="position:relative;width:150px;height:88px;margin:0 auto;">
+        <svg width="150" height="88" viewBox="0 0 150 88">
+          <path d="M12 76 A63 63 0 0 1 138 76" fill="none" stroke="var(--ring-track)" stroke-width="12" stroke-linecap="round"/>
+          <path class="${animateHoy?'ring-fill-animate':''}" data-target-offset="${vTargetOffset}" d="M12 76 A63 63 0 0 1 138 76" fill="none" stroke="${vScore>=75?'var(--status-good)':vScore>=50?'var(--status-warn)':'var(--danger)'}" stroke-width="12" stroke-linecap="round"
+            pathLength="100" stroke-dasharray="100 100" stroke-dashoffset="${animateHoy?100:vTargetOffset}"/>
+        </svg>
+        <div style="position:absolute;left:0;right:0;bottom:4px;display:flex;justify-content:center;">
+          <span class="display" id="vitality-num" style="font-size:34px;font-weight:700;">${animateHoy?0:vScore}</span>
+        </div>
+      </div>
+      ` : `
       <div style="position:relative;width:120px;height:120px;margin:0 auto;">
         <svg width="120" height="120" viewBox="0 0 120 120">
           <circle cx="60" cy="60" r="52" fill="none" stroke="var(--ring-track)" stroke-width="10"/>
@@ -2435,6 +2479,7 @@ function renderHoy(){
           <span class="display" id="vitality-num" style="font-size:34px;font-weight:700;">${animateHoy?0:vScore}</span>
         </div>
       </div>
+      `}
       <div style="font-size:11px;color:var(--muted);margin-top:10px;">${tr('hoy_vitality_sub')}</div>
     </div>` : ''}
     ${vScore!=null ? `<div class="card">
@@ -2448,6 +2493,19 @@ function renderHoy(){
       }
       <div id="insight-error" style="font-size:11px;color:var(--danger);margin-top:6px;"></div>
     </div>` : ''}
+    ${ringFree ? `
+    <div class="card dial-wrap" style="align-items:stretch;padding:18px 20px;">
+      <div style="text-align:center;">
+        <div class="display" id="dial-cal-num" style="font-size:30px;font-weight:700;">${animateHoy?0:calEaten}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">${tr('hoy_de')} ${g.calorieGoal} kcal</div>
+      </div>
+      ${goalBarsHTML([
+        { label:tr('legend_comida'), value:`${calEaten} / ${g.calorieGoal} kcal`, pct:calEaten/g.calorieGoal, color:'var(--accent)' },
+        { label:tr('legend_agua'), value:`${d.water} / ${g.waterGoal} L`, pct:d.water/g.waterGoal, color:'var(--accent3)' },
+        { label:tr('legend_ejercicio'), value:`${exMin} / ${g.exerciseGoal} min`, pct:exMin/g.exerciseGoal, color:'var(--accent2)' },
+      ], animateHoy)}
+    </div>
+    ` : `
     <div class="card dial-wrap">
       <div style="position:relative;width:168px;height:168px;display:flex;align-items:center;justify-content:center;">
         ${dialSVG(calEaten/g.calorieGoal, d.water/g.waterGoal, exMin/g.exerciseGoal, undefined, undefined, animateHoy)}
@@ -2462,7 +2520,8 @@ function renderHoy(){
         <span><span class="dot" style="background:var(--accent2);"></span>${tr('legend_ejercicio')}</span>
       </div>
     </div>
-    ${weeklyGoalsCard()}
+    `}
+    ${weeklyGoalsCard(animateHoy)}
     <div class="grid4 full-span">
       ${[
         statTile(navIcon('calorias',14),tr('stat_quemadas'), exCal+' kcal'),
@@ -4885,14 +4944,19 @@ function animateCountUp(el, target, duration){
 }
 function runHoyEntranceAnimation(){
   const ringEls = document.querySelectorAll('.ring-fill-animate');
+  const barEls = document.querySelectorAll('.bar-fill-animate');
   const targets = window._hoyAnimateTargets;
   window._hoyAnimateTargets = null;
-  if(!ringEls.length && !targets) return;
+  if(!ringEls.length && !barEls.length && !targets) return;
   // Two rAFs so the browser has actually painted the "empty" starting state before we
   // change to the target — changing both in the same tick gives the CSS transition
   // nothing to animate from.
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
     ringEls.forEach(el=>{ el.style.strokeDashoffset = el.dataset.targetOffset; });
+    barEls.forEach(el=>{
+      if(el.dataset.targetWidth) el.style.width = el.dataset.targetWidth;
+      if(el.dataset.targetHeight) el.style.height = el.dataset.targetHeight;
+    });
   }));
   if(targets){
     if(targets.vitality!=null) animateCountUp(document.getElementById('vitality-num'), targets.vitality, 900);
