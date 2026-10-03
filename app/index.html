@@ -1172,7 +1172,8 @@ const I18N_IOS_HEALTH = {
     hc_ex_synced_badge:'Salud de Apple',
     err_hc_not_installed:'No se pudo acceder a Salud de Apple para conectar tus dispositivos.',
     err_hc_permission_denied:'VitaLinks no tiene permiso para leer estos datos de Salud de Apple.',
-    err_hc_sync_failed:'No se pudieron importar los datos de Salud de Apple. Revisa los permisos en Ajustes > Salud e inténtalo de nuevo.'
+    err_hc_sync_failed:'No se pudieron importar los datos de Salud de Apple. Revisa los permisos en Ajustes > Salud e inténtalo de nuevo.',
+    delete_account_confirm_body:'Esto eliminará tu cuenta y todos tus datos de nuestra base de datos: comidas, ejercicio, presión arterial, medicamentos, composición corporal, peso, sueño, agua y datos de Salud de Apple. También se borrarán los datos guardados en este dispositivo.\n\nSi tienes una suscripción activa de VitaLinks Plus, cancélala por separado en Ajustes → tu nombre → Suscripciones — esta acción no la cancela automáticamente.'
   },
   en: {
     hc_settings_title:'Apple Health',
@@ -1189,7 +1190,8 @@ const I18N_IOS_HEALTH = {
     hc_ex_synced_badge:'Apple Health',
     err_hc_not_installed:"Couldn't access Apple Health to connect your devices.",
     err_hc_permission_denied:"VitaLinks doesn't have permission to read this data from Apple Health.",
-    err_hc_sync_failed:"Could not import data from Apple Health. Check the permissions in Settings > Health and try again."
+    err_hc_sync_failed:"Could not import data from Apple Health. Check the permissions in Settings > Health and try again.",
+    delete_account_confirm_body:"This will delete your account and all your data from our database: meals, exercise, blood pressure, medications, body composition, weight, sleep, water, and Apple Health data. Data stored on this device will also be cleared.\n\nIf you have an active VitaLinks Plus subscription, cancel it separately in Settings → your name → Subscriptions — this action does not cancel it automatically."
   }
 };
 function tr(key){
@@ -4194,7 +4196,7 @@ function healthConnectSectionHTML(){
   if(hc.availability==='not-installed' || hc.availability==='not-supported'){
     return `<div>
       <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">${tr('hc_not_installed_note')}</div>
-      <button class="btn btn-ghost" style="width:100%;" onclick="openHealthConnectSettingsOrInstall()">${tr('hc_install_button')}</button>
+      ${window.Capacitor.getPlatform && window.Capacitor.getPlatform()==='ios' ? '' : `<button class="btn btn-ghost" style="width:100%;" onclick="openHealthConnectSettingsOrInstall()">${tr('hc_install_button')}</button>`}
     </div>`;
   }
   const meta = getHCMeta();
@@ -4708,7 +4710,9 @@ async function purchasePlusPackage(which){
     closeModal();
     toast(tr('plus_purchase_success'));
   }catch(e){
-    if(e && e.userCancelled) return;
+    // RevenueCat reports a dismissed purchase sheet as an error; on iOS userCancelled
+    // isn't always set, so also accept the cancelled error code (1) and its message.
+    if(e && (e.userCancelled || String(e.code)==='1' || /cancel/i.test(e.message||e.errorMessage||''))) return;
     toast(tr('err_plus_purchase_failed'), true);
   }
 }
