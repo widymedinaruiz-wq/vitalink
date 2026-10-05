@@ -1,3 +1,6 @@
 {
-  "aiModel": "claude-sonnet-5"
+  "aiModel": "claude-sonnet-5",
+  "stores": {
+    "android": "https://play.google.com/store/apps/details?id=com.widymedina.vitalinks"
+  }
 }
