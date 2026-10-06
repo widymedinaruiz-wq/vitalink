@@ -118,6 +118,13 @@ figure{margin:0}
 .closing h2 em{font-style:normal;color:var(--food)}
 .closing .cta{justify-content:center}
 
+/* follow us */
+.social{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px 32px;padding:40px 0;border-top:1px solid var(--line)}
+.social h2{font-size:26px;font-weight:700}
+.social p{color:var(--muted);margin-top:8px;max-width:30em}
+.social-links{display:flex;flex-wrap:wrap;gap:12px}
+.social-links svg{flex:none}
+
 footer{border-top:1px solid var(--line);padding:28px 0 40px;font-size:14px;color:var(--muted)}
 footer nav{display:flex;flex-wrap:wrap;gap:8px 20px;margin-bottom:14px}
 footer a{color:var(--muted)}
