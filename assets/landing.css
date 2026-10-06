@@ -48,6 +48,10 @@ p{margin:0}
 .cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
 .fine{font-size:14px;color:var(--muted);margin-top:12px}
 .stores{margin-top:22px;font-size:14px;color:var(--muted);display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.store-badge{display:inline-flex;line-height:0;border-radius:10px}
+.store-badge img{display:block;max-width:none}
+.store-badge.pad{margin:5px 12px}
+.store-badge:focus-visible{outline:3px solid var(--water);outline-offset:2px}
 
 /* phone frame around real screenshots */
 .phone{width:min(300px,78vw);margin:0 auto;border-radius:38px;border:9px solid var(--raised);background:var(--raised);overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.28)}
