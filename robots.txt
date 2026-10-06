@@ -5,6 +5,7 @@ Disallow: /android/
 Disallow: /ios/
 Disallow: /functions/
 Disallow: /tests/
+Disallow: /tools/
 Disallow: /prototypes/
 Disallow: /resources/
 

@@ -48,7 +48,7 @@ test('both languages have the same structure', () => {
 
 test('every local file the pages reference exists', () => {
   for (const html of [es, en]) {
-    for (const [, ref] of html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)) {
+    for (const [, ref] of html.matchAll(/(?:src|href)="(\/assets\/[^"?]+)[^"]*"/g)) {
       assert.ok(fs.existsSync(path.join(root, ref)), `missing ${ref}`);
     }
     for (const [, ref] of html.matchAll(/content="https:\/\/vitalinks\.eu(\/[^"]+\.png)"/g)) {
