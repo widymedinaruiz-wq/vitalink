@@ -1,0 +1,82 @@
+/* The user guide at /guia/ and /en/guide/. Loaded after landing.css, which provides the
+   palette, type, header, buttons and footer; this file only adds what a how-to page needs. */
+.g-nav{font-size:14px;font-weight:600;color:var(--muted);text-decoration:none;padding:8px 10px;border-radius:10px}
+.g-nav:hover,.g-nav[aria-current]{color:var(--text);background:var(--raised)}
+.g-nav:focus-visible,.g-card:focus-visible,.g-toc a:focus-visible,.g-pager a:focus-visible{outline:3px solid var(--water);outline-offset:2px}
+
+.g-head{padding:28px 0 40px;max-width:44em}
+.g-crumbs{font-size:14px;color:var(--muted);margin-bottom:18px}
+.g-crumbs a{color:var(--muted)}
+.g-crumbs a:hover{color:var(--text)}
+.g-head h1{font-size:clamp(34px,6vw,54px);font-weight:700}
+.g-head .lede{margin-top:16px}
+
+/* hub: one card per topic */
+.g-topics{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;padding-bottom:40px}
+.g-card{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:26px;text-decoration:none}
+.g-card:hover{border-color:var(--water)}
+.g-card h2{font-size:26px;font-weight:700}
+.g-card p{color:var(--muted);margin-top:12px}
+.g-card ul{color:var(--muted);margin:14px 0 0;padding-left:20px;font-size:15px}
+.g-card .more{margin-top:auto;padding-top:20px;font-weight:700;color:var(--food)}
+.g-soon{border-top:1px solid var(--line);padding:32px 0 48px;color:var(--muted)}
+.g-soon h2{font-size:22px;color:var(--text);margin-bottom:10px}
+.g-soon a{color:var(--water)}
+
+/* article */
+.g-toc{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:18px 22px;margin-bottom:8px}
+.g-toc strong{display:block;font-family:'Space Grotesk',sans-serif;margin-bottom:8px}
+.g-toc ol{margin:0;padding-left:22px;columns:2;column-gap:32px}
+.g-toc li{margin-bottom:6px;break-inside:avoid}
+.g-toc a{color:var(--muted);text-decoration:none}
+.g-toc a:hover{color:var(--text);text-decoration:underline}
+
+.g-sec{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:48px;align-items:start;padding:52px 0;border-top:1px solid var(--line);scroll-margin-top:12px}
+.g-sec.solo{grid-template-columns:minmax(0,44em)}
+.g-sec h2{font-size:clamp(26px,3.6vw,34px);font-weight:700}
+.g-sec h3{font-size:19px;font-weight:700;margin-top:28px}
+.g-sec p{color:var(--muted);margin-top:14px}
+.g-sec p b,.g-sec li b{color:var(--text);font-weight:600}
+.g-sec a{color:var(--water)}
+.g-sec ul{color:var(--muted);margin:14px 0 0;padding-left:22px}
+.g-sec ul li{margin-bottom:8px}
+/* the words on a button or tab, as they appear in the app */
+.ui{font-weight:600;color:var(--text);white-space:nowrap}
+
+.g-steps{list-style:none;margin:20px 0 0;padding:0;counter-reset:g}
+.g-steps>li{counter-increment:g;position:relative;padding:0 0 16px 46px;color:var(--muted)}
+.g-steps>li::before{content:counter(g);position:absolute;left:0;top:-3px;width:32px;height:32px;border-radius:50%;background:var(--food);color:var(--on-accent);font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center}
+
+.g-tip{margin-top:18px;padding:14px 16px;border-radius:14px;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--water);color:var(--muted);font-size:15px}
+.g-tip b{color:var(--text)}
+
+/* real screenshots, always shown on the app's dark theme */
+.g-shot{margin:0;position:sticky;top:16px}
+.g-shot img{width:100%;border-radius:22px;border:1px solid #2A5049;background:#0E2723;box-shadow:0 20px 44px rgba(0,0,0,.22)}
+.g-shot img+img{margin-top:16px}
+.g-shot figcaption{font-size:13px;color:var(--muted);text-align:center;margin-top:10px}
+.g-shot.strip{position:static;grid-column:1/-1;max-width:420px}
+
+.g-faq{padding:52px 0;border-top:1px solid var(--line);max-width:44em}
+.g-faq h2{font-size:clamp(26px,3.6vw,34px);font-weight:700;margin-bottom:18px}
+.g-faq details{border-bottom:1px solid var(--line);padding:14px 0}
+.g-faq summary{cursor:pointer;font-weight:600;font-size:17px}
+.g-faq summary:focus-visible{outline:3px solid var(--water);outline-offset:2px}
+.g-faq details p{color:var(--muted);margin-top:10px}
+.g-faq a{color:var(--water)}
+
+.g-pager{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;padding:8px 0 48px}
+.g-pager a{flex:1 1 240px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px 20px;text-decoration:none}
+.g-pager a:hover{border-color:var(--water)}
+.g-pager span{display:block;font-size:13px;color:var(--muted)}
+.g-pager strong{font-family:'Space Grotesk',sans-serif;font-size:18px}
+.g-pager .next{text-align:right}
+
+@media (max-width:820px){
+  .g-topics{grid-template-columns:1fr}
+  .g-toc ol{columns:1}
+  .g-sec{grid-template-columns:1fr;gap:28px;padding:40px 0}
+  .g-shot{position:static;max-width:320px;margin:0 auto}
+  .g-shot.strip{margin:0 auto}
+  .g-faq{padding:40px 0}
+}

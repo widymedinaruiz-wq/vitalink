@@ -1,10 +1,13 @@
 // Anonymous counter: tells the site how many people saw this page and which buttons they
 // used. One event name per call, no cookies, no identifiers (see /privacy.html). Skipped
 // for visitors who ask not to be tracked, and for anything that isn't the real site.
+// Guide pages load this file only for the store links below: <html data-uncounted> keeps
+// them out of the count, which covers the landing page alone.
 var TRACK_URL = 'https://europe-west1-vitalink-widy.cloudfunctions.net/track';
+var COUNTED = !document.documentElement.hasAttribute('data-uncounted');
 function track(name){
   try{
-    if(window.__vlForwarding || location.hostname !== 'vitalinks.eu') return;
+    if(!COUNTED || window.__vlForwarding || location.hostname !== 'vitalinks.eu') return;
     if(navigator.doNotTrack === '1' || navigator.globalPrivacyControl) return;
     navigator.sendBeacon(TRACK_URL, JSON.stringify({ e: name }));
   }catch(e){}

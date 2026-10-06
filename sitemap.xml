@@ -2,6 +2,12 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://vitalinks.eu/</loc></url>
   <url><loc>https://vitalinks.eu/en/</loc></url>
+  <url><loc>https://vitalinks.eu/guia/</loc></url>
+  <url><loc>https://vitalinks.eu/guia/primeros-pasos/</loc></url>
+  <url><loc>https://vitalinks.eu/guia/registrar-comidas/</loc></url>
+  <url><loc>https://vitalinks.eu/en/guide/</loc></url>
+  <url><loc>https://vitalinks.eu/en/guide/getting-started/</loc></url>
+  <url><loc>https://vitalinks.eu/en/guide/logging-meals/</loc></url>
   <url><loc>https://vitalinks.eu/privacy.html</loc></url>
   <url><loc>https://vitalinks.eu/delete-account.html</loc></url>
   <url><loc>https://vitalinks.eu/support.html</loc></url>

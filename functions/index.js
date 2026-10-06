@@ -471,7 +471,7 @@ exports.revenueCatWebhook = onRequest(
  * instance at most, and at most one Firestore write per second (anything arriving faster
  * is added up in memory and written with the next one).
  */
-const SITE_EVENTS = new Set(['view_es', 'view_en', 'try', 'demo', 'store_android', 'store_ios', 'signin']);
+const SITE_EVENTS = new Set(['view_es', 'view_en', 'try', 'demo', 'guide', 'store_android', 'store_ios', 'signin']);
 const SITE_ORIGIN = 'https://vitalinks.eu';
 const SITE_BOT_UA = /bot|crawl|spider|slurp|preview|facebookexternalhit|whatsapp|headless|lighthouse/i;
 const TRACK_MIN_WRITE_GAP_MS = 1000;

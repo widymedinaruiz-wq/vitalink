@@ -497,6 +497,7 @@ const I18N = {
     tour_skip_button:'Omitir',
     tour_try_button:'Probar ahora',
     set_replay_tour_button:'Ver el recorrido de la app',
+    set_guide_button:'Guía de uso', set_guide_url:'https://vitalinks.eu/guia/',
     tour_nudge_text:'¿Sabías que puedes personalizar tus pestañas y estimar calorías con una foto? Descúbrelo en un recorrido rápido.',
     tour_nudge_dismiss:'No, gracias',
     tour_nudge_button:'Ver recorrido',
@@ -844,6 +845,7 @@ const I18N = {
     tour_skip_button:'Skip',
     tour_try_button:'Try it now',
     set_replay_tour_button:'Watch the app tour',
+    set_guide_button:'User guide', set_guide_url:'https://vitalinks.eu/en/guide/',
     tour_nudge_text:'Did you know you can customize your tabs and estimate calories from a photo? Take a quick tour to see how.',
     tour_nudge_dismiss:'No thanks',
     tour_nudge_button:'Take the tour',
@@ -4364,7 +4366,8 @@ function modalHTML(){
             <div class="switch ${!isModuleHidden(id)?'on':''}" onclick="toggleModuleVisibility('${id}')"><div class="knob"></div></div>
           </div>`).join('')}
         </div>
-        <button class="btn btn-ghost" style="width:100%;margin-bottom:16px;" onclick="replayAppTour()">${tr('set_replay_tour_button')}</button>
+        <button class="btn btn-ghost" style="width:100%;margin-bottom:8px;" onclick="replayAppTour()">${tr('set_replay_tour_button')}</button>
+        <a class="btn btn-ghost" style="width:100%;margin-bottom:16px;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;" href="${tr('set_guide_url')}" target="_blank" rel="noopener">${tr('set_guide_button')}</a>
         <div class="label">${tr('set_apikey_label')}</div>
         <input id="g-apikey" type="password" value="${getApiKey()}" placeholder="sk-ant-..." style="width:100%;margin-bottom:6px;">
         <div style="font-size:11px;color:var(--muted);margin-bottom:16px;">${tr('set_apikey_note')}</div>
