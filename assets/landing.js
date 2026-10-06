@@ -24,9 +24,14 @@ document.addEventListener('click', function(ev){
   var box = document.querySelector('[data-stores]');
   if(!box) return;
   function soon(){ box.textContent = box.getAttribute('data-soon'); }
-  var PLAY_BADGE = document.documentElement.lang === 'en'
-    ? { src:'/assets/google-play-badge-en.png', alt:'Get it on Google Play', height:71 }
-    : { src:'/assets/google-play-badge-es.png', alt:'Disponible en Google Play', height:62, pad:true };
+  var EN = document.documentElement.lang === 'en';
+  var PLAY_BADGE = EN
+    ? { src:'/assets/google-play-badge-en.png', alt:'Get it on Google Play', height:71, ratio:646/250 }
+    : { src:'/assets/google-play-badge-es.png', alt:'Disponible en Google Play', height:62, ratio:646/250, pad:true };
+  // Apple's official badge has no built-in margin, so it is shown at 48px with its own.
+  var APPLE_BADGE = EN
+    ? { src:'/assets/app-store-badge-en.svg', alt:'Download on the App Store', height:48, ratio:119.66407/40, pad:true }
+    : { src:'/assets/app-store-badge-es.svg', alt:'Consíguelo en el App Store', height:48, ratio:119.66407/40, pad:true };
   fetch('/config.json', {cache:'no-store'}).then(function(r){ return r.ok ? r.json() : null; }).then(function(cfg){
     var stores = (cfg && cfg.stores) || {};
     var links = [['Google Play', stores.android, 'store_android'], ['App Store', stores.ios, 'store_ios']].filter(function(s){
@@ -38,12 +43,12 @@ document.addEventListener('click', function(ev){
       var a = document.createElement('a');
       a.href = s[1]; a.rel = 'noopener';
       a.setAttribute('data-track', s[2]);
-      var badge = s[2] === 'store_android' ? PLAY_BADGE : null;
+      var badge = s[2] === 'store_android' ? PLAY_BADGE : APPLE_BADGE;
       if(badge){
-        // Google's official badge, used unmodified. The two language files come with
+        // Each store's official badge, used unmodified. Google's two language files come with
         // different built-in margins, so each gets the height that shows the badge at 48px.
         var img = document.createElement('img');
-        img.src = badge.src; img.alt = badge.alt; img.height = badge.height; img.width = Math.round(badge.height * 646 / 250);
+        img.src = badge.src; img.alt = badge.alt; img.height = badge.height; img.width = Math.round(badge.height * badge.ratio);
         a.className = 'store-badge' + (badge.pad ? ' pad' : '');
         a.appendChild(img);
       }else{

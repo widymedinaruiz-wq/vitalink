@@ -11,6 +11,12 @@ const PAGES = [
   ['/guia/', '/en/guide/'],
   ['/guia/primeros-pasos/', '/en/guide/getting-started/'],
   ['/guia/registrar-comidas/', '/en/guide/logging-meals/'],
+  ['/guia/ejercicio/', '/en/guide/exercise/'],
+  ['/guia/registros-y-progreso/', '/en/guide/records-and-progress/'],
+  ['/guia/salud-conectada/', '/en/guide/connected-health/'],
+  ['/guia/personalizar/', '/en/guide/personalize/'],
+  ['/guia/vitalinks-plus/', '/en/guide/vitalinks-plus/'],
+  ['/guia/cuenta-y-datos/', '/en/guide/account-and-data/'],
 ];
 const html = (url) => read(...url.split('/').filter(Boolean), 'index.html');
 

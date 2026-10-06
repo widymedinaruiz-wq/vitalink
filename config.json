@@ -1,6 +1,7 @@
 {
   "aiModel": "claude-sonnet-5",
   "stores": {
-    "android": "https://play.google.com/store/apps/details?id=com.widymedina.vitalinks"
+    "android": "https://play.google.com/store/apps/details?id=com.widymedina.vitalinks",
+    "ios": "https://apps.apple.com/app/id6813999633"
   }
 }
