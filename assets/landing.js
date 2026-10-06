@@ -41,7 +41,10 @@ document.addEventListener('click', function(ev){
     box.textContent = box.getAttribute('data-label') + ' ';
     links.forEach(function(s){
       var a = document.createElement('a');
-      a.href = s[1]; a.rel = 'noopener';
+      // Apple sends a link with no country to its US, English store page, so the Spanish
+      // page asks for the Spanish one. On an iPhone either link opens the visitor's own store.
+      a.href = EN ? s[1] : s[1].replace('//apps.apple.com/app/', '//apps.apple.com/es/app/');
+      a.rel = 'noopener';
       a.setAttribute('data-track', s[2]);
       var badge = s[2] === 'store_android' ? PLAY_BADGE : APPLE_BADGE;
       if(badge){
