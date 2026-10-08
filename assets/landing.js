@@ -18,48 +18,35 @@ document.addEventListener('click', function(ev){
   if(a) track(a.getAttribute('data-track'));
 });
 
-// Store links come from /config.json so they can be switched on the day each store
-// approves the app, without touching this page.
+// On a phone the header button installs the app from that phone's store (the badge in the
+// hero is already in the page; <html> gets .os-android / .os-ios from a script in <head>).
 (function(){
-  var box = document.querySelector('[data-stores]');
-  if(!box) return;
-  function soon(){ box.textContent = box.getAttribute('data-soon'); }
-  var EN = document.documentElement.lang === 'en';
-  var PLAY_BADGE = EN
-    ? { src:'/assets/google-play-badge-en.png', alt:'Get it on Google Play', height:71, ratio:646/250 }
-    : { src:'/assets/google-play-badge-es.png', alt:'Disponible en Google Play', height:62, ratio:646/250, pad:true };
-  // Apple's official badge has no built-in margin, so it is shown at 48px with its own.
-  var APPLE_BADGE = EN
-    ? { src:'/assets/app-store-badge-en.svg', alt:'Download on the App Store', height:48, ratio:119.66407/40, pad:true }
-    : { src:'/assets/app-store-badge-es.svg', alt:'Consíguelo en el App Store', height:48, ratio:119.66407/40, pad:true };
-  fetch('/config.json', {cache:'no-store'}).then(function(r){ return r.ok ? r.json() : null; }).then(function(cfg){
-    var stores = (cfg && cfg.stores) || {};
-    var links = [['Google Play', stores.android, 'store_android'], ['App Store', stores.ios, 'store_ios']].filter(function(s){
-      return typeof s[1]==='string' && /^https:\/\/(play\.google\.com|apps\.apple\.com)\//.test(s[1]);
+  var os = /\bos-(android|ios)\b/.exec(document.documentElement.className);
+  var btn = document.querySelector('.top .btn-small[data-install]');
+  var badge = os && document.querySelector('.store-badge.' + (os[1] === 'android' ? 'play' : 'apple'));
+  if(!btn || !badge) return;
+  btn.href = badge.href;
+  btn.textContent = btn.getAttribute('data-install');
+  btn.setAttribute('data-track', os[1] === 'android' ? 'store_android' : 'store_ios');
+})();
+
+// The header link for the section being read is highlighted. Two sections can share one
+// link (data-nav), so each link counts how many of its sections are on screen.
+(function(){
+  if(!('IntersectionObserver' in window)) return;
+  var links = {}, onScreen = {};
+  Array.prototype.forEach.call(document.querySelectorAll('.sections a'), function(a){ links[a.getAttribute('href').slice(1)] = a; });
+  var key = function(el){ return el.getAttribute('data-nav') || el.id; };
+  var current = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      var k = key(en.target), a = links[k];
+      if(!a) return;
+      onScreen[k] = Math.max(0, (onScreen[k] || 0) + (en.isIntersecting ? 1 : (en.target._seen ? -1 : 0)));
+      en.target._seen = en.isIntersecting;
+      if(onScreen[k]) a.setAttribute('aria-current', 'true'); else a.removeAttribute('aria-current');
     });
-    if(!links.length) return soon();
-    box.textContent = box.getAttribute('data-label') + ' ';
-    links.forEach(function(s){
-      var a = document.createElement('a');
-      // Apple sends a link with no country to its US, English store page, so the Spanish
-      // page asks for the Spanish one. On an iPhone either link opens the visitor's own store.
-      a.href = EN ? s[1] : s[1].replace('//apps.apple.com/app/', '//apps.apple.com/es/app/');
-      a.rel = 'noopener';
-      a.setAttribute('data-track', s[2]);
-      var badge = s[2] === 'store_android' ? PLAY_BADGE : APPLE_BADGE;
-      if(badge){
-        // Each store's official badge, used unmodified. Google's two language files come with
-        // different built-in margins, so each gets the height that shows the badge at 48px.
-        var img = document.createElement('img');
-        img.src = badge.src; img.alt = badge.alt; img.height = badge.height; img.width = Math.round(badge.height * badge.ratio);
-        a.className = 'store-badge' + (badge.pad ? ' pad' : '');
-        a.appendChild(img);
-      }else{
-        a.className = 'btn btn-ghost btn-small'; a.textContent = s[0];
-      }
-      box.appendChild(a);
-    });
-  }).catch(soon);
+  }, { rootMargin:'-45% 0px -50% 0px' });
+  Array.prototype.forEach.call(document.querySelectorAll('main section[id]'), function(s){ if(links[key(s)]) current.observe(s); });
 })();
 
 // Motion (see the end of landing.css). Blocks that start below the fold fade up when they
@@ -87,15 +74,4 @@ document.addEventListener('click', function(ev){
     });
   });
 
-  // The header link for the section being read is highlighted.
-  var links = {};
-  Array.prototype.forEach.call(document.querySelectorAll('.sections a'), function(a){ links[a.getAttribute('href').slice(1)] = a; });
-  var current = new IntersectionObserver(function(entries){
-    entries.forEach(function(en){
-      var a = links[en.target.id];
-      if(!a) return;
-      if(en.isIntersecting) a.setAttribute('aria-current', 'true'); else a.removeAttribute('aria-current');
-    });
-  }, { rootMargin:'-45% 0px -50% 0px' });
-  Object.keys(links).forEach(function(id){ var s = document.getElementById(id); if(s) current.observe(s); });
 })();

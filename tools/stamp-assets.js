@@ -1,4 +1,4 @@
-// Browsers keep /assets/landing.js, landing.css and guide.css for 10 minutes (GitHub Pages
+// Browsers keep /assets/landing.js, landing.css, guide.css and fonts.css for 10 minutes (GitHub Pages
 // sets that), so a visitor can run an old script against a new page. Each page therefore
 // links them as file?v=<hash of the file>: when a file changes, its address changes and
 // the old copy is never used. Run `npm run stamp` after editing one of them;
@@ -8,7 +8,7 @@ const path = require('path');
 const crypto = require('crypto');
 
 const root = path.join(__dirname, '..');
-const STAMPED = ['assets/landing.js', 'assets/landing.css', 'assets/guide.css'];
+const STAMPED = ['assets/landing.js', 'assets/landing.css', 'assets/guide.css', 'assets/fonts.css'];
 const PAGE_DIRS = ['guia', path.join('en', 'guide')];
 
 // Line endings are normalised so the hash is the same on Windows and Linux checkouts.

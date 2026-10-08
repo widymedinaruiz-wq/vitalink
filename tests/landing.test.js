@@ -57,3 +57,15 @@ test('every local file the pages reference exists', () => {
   }
   assert.ok(fs.existsSync(path.join(root, 'app', 'index.html')), 'the app is not at /app/');
 });
+
+test('store badges are in the page itself, and fonts are served from this site', () => {
+  for (const html of [es, en]) {
+    assert.match(html, /<a class="store-badge play" href="https:\/\/play\.google\.com\/store\/apps\/details\?id=com\.widymedina\.vitalinks"/);
+    assert.match(html, /<a class="store-badge apple pad" href="https:\/\/apps\.apple\.com\/(es\/)?app\/id6813999633"/);
+    assert.doesNotMatch(html, /fonts\.(googleapis|gstatic)\.com/, 'the page loads fonts from Google again');
+  }
+  const fonts = fs.readFileSync(path.join(root, 'assets', 'fonts.css'), 'utf8');
+  for (const [, ref] of fonts.matchAll(/url\((\/assets\/fonts\/[^)]+)\)/g)) {
+    assert.ok(fs.existsSync(path.join(root, ref)), `missing font ${ref}`);
+  }
+});
