@@ -61,3 +61,41 @@ document.addEventListener('click', function(ev){
     });
   }).catch(soon);
 })();
+
+// Motion (see the end of landing.css). Blocks that start below the fold fade up when they
+// scroll into view; anything already on screen is left alone, so nothing visible ever
+// disappears, and without this script the page is simply static.
+(function(){
+  if(!('IntersectionObserver' in window)) return;
+  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var groups = ['.chips', '.feature > div', '.steps > li', '.feature.photo > .note', '.cards > .card', '.closing', '.social'];
+  var seen = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(!en.isIntersecting) return;
+      en.target.classList.add('in');
+      seen.unobserve(en.target);
+    });
+  }, { rootMargin:'0px 0px -12% 0px', threshold:0.08 });
+  groups.forEach(function(sel){
+    Array.prototype.forEach.call(document.querySelectorAll(sel), function(el){
+      if(el.getBoundingClientRect().top < window.innerHeight) return;
+      // Siblings arrive a beat apart (the three photo steps, the four cards).
+      var i = Array.prototype.indexOf.call(el.parentNode.children, el);
+      if(sel === '.steps > li' || sel === '.cards > .card') el.style.setProperty('--d', (i % 3) * 0.12 + 's');
+      el.classList.add('rv');
+      seen.observe(el);
+    });
+  });
+
+  // The header link for the section being read is highlighted.
+  var links = {};
+  Array.prototype.forEach.call(document.querySelectorAll('.sections a'), function(a){ links[a.getAttribute('href').slice(1)] = a; });
+  var current = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      var a = links[en.target.id];
+      if(!a) return;
+      if(en.isIntersecting) a.setAttribute('aria-current', 'true'); else a.removeAttribute('aria-current');
+    });
+  }, { rootMargin:'-45% 0px -50% 0px' });
+  Object.keys(links).forEach(function(id){ var s = document.getElementById(id); if(s) current.observe(s); });
+})();

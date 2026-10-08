@@ -16,7 +16,8 @@
   }
 }
 *{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
+html{-webkit-text-size-adjust:100%;scroll-padding-top:84px}
+body{overflow-x:clip}
 body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:17px;line-height:1.55}
 img{max-width:100%;height:auto;display:block}
 a{color:inherit}
@@ -25,7 +26,13 @@ p{margin:0}
 .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
 
 /* header */
-.top{display:flex;align-items:center;gap:12px;padding:18px 0}
+.top{display:flex;align-items:center;gap:12px;padding:14px 0;position:sticky;top:0;z-index:30}
+/* The bar behind the sticky header spans the whole window, not just the 1080px column. */
+.top::before{content:"";position:absolute;top:0;bottom:0;left:50%;width:100vw;transform:translateX(-50%);z-index:-1;background:color-mix(in srgb,var(--bg) 80%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.sections{display:flex;gap:2px;margin-right:6px}
+.sections a{font-size:14px;font-weight:600;color:var(--muted);text-decoration:none;padding:8px 10px;border-radius:10px;transition:color .2s,background-color .2s}
+.sections a:hover,.sections a[aria-current]{color:var(--text);background:var(--raised)}
+.sections a:focus-visible{outline:3px solid var(--water);outline-offset:2px}
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:22px}
 .brand img{width:40px;height:40px;border-radius:10px}
 .top .spacer{flex:1}
@@ -37,6 +44,7 @@ p{margin:0}
 .btn-primary{background:var(--food);color:var(--on-accent)}
 .btn-ghost{border-color:var(--line);color:var(--text);background:var(--surface)}
 .btn-small{padding:9px 14px;min-height:40px;font-size:14px;border-radius:12px}
+.btn,.store-badge{transition:transform .18s ease,box-shadow .18s ease}
 .btn:focus-visible,.lang:focus-visible{outline:3px solid var(--water);outline-offset:2px}
 
 /* hero */
@@ -139,4 +147,45 @@ footer a:hover{color:var(--text)}
   .steps>li{scroll-snap-align:start}
   .cards{grid-template-columns:1fr;padding:44px 0}
   .top .btn-small{display:none}
+}
+@media (max-width:1000px){ .sections{display:none} }
+
+/* ---- motion ----
+   Everything here is decoration: the page reads the same without it, and it is switched
+   off for anyone whose device asks for reduced motion. */
+@media (prefers-reduced-motion:no-preference){
+  html{scroll-behavior:smooth}
+  /* landing <-> guide: cross-fade the page, keep the header still */
+  @view-transition{navigation:auto}
+  .top{view-transition-name:site-header}
+
+  .btn:hover,.store-badge:hover{transform:translateY(-2px)}
+  .btn-primary:hover{box-shadow:0 10px 24px color-mix(in srgb,var(--food) 35%,transparent)}
+  .btn:active,.store-badge:active{transform:translateY(0) scale(.98)}
+
+  /* the hero settles in on load */
+  @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  @keyframes settle{from{opacity:0;transform:translateY(28px) scale(.97)}to{opacity:1;transform:none}}
+  .hero>div:first-child>*{animation:rise .7s cubic-bezier(.2,.7,.2,1) both}
+  .hero>div:first-child>:nth-child(2){animation-delay:.06s}
+  .hero>div:first-child>:nth-child(3){animation-delay:.12s}
+  .hero>div:first-child>:nth-child(4){animation-delay:.18s}
+  .hero>div:first-child>:nth-child(5){animation-delay:.24s}
+  .hero>div:first-child>:nth-child(6){animation-delay:.3s}
+  .hero>.phone{animation:settle .9s cubic-bezier(.2,.7,.2,1) .12s both}
+
+  /* landing.js adds .rv to blocks below the fold and .in when they scroll into view */
+  .rv{opacity:0;transform:translateY(26px)}
+  .rv.in{opacity:1;transform:none;transition:opacity .7s cubic-bezier(.2,.7,.2,1) var(--d,0s),transform .7s cubic-bezier(.2,.7,.2,1) var(--d,0s)}
+  /* the estimate labels land on the plate one by one */
+  .rv .tag{opacity:0;transform:translateY(8px) scale(.9)}
+  .rv.in .tag{opacity:1;transform:none;transition:opacity .45s ease,transform .45s cubic-bezier(.3,1.4,.5,1)}
+  .rv.in .tag.t1{transition-delay:.55s} .rv.in .tag.t2{transition-delay:.72s}
+  .rv.in .tag.t3{transition-delay:.89s} .rv.in .tag.t4{transition-delay:1.06s}
+  .rv .example{opacity:0}
+  .rv.in .example{opacity:1;transition:opacity .4s ease 1.3s}
+  /* the viewfinder focuses once */
+  @keyframes focus{0%{transform:scale(1.18);opacity:0}100%{transform:none;opacity:.92}}
+  .rv .finder{opacity:0}
+  .rv.in .finder{animation:focus .8s cubic-bezier(.2,.7,.2,1) .45s both}
 }
