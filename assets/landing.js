@@ -31,7 +31,9 @@ document.addEventListener('click', function(ev){
 })();
 
 // The header link for the section being read is highlighted. Two sections can share one
-// link (data-nav), so each link counts how many of its sections are on screen.
+// link (data-nav), so each link counts how many of its sections are on screen. The
+// observer watches a single line across the middle of the window, so only one section
+// can be "current" at a time.
 (function(){
   if(!('IntersectionObserver' in window)) return;
   var links = {}, onScreen = {};
@@ -45,7 +47,7 @@ document.addEventListener('click', function(ev){
       en.target._seen = en.isIntersecting;
       if(onScreen[k]) a.setAttribute('aria-current', 'true'); else a.removeAttribute('aria-current');
     });
-  }, { rootMargin:'-45% 0px -50% 0px' });
+  }, { rootMargin:'-50% 0px -50% 0px' });
   Array.prototype.forEach.call(document.querySelectorAll('main section[id]'), function(s){ if(links[key(s)]) current.observe(s); });
 })();
 

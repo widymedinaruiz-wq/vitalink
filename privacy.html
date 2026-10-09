@@ -206,9 +206,11 @@
     document.documentElement.lang = lang;
     try{ localStorage.setItem('vl:privacy-lang', lang); }catch(e){}
   }
+  // ?lang=en|es wins (the English pages link here with it), then the visitor's last choice.
+  var asked = (location.search.match(/[?&]lang=(es|en)\b/) || [])[1];
   var saved = 'es';
   try{ saved = localStorage.getItem('vl:privacy-lang') || 'es'; }catch(e){}
-  setLang(saved);
+  setLang(asked || saved);
 </script>
 </body>
 </html>

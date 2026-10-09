@@ -40,7 +40,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' rx='26' fill='%230E2723'/%3E%3Cdefs%3E%3Cmask id='t' maskUnits='userSpaceOnUse' x='0' y='0' width='120' height='120'%3E%3Crect width='120' height='120' fill='white'/%3E%3Ccircle cx='60' cy='80' r='34.641' fill='none' stroke='black' stroke-width='16'/%3E%3C/mask%3E%3Cmask id='o' maskUnits='userSpaceOnUse' x='0' y='0' width='120' height='120'%3E%3Crect width='120' height='120' fill='white'/%3E%3Ccircle cx='77.32' cy='50' r='34.641' fill='none' stroke='black' stroke-width='16'/%3E%3C/mask%3E%3Cmask id='y' maskUnits='userSpaceOnUse' x='0' y='0' width='120' height='120'%3E%3Crect width='120' height='120' fill='white'/%3E%3Ccircle cx='42.68' cy='50' r='34.641' fill='none' stroke='black' stroke-width='16'/%3E%3C/mask%3E%3C/defs%3E%3Ccircle cx='77.32' cy='50' r='34.641' fill='none' stroke='%237FC8B0' stroke-width='10' mask='url(%23t)'/%3E%3Ccircle cx='42.68' cy='50' r='34.641' fill='none' stroke='%23F2A65A' stroke-width='10' mask='url(%23o)'/%3E%3Ccircle cx='60' cy='80' r='34.641' fill='none' stroke='%23E8C468' stroke-width='10' mask='url(%23y)'/%3E%3C/svg%3E">
 <link rel="preload" href="/assets/fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/fonts.css?v=01b8179b">
-<link rel="stylesheet" href="/assets/landing.css?v=68f1cd51">
+<link rel="stylesheet" href="/assets/landing.css?v=c8089204">
 </head>
 <body>
 <div class="wrap">
@@ -50,7 +50,7 @@
     <span class="spacer"></span>
     <nav class="sections" aria-label="Secciones"><a href="#comida">Comida</a><a href="#movimiento">Movimiento</a><a href="#salud">Salud</a><a href="#progreso">Progreso</a></nav>
     <a class="lang" href="/guia/" data-track="guide">Guía</a>
-    <a class="lang" href="/en/?landing=1" hreflang="en" lang="en">English</a>
+    <a class="lang" href="/en/?landing=1" hreflang="en" lang="en" aria-label="English"><span class="l-full">English</span><span class="l-short">EN</span></a>
     <a class="btn btn-primary btn-small" href="/app/" data-track="try" data-install="Instalar">Pruébala gratis</a>
   </header>
 
@@ -59,18 +59,19 @@
       <div>
         <span class="tagline">Pequeños momentos. Grandes cambios.</span>
         <h1>Tus hábitos, <em>más claros.</em></h1>
-        <p class="lede">VitaLinks es tu app personal de salud y hábitos: registra comida, ejercicio, sueño, agua, presión arterial y medicación en un solo lugar. No se trata de hacerlo perfecto, sino de entender mejor tus hábitos.</p>
-        <p class="fine browser-alt">O pruébala ahora en el navegador:</p>
+        <p class="lede">VitaLinks es tu app personal de salud y hábitos: registra comida, ejercicio, sueño, agua, presión arterial y medicamentos en un solo lugar. No se trata de hacerlo perfecto, sino de entender mejor tus hábitos.</p>
+        <p class="fine browser-alt">O úsala sin instalar nada:</p>
         <div class="cta">
-          <a class="btn btn-primary" href="/app/" data-track="try">Pruébala gratis</a>
+          <a class="btn btn-primary" href="/app/" data-track="try"><span class="on-desktop">Pruébala gratis</span><span class="on-phone">Abrir en el navegador</span></a>
           <a class="btn btn-ghost" href="/app/?demo=1" data-track="demo">Explora con datos de ejemplo</a>
         </div>
         <p class="fine">Gratis en tu navegador. Sin crear cuenta.</p>
         <div class="stores">
-          <span class="stores-label on-desktop">También en tu móvil:</span><span class="stores-label on-phone">Instálala en tu móvil:</span>
+          <span class="stores-label on-desktop">También en tu móvil:</span><span class="stores-label on-phone">Instala la app gratis:</span>
           <a class="store-badge play" href="https://play.google.com/store/apps/details?id=com.widymedina.vitalinks" rel="noopener" data-track="store_android"><img src="/assets/google-play-badge-es.png" width="160" height="62" alt="Disponible en Google Play"></a>
           <a class="store-badge apple pad" href="https://apps.apple.com/es/app/id6813999633" rel="noopener" data-track="store_ios"><img src="/assets/app-store-badge-es.svg" width="144" height="48" alt="Consíguelo en el App Store"></a>
         </div>
+        <script>(function(){if(/\bos-/.test(document.documentElement.className)){var s=document.currentScript.previousElementSibling,p=s.parentNode;p.insertBefore(s,p.querySelector(".browser-alt"));}})();</script>
       </div>
       <div class="phone"><img src="/assets/shot-today-es.webp" width="540" height="1080" alt="Pantalla Hoy de VitaLinks: puntuación de vitalidad del día y resumen de calorías, agua y ejercicio."></div>
     </section>
@@ -87,7 +88,7 @@
         <p class="note">Registrar comidas es gratis, en el navegador y en el móvil.</p>
       </div>
       <div class="media">
-        <div class="phone"><img src="/assets/shot-meals-es.webp" width="540" height="1080" alt="Pantalla Comidas de VitaLinks: tipo de comida, descripción, calorías y macronutrientes antes de agregar." loading="lazy"></div>
+        <div class="phone"><img src="/assets/shot-meals-es.webp" width="540" height="1080" alt="Pantalla Comidas de VitaLinks: una comida a punto de agregarse, las comidas personalizadas y la lista de hoy con sus calorías." loading="lazy"></div>
       </div>
     </section>
 
@@ -95,33 +96,33 @@
       <div class="intro">
         <div class="pill">VitaLinks Plus · app móvil</div>
         <h2>Y si quieres, basta una foto.</h2>
-        <p>Haz una foto de tu plato y VitaLinks estima sus calorías y macronutrientes. Tú revisas y ajustas antes de guardar.</p>
+        <p>Haz una foto de tu plato y VitaLinks estima sus calorías y macronutrientes.</p>
       </div>
       <ol class="steps" role="list" aria-label="Calorías por foto, en tres pasos">
         <li>
           <figure class="shot">
-            <img src="/assets/photo-step1.jpg" width="800" height="1000" alt="Una mano sostiene un móvil sobre un cuenco de pollo, quinoa, aguacate y tomates." loading="lazy">
+            <img src="/assets/photo-step1.webp" width="800" height="1000" alt="Una mano sostiene un móvil sobre un cuenco de pollo, quinoa, aguacate y tomates." loading="lazy">
             <span class="finder" aria-hidden="true"></span>
           </figure>
-          <div><strong>Tomas una foto</strong><span>Enfoca tu plato y VitaLinks prepara una estimación para que la revises antes de guardar.</span></div>
+          <div><strong>Tomas una foto</strong><span>Enfoca tu plato y haz la foto.</span></div>
         </li>
         <li>
           <figure class="shot">
-            <img src="/assets/photo-step2.jpg" width="800" height="1000" alt="El mismo cuenco visto desde arriba, con etiquetas de calorías, proteína, carbohidratos y grasas." loading="lazy">
+            <img src="/assets/photo-step2.webp" width="800" height="1000" alt="El mismo cuenco visto desde arriba, con etiquetas de calorías, proteína, carbohidratos y grasas." loading="lazy">
             <ul class="tags" aria-hidden="true"><li class="tag t1"><img src="/assets/icon-calories.svg" width="30" height="30" alt=""><span>Calorías<b>490 kcal</b></span></li><li class="tag t2"><img src="/assets/icon-protein.svg" width="30" height="30" alt=""><span>Proteína<b>28 g</b></span></li><li class="tag t3"><img src="/assets/icon-carbs.svg" width="30" height="30" alt=""><span>Carbohidratos<b>45 g</b></span></li><li class="tag t4"><img src="/assets/icon-fat.svg" width="30" height="30" alt=""><span>Grasas<b>22 g</b></span></li></ul>
             <span class="example" aria-hidden="true">Ejemplo</span>
           </figure>
-          <div><strong>VitaLinks estima</strong><span>Calorías y macronutrientes de forma rápida y sencilla.</span></div>
+          <div><strong>VitaLinks estima</strong><span>Calorías, proteína, carbohidratos y grasas, en segundos.</span></div>
         </li>
         <li>
-          <figure class="shot screen">
-            <img src="/assets/shot-photo-result-es.webp" width="540" height="1080" alt="Resultado de calorías por foto en VitaLinks: los alimentos del plato y un total estimado de 490 kcal." loading="lazy">
+          <figure class="shot result">
+            <img src="/assets/shot-photo-result-es.webp" width="656" height="1320" alt="Resultado de calorías por foto en VitaLinks: los alimentos del plato y un total estimado de 490 kcal." loading="lazy">
             <span class="example" aria-hidden="true">Ejemplo</span>
           </figure>
           <div><strong>Entiendes tu plato</strong><span>Conoce mejor qué aporta cada comida a tu día. Tú revisas y ajustas antes de guardar.</span></div>
         </li>
       </ol>
-      <p class="note">Las calorías por foto están incluidas en VitaLinks Plus, en la app móvil. Los valores son estimaciones generadas por IA, no consejo médico. <a href="/guia/vitalinks-plus/">Qué incluye Plus</a>.</p>
+      <p class="note">Los valores son estimaciones generadas por IA, no consejo médico. <a href="/guia/vitalinks-plus/">Qué incluye Plus</a>.</p>
     </section>
 
     <section class="feature flip" id="movimiento">
@@ -132,7 +133,7 @@
         <p class="note">En la app móvil, VitaLinks trae tus pasos y entrenamientos desde Health Connect o Salud de Apple.</p>
       </div>
       <div class="media duo">
-        <img class="pic" src="/assets/photo-movement.jpg" width="800" height="1000" alt="Una persona camina tranquilamente por un sendero de parque con luz cálida de tarde." loading="lazy">
+        <img class="pic" src="/assets/photo-movement.webp" width="800" height="1000" alt="Una persona camina tranquilamente por un sendero de parque con luz cálida de tarde." loading="lazy">
         <div class="phone"><img src="/assets/shot-exercise-es.webp" width="540" height="1080" alt="Pantalla Ejercicio de VitaLinks: actividades para elegir, con Andar seleccionado." loading="lazy"></div>
       </div>
     </section>
@@ -141,7 +142,7 @@
       <div>
         <div class="kicker k-water">Salud</div>
         <h2>Tus registros, en un solo lugar.</h2>
-        <p>Presión arterial, medicación, peso y composición corporal, cada cosa con su historial. Para verlo tú con calma.</p>
+        <p>Presión arterial, medicamentos, peso y composición corporal, cada cosa con su historial. Para verlo tú con calma.</p>
       </div>
       <div class="media">
         <div class="phone"><img src="/assets/shot-health-es.webp" width="540" height="1080" alt="Pantalla Salud de VitaLinks: registro de presión arterial y medicamentos del día." loading="lazy"></div>
@@ -162,13 +163,13 @@
     <section class="cards">
       <h2 class="sr-only">Y además</h2>
       <div class="card">
-        <img class="card-img" src="/assets/photo-sleep.jpg" width="900" height="600" alt="Una persona descansa en una cama con ropa de cama clara y luz suave de mañana." loading="lazy">
+        <img class="card-img" src="/assets/photo-sleep.webp" width="900" height="600" alt="Una persona descansa en una cama con ropa de cama clara y luz suave de mañana." loading="lazy">
         <div class="kicker k-water">Sueño</div>
         <h3>Dormir bien no siempre se trata de contar horas.</h3>
-        <p>Anota tus horas de sueño cada día y mira en Progreso cómo cambian con el tiempo.</p>
+        <p>Anota tu sueño cada día y mira en Progreso cómo cambia con el tiempo.</p>
       </div>
       <div class="card">
-        <img class="card-img" src="/assets/photo-water.jpg" width="900" height="600" alt="Un vaso de agua sobre una mesa de madera junto a una ventana iluminada." loading="lazy">
+        <img class="card-img" src="/assets/photo-water.webp" width="900" height="600" alt="Un vaso de agua sobre una mesa de madera junto a una ventana iluminada." loading="lazy">
         <div class="kicker k-water">Agua</div>
         <h3>Un vaso de agua también es una forma de cuidarte.</h3>
         <p>Un toque por cada vaso, con tu meta diaria siempre a la vista.</p>
@@ -186,11 +187,12 @@
       <div class="card wide">
         <div class="kicker k-water">Privacidad</div>
         <h3>Tus datos son tuyos.</h3>
-        <ul class="points">
+        <ul class="points" role="list">
           <li>Sin cuenta, lo que registras se queda en tu dispositivo.</li>
-          <li>Si inicias sesión, se guarda de forma privada en tu cuenta, solo para sincronizar tus dispositivos.</li>
+          <li>Si inicias sesión, se guarda de forma privada en tu cuenta, para sincronizar tus dispositivos.</li>
           <li>No hay publicidad en la app y no vendemos tus datos.</li>
           <li>Puedes eliminar tu cuenta y tus datos cuando quieras.</li>
+          <li>Las funciones con IA de Plus envían la foto o el resumen de tu día para generar la estimación; no los guardamos.</li>
         </ul>
         <p>Todos los detalles, en la <a href="/privacy.html">Política de privacidad</a>.</p>
       </div>
@@ -198,7 +200,12 @@
 
     <section class="closing">
       <h2>No necesitas un día perfecto.<br><em>Solo necesitas seguir adelante.</em></h2>
-      <div class="cta"><a class="btn btn-primary" href="/app/" data-track="try">Pruébala gratis</a></div>
+      <div class="stores">
+        <span class="stores-label on-phone">Instala la app gratis:</span>
+        <a class="store-badge play" href="https://play.google.com/store/apps/details?id=com.widymedina.vitalinks" rel="noopener" data-track="store_android"><img src="/assets/google-play-badge-es.png" width="160" height="62" alt="Disponible en Google Play"></a>
+        <a class="store-badge apple pad" href="https://apps.apple.com/es/app/id6813999633" rel="noopener" data-track="store_ios"><img src="/assets/app-store-badge-es.svg" width="144" height="48" alt="Consíguelo en el App Store"></a>
+      </div>
+      <div class="cta"><a class="btn btn-primary" href="/app/" data-track="try"><span class="on-desktop">Pruébala gratis</span><span class="on-phone">Abrir en el navegador</span></a></div>
       <p class="fine">Gratis en tu navegador. Sin crear cuenta.</p>
       <p class="fine">¿Primera vez? <a href="/guia/" data-track="guide">Mira la guía paso a paso</a>.</p>
     </section>
@@ -230,6 +237,6 @@
     <p>Facebook e Instagram son marcas comerciales de Meta Platforms, Inc.</p>
   </footer>
 </div>
-<script src="/assets/landing.js?v=45dbf461" defer></script>
+<script src="/assets/landing.js?v=90b9b7c8" defer></script>
 </body>
 </html>

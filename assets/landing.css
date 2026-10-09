@@ -17,7 +17,7 @@
 }
 *{box-sizing:border-box}
 /* The hero glow reaches past the column; this keeps it from making the page scroll sideways. */
-html{-webkit-text-size-adjust:100%;scroll-padding-top:84px}
+html{-webkit-text-size-adjust:100%;scroll-padding-top:84px;overflow-x:clip}
 body{overflow-x:hidden;overflow-x:clip}
 .sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
 body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:17px;line-height:1.55}
@@ -45,7 +45,7 @@ p{margin:0}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px;text-decoration:none;border-radius:14px;padding:14px 22px;border:1px solid transparent;min-height:48px}
 .btn-primary{background:var(--food);color:var(--on-accent)}
 .btn-ghost{border-color:var(--line);color:var(--text);background:var(--surface)}
-.btn-small{padding:9px 14px;min-height:40px;font-size:14px;border-radius:12px}
+.btn-small{padding:9px 14px;min-height:44px;font-size:14px;border-radius:12px}
 .btn,.store-badge{transition:transform .18s ease,box-shadow .18s ease}
 .btn:focus-visible,.lang:focus-visible{outline:3px solid var(--water);outline-offset:2px}
 
@@ -67,20 +67,23 @@ p{margin:0}
 .store-badge img{display:block;max-width:none}
 /* Google's Spanish badge and Apple's badge come without the clear space their guidelines ask for. */
 .store-badge.pad,.store-badge.play:lang(es){margin:5px 0}
-.on-phone,.browser-alt{display:none}
-/* On a phone the store for that phone leads and the browser buttons step back. */
-.os-android .hero>div:first-child,.os-ios .hero>div:first-child{display:flex;flex-direction:column;align-items:flex-start}
-.os-android .hero .stores,.os-ios .hero .stores{order:1;margin-top:24px}
-.os-android .hero .browser-alt,.os-ios .hero .browser-alt{order:2;display:block;margin-top:22px}
-.os-android .hero .cta,.os-ios .hero .cta{order:3;margin-top:10px}
-.os-android .hero .cta~.fine,.os-ios .hero .cta~.fine{order:4}
+.on-phone,.browser-alt,.closing .stores,.l-short{display:none}
+/* On a phone the store for that phone leads (a script in the hero moves the block up) and the
+   browser buttons step back. */
+.os-android .hero .stores,.os-ios .hero .stores{margin-top:24px}
+.os-android .browser-alt,.os-ios .browser-alt{display:block;margin-top:22px}
+.os-android .hero .cta,.os-ios .hero .cta{margin-top:10px}
 .os-android .on-desktop,.os-ios .on-desktop{display:none}
 .os-android .on-phone,.os-ios .on-phone{display:inline}
 .os-android .stores-label,.os-ios .stores-label{flex-basis:100%;font-size:16px;font-weight:600;color:var(--text)}
 .os-android .store-badge.apple,.os-ios .store-badge.play{display:none}
 .os-android .store-badge.play,.os-ios .store-badge.apple{zoom:1.2}
-.os-android .hero .cta .btn,.os-ios .hero .cta .btn{padding:10px 16px;min-height:44px;font-size:15px}
-.os-android .hero .cta .btn-primary,.os-ios .hero .cta .btn-primary{background:var(--surface);color:var(--text);border-color:var(--line)}
+/* Google's English file has clear space built in; pull it back so the badge lines up with the label. */
+.os-android .store-badge.play:lang(en){margin:-8px 0 -8px -12px}
+.os-android .cta .btn,.os-ios .cta .btn{padding:10px 16px;min-height:44px;font-size:15px}
+.os-android .cta .btn-primary,.os-ios .cta .btn-primary{background:var(--surface);color:var(--text);border-color:var(--line)}
+.os-android .closing .stores,.os-ios .closing .stores{display:flex;justify-content:center;text-align:center;margin-top:28px}
+.os-android .closing .cta,.os-ios .closing .cta{margin-top:14px}
 .store-badge:focus-visible{outline:3px solid var(--water);outline-offset:2px}
 
 /* phone frame around real screenshots */
@@ -118,6 +121,9 @@ p{margin:0}
 .steps>li>div>span{color:var(--muted);font-size:15px}
 .shot{position:relative;aspect-ratio:4/5;overflow:hidden;background:var(--raised)}
 .shot>img{width:100%;height:100%;object-fit:cover}
+.shot.result{padding:6% 15% 0}
+.shot.result>img{height:auto;border-radius:18px 18px 0 0;border:1px solid var(--line);border-bottom:0;box-shadow:0 14px 34px rgba(0,0,0,.22)}
+.shot.result .example{left:auto;right:4%;top:3%;bottom:auto;transform:none}
 .shot.screen{padding:9% 15% 0}
 .shot.screen>img{height:auto;border-radius:26px 26px 0 0;border:7px solid var(--bg);border-bottom:0;box-shadow:0 18px 40px rgba(0,0,0,.25)}
 /* viewfinder corners over the phone screen in the first photo */
@@ -146,6 +152,7 @@ figure{margin:0}
 .card.wide{grid-column:1/-1}
 .points{list-style:none;margin:16px 0 0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:10px 28px;color:var(--muted)}
 .points li{position:relative;padding-left:26px}
+.points li:last-child:nth-child(odd){grid-column:1/-1}
 .points li::before{content:"";position:absolute;left:0;top:.42em;width:14px;height:8px;border-left:2px solid var(--water);border-bottom:2px solid var(--water);transform:rotate(-45deg) scale(.8)}
 
 /* closing */
@@ -164,7 +171,7 @@ figure{margin:0}
 footer{border-top:1px solid var(--line);padding:28px 0 40px;font-size:14px;color:var(--muted)}
 footer nav{display:flex;flex-wrap:wrap;gap:0 20px;margin-bottom:10px}
 footer a{color:var(--muted)}
-footer nav a,.closing .fine a{display:inline-block;padding:8px 0}
+footer nav a,.closing .fine a{display:inline-block;padding:11px 0}
 footer a:hover{color:var(--text)}
 
 /* Up to this width the column spans the whole window, so the hero glow is clipped at the
@@ -186,7 +193,11 @@ footer a:hover{color:var(--text)}
   .top:has(.sections) .btn-small{display:inline-flex}
   .top:has(.sections)>.lang[data-track]{display:none}
 }
-@media (max-width:400px){ .top:has(.sections)>.lang[hreflang]{display:none} }
+/* narrow phones: the language link shrinks to its code, the button to fit one line */
+@media (max-width:400px){ .top .l-full{display:none} .top .l-short{display:inline} }
+@media (max-width:360px){ .top{gap:6px} .top .btn-small{padding:9px 10px;font-size:13px;white-space:nowrap} }
+@media (max-width:340px){ .top:has(.sections)>.lang[hreflang]{display:none} }
+@media print{ .top{position:static} .hero::after{display:none} .btn-primary{background:none;color:var(--text);border-color:var(--line)} }
 @media (max-width:1000px){ .sections{display:none} }
 
 /* ---- motion ----
