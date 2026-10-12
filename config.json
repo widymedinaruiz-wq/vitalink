@@ -1,3 +1,4 @@
 {
-  "aiModel": "claude-sonnet-5"
+  "aiModel": "claude-sonnet-5",
+  "aiModelOpenAI": "gpt-6.1-sol"
 }

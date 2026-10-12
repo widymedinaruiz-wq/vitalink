@@ -558,7 +558,7 @@ const I18N = {
     foto_agregar_no_detectado:'Agregar alimento no detectado', foto_agregar_placeholder:'ej. media taza de arroz',
     foto_items_vacio:'No se detectaron alimentos.', foto_total:'Total estimado del plato',
     foto_confirmar:'Agregar a mis comidas', foto_reiniciar:'🔄 Empezar de nuevo (otro plato)',
-    foto_apikey_label:'API key de Anthropic (necesaria para esta función mientras no tengas Plus)',
+    foto_apikey_label:'API key de Anthropic u OpenAI (necesaria para esta función mientras no tengas Plus)',
     err_foto_analizar:'Error al analizar la foto', err_foto_estimar_item:'Error al estimar',
     comidas_prot_g:'Prot(g)', comidas_carb_g:'Carb(g)', comidas_grasa_g:'Grasa(g)',
     btn_agregar:'+ Agregar', comidas_hoy:'Hoy', comidas_empty:'Sin comidas registradas — agrega la primera arriba',
@@ -668,10 +668,10 @@ const I18N = {
     set_modules_title:'Módulos visibles',
     set_modules_sub:'Oculta las pestañas que no uses. Tus datos no se borran — puedes volver a activarlas cuando quieras.',
     welcome_modules_note:'Puedes ocultar las pestañas que no uses desde Ajustes.',
-    set_apikey_label:'API key de Anthropic (opcional, para estimar calorías con IA)',
-    set_apikey_note:'Se guarda solo en este dispositivo y nunca se comparte con nadie.',
+    set_apikey_label:'API key de Anthropic u OpenAI (opcional, para estimar calorías con IA)',
+    set_apikey_note:'Se guarda solo en este dispositivo. Solo se envía al proveedor de la clave (Anthropic u OpenAI), junto con lo que pidas estimar.',
     err_storage_save:'No se pudo guardar en este dispositivo (¿modo privado / almacenamiento lleno?)',
-    err_ai_key_missing:'Agrega tu API key de Anthropic en Ajustes para usar esta función',
+    err_ai_key_missing:'Agrega tu API key de Anthropic u OpenAI en Ajustes para usar esta función',
     err_camera_unsupported:'Tu dispositivo no soporta acceso a la cámara',
     err_barcode_lib_failed:'No se pudo cargar el lector de códigos (revisa tu conexión a internet)',
     err_barcode_not_found:'Producto no encontrado en Open Food Facts (código {code}) — ingrésalo manualmente',
@@ -906,7 +906,7 @@ const I18N = {
     foto_agregar_no_detectado:'Add undetected food', foto_agregar_placeholder:'e.g. half a cup of rice',
     foto_items_vacio:'No food items detected.', foto_total:'Estimated total for this plate',
     foto_confirmar:'Add to my meals', foto_reiniciar:'🔄 Start over (another plate)',
-    foto_apikey_label:'Anthropic API key (needed for this feature until you have Plus)',
+    foto_apikey_label:'Anthropic or OpenAI API key (needed for this feature until you have Plus)',
     err_foto_analizar:'Error analyzing the photo', err_foto_estimar_item:'Estimation error',
     comidas_prot_g:'Prot(g)', comidas_carb_g:'Carbs(g)', comidas_grasa_g:'Fat(g)',
     btn_agregar:'+ Add', comidas_hoy:'Today', comidas_empty:'No meals logged yet — add the first one above',
@@ -1016,10 +1016,10 @@ const I18N = {
     set_modules_title:'Visible modules',
     set_modules_sub:"Hide the tabs you don't use. Your data isn't deleted — turn them back on anytime.",
     welcome_modules_note:"You can hide the tabs you don't use from Settings.",
-    set_apikey_label:'Anthropic API key (optional, for AI calorie estimates)',
-    set_apikey_note:"Stored only on this device, and never shared with anyone.",
+    set_apikey_label:'Anthropic or OpenAI API key (optional, for AI calorie estimates)',
+    set_apikey_note:"Stored only on this device. It is only sent to the key's provider (Anthropic or OpenAI), along with what you ask it to estimate.",
     err_storage_save:"Couldn't save to this device (private mode / storage full?)",
-    err_ai_key_missing:'Add your Anthropic API key in Settings to use this feature',
+    err_ai_key_missing:'Add your Anthropic or OpenAI API key in Settings to use this feature',
     err_camera_unsupported:"Your device doesn't support camera access",
     err_barcode_lib_failed:"Couldn't load the barcode reader (check your internet connection)",
     err_barcode_not_found:'Product not found in Open Food Facts (code {code}) — enter it manually',
@@ -1731,30 +1731,95 @@ function toast(msg, isError){
 }
 
 /* ================= remote config ================= */
-// The bring-your-own-key AI calls below go straight from this app to Anthropic, so the
-// model id ships inside every installed build — and store builds stay in use for months
+// The bring-your-own-key AI calls below go straight from this app to the AI provider, so
+// the model id ships inside every installed build — and store builds stay in use for months
 // after a model is retired. config.json (served from vitalinks.eu, which deploys in
 // minutes) lets the model be swapped for already-installed apps without a store release.
 // The built-in default always works offline or if the fetch fails; the last good remote
 // value is cached under a non-'vl:' key so it's never swept into cloud sync.
-const AI_MODEL_DEFAULT = 'claude-sonnet-5';
+/* ================= ai provider (begin) ================= */
+// Users asked to bring an OpenAI key as well as an Anthropic one. The provider is read
+// off the key itself (every Anthropic key starts with "sk-ant-"), so there is still one
+// field in Settings and one device-local 'vl:apikey' — and an Anthropic key can never be
+// sent to OpenAI. Only the transport and the response shape differ per provider; the
+// prompts and the JSON parsing of the reply are shared by the callers. tests/ai-provider
+// .test.js runs this block on its own, so keep it free of anything outside these markers.
+const AI_PROVIDERS = {
+  anthropic: { configField:'aiModel',       defaultModel:'claude-sonnet-5', modelPattern:/^claude-[a-z0-9.-]{3,60}$/ },
+  openai:    { configField:'aiModelOpenAI', defaultModel:'gpt-6.1-sol',     modelPattern:/^(gpt-|o\d)[a-z0-9.-]{1,60}$/ },
+};
+function aiProviderForKey(key){ return /^sk-ant-/.test(String(key||'').trim()) ? 'anthropic' : 'openai'; }
+function isValidAiModel(provider, m){ return typeof m==='string' && AI_PROVIDERS[provider].modelPattern.test(m); }
+// Keeps only the model fields that are well-formed, so a bad config.json can't break the calls.
+function pickRemoteAiModels(cfg){
+  const out = {};
+  for(const p of Object.keys(AI_PROVIDERS)){
+    const f = AI_PROVIDERS[p].configField;
+    if(cfg && isValidAiModel(p, cfg[f])) out[f] = cfg[f];
+  }
+  return out;
+}
+// images: JPEG data URLs.
+function buildAiRequest(provider, key, model, { prompt, images, maxTokens }){
+  const imgs = images || [];
+  if(provider==='anthropic'){
+    const content = imgs.length ? [
+      ...imgs.map(dataUrl=>({ type:'image', source:{ type:'base64', media_type:'image/jpeg', data: dataUrl.split(',')[1] } })),
+      { type:'text', text: prompt },
+    ] : prompt;
+    return {
+      url:'https://api.anthropic.com/v1/messages',
+      headers:{ 'Content-Type':'application/json', 'x-api-key': key, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
+      body:{ model, max_tokens: maxTokens, messages:[{ role:'user', content }] },
+    };
+  }
+  const content = imgs.length ? [
+    ...imgs.map(dataUrl=>({ type:'image_url', image_url:{ url: dataUrl } })),
+    { type:'text', text: prompt },
+  ] : prompt;
+  return {
+    url:'https://api.openai.com/v1/chat/completions',
+    headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+key },
+    // OpenAI's current models reason before answering and those tokens count against
+    // the limit, so the answer budget gets headroom on top or the reply can come back empty.
+    body:{ model, reasoning_effort:'low', max_completion_tokens: maxTokens + 4000, messages:[{ role:'user', content }] },
+  };
+}
+function readAiText(provider, data){
+  if(provider==='anthropic') return ((data && data.content)||[]).map(b=>b.text||'').join('');
+  const c = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+  if(Array.isArray(c)) return c.map(b=>b.text||'').join('');
+  return typeof c==='string' ? c : '';
+}
+/* ================= ai provider (end) ================= */
 const REMOTE_CONFIG_URL = 'https://vitalinks.eu/config.json';
 const REMOTE_CONFIG_KEY = 'cfg:remote';
-const isValidAiModel = m => typeof m==='string' && /^claude-[a-z0-9.-]{3,60}$/.test(m);
-function getAiModel(){
+function getAiModel(provider){
+  const p = AI_PROVIDERS[provider];
   try{
     const cfg = JSON.parse(localStorage.getItem(REMOTE_CONFIG_KEY)||'null');
-    if(cfg && isValidAiModel(cfg.aiModel)) return cfg.aiModel;
+    if(cfg && isValidAiModel(provider, cfg[p.configField])) return cfg[p.configField];
   }catch(e){}
-  return AI_MODEL_DEFAULT;
+  return p.defaultModel;
 }
 async function refreshRemoteConfig(){
   try{
     const res = await fetch(REMOTE_CONFIG_URL, {cache:'no-store'});
     if(!res.ok) return;
-    const cfg = await res.json();
-    if(cfg && isValidAiModel(cfg.aiModel)) localStorage.setItem(REMOTE_CONFIG_KEY, JSON.stringify({aiModel: cfg.aiModel}));
+    const models = pickRemoteAiModels(await res.json());
+    if(Object.keys(models).length) localStorage.setItem(REMOTE_CONFIG_KEY, JSON.stringify(models));
   }catch(e){}
+}
+// The one place the app talks to an AI provider with the user's own key. Returns the
+// reply text; callers keep their own prompt and parsing.
+async function callByokAi({ prompt, images, maxTokens }){
+  const key = getApiKey();
+  if(!key) throw new Error(tr('err_ai_key_missing'));
+  const provider = aiProviderForKey(key);
+  const req = buildAiRequest(provider, key, getAiModel(provider), { prompt, images, maxTokens });
+  const res = await fetch(req.url, { method:'POST', headers:req.headers, body: JSON.stringify(req.body) });
+  if(!res.ok){ const t = await res.text(); throw new Error('API error: '+t.slice(0,200)); }
+  return readAiText(provider, await res.json());
 }
 
 /* ================= nutrition AI estimate ================= */
@@ -1783,19 +1848,7 @@ Food: "${desc}"` : `Eres un nutricionista. Estima el contenido nutricional para 
 {"calories": <entero kcal>, "protein": <entero g>, "carbs": <entero g>, "fat": <entero g>, "fiber": <entero g>, "sugar": <entero g>, "sodium": <entero mg>, "iron": <entero mg>, "calcium": <entero mg>, "potassium": <entero mg>, "vitaminC": <entero mg>, "note": "<nota breve en español, max 10 palabras>"}
 
 Alimento: "${desc}"`;
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'x-api-key': key,
-      'anthropic-version':'2023-06-01',
-      'anthropic-dangerous-direct-browser-access':'true'
-    },
-    body: JSON.stringify({ model:getAiModel(), max_tokens:300, messages:[{role:'user', content:prompt}] })
-  });
-  if(!res.ok){ const t = await res.text(); throw new Error('API error: '+t.slice(0,200)); }
-  const data = await res.json();
-  const text = (data.content||[]).map(b=>b.text||'').join('');
+  const text = await callByokAi({ prompt, maxTokens:300 });
   const clean = text.replace(/```json|```/g,'').trim();
   const parsed = JSON.parse(clean);
   if(typeof parsed.calories !== 'number') throw new Error(tr('err_ai_bad_response'));
@@ -1865,19 +1918,7 @@ Responde solo con la frase, sin comillas ni explicación adicional.`;
       text = ((result.data && result.data.text) || '').trim();
     }catch(e){ throw new Error(friendlyPlusAiError(e)); }
   }else{
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'x-api-key': key,
-        'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-direct-browser-access':'true'
-      },
-      body: JSON.stringify({ model:getAiModel(), max_tokens:100, messages:[{role:'user', content:prompt}] })
-    });
-    if(!res.ok){ const t = await res.text(); throw new Error('API error: '+t.slice(0,200)); }
-    const data = await res.json();
-    text = (data.content||[]).map(b=>b.text||'').join('').trim();
+    text = (await callByokAi({ prompt, maxTokens:100 })).trim();
   }
   cache[iso] = text;
   setDailyInsightCache(cache);
@@ -4369,7 +4410,7 @@ function modalHTML(){
         <button class="btn btn-ghost" style="width:100%;margin-bottom:8px;" onclick="replayAppTour()">${tr('set_replay_tour_button')}</button>
         <a class="btn btn-ghost" style="width:100%;margin-bottom:16px;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;" href="${tr('set_guide_url')}" target="_blank" rel="noopener">${tr('set_guide_button')}</a>
         <div class="label">${tr('set_apikey_label')}</div>
-        <input id="g-apikey" type="password" value="${getApiKey()}" placeholder="sk-ant-..." style="width:100%;margin-bottom:6px;">
+        <input id="g-apikey" type="password" value="${getApiKey()}" placeholder="sk-..." style="width:100%;margin-bottom:6px;">
         <div style="font-size:11px;color:var(--muted);margin-bottom:16px;">${tr('set_apikey_note')}</div>
         <div class="label">${tr('set_sync_title')}</div>
         <div style="margin-bottom:16px;">${syncSectionHTML()}</div>
@@ -5420,26 +5461,7 @@ Identifica cada alimento visible por separado. Para cada uno, estima la porción
 
 Responde ÚNICAMENTE con un array JSON válido, sin texto adicional, sin markdown, sin backticks:
 [{"name":"<nombre en español>","gramos":<entero>,"calories":<entero kcal>,"protein":<entero g>,"carbs":<entero g>,"fat":<entero g>}]`;
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'x-api-key': key,
-      'anthropic-version':'2023-06-01',
-      'anthropic-dangerous-direct-browser-access':'true'
-    },
-    body: JSON.stringify({
-      model:getAiModel(),
-      max_tokens: 1024,
-      messages:[{ role:'user', content:[
-        ...images.map(dataUrl=>({ type:'image', source:{ type:'base64', media_type:'image/jpeg', data: dataUrl.split(',')[1] } })),
-        { type:'text', text: prompt }
-      ]}]
-    })
-  });
-  if(!res.ok){ const t = await res.text(); throw new Error('API error: '+t.slice(0,200)); }
-  const data = await res.json();
-  const text = (data.content||[]).map(b=>b.text||'').join('');
+  const text = await callByokAi({ prompt, images, maxTokens:1024 });
   const clean = text.replace(/```json|```/g,'').trim();
   const parsed = JSON.parse(clean);
   if(!Array.isArray(parsed)) throw new Error(tr('err_ai_bad_response'));
