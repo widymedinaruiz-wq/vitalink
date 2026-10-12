@@ -4869,13 +4869,56 @@ function renderDemoBanner(){
   }
   bar.innerHTML = `<span>${esc(tr('demo_banner'))}</span><a class="btn btn-primary" style="padding:6px 12px;font-size:13px;text-decoration:none;" href="${esc(location.pathname)}">${esc(tr('demo_exit'))}</a>`;
 }
+// Real tester report (iOS 1.25): tapping "Estimar" without an API key wiped what
+// they'd typed. render() replaces #app's innerHTML wholesale and the add-meal
+// forms aren't backed by state, so any re-render -- an error toast, that toast
+// expiring 6s later, a sync landing -- reset them to empty. render() now carries
+// the in-progress values across itself. A successful add calls clearFormDraft()
+// first so the form does come back empty then.
+const DRAFT_FIELD_IDS = [
+  'meal-name','meal-cal','meal-p','meal-c','meal-f','meal-note',
+  'cal-meal-type','cal-meal-name','cal-meal-time','cal-meal-cal','cal-meal-p','cal-meal-c','cal-meal-f','cal-meal-note',
+  'pmc-name','pmc-cal','pmc-p','pmc-c','pmc-f','pmc-note',
+];
+function captureFormDrafts(){
+  const fields = {};
+  for(const id of DRAFT_FIELD_IDS){
+    const el = document.getElementById(id);
+    if(el) fields[id] = 'value' in el ? el.value : el.textContent;
+  }
+  // Callers change state.selectedDate before calling render(), so the day the
+  // captured form was drawn for is the one remembered from the previous render.
+  return { date: window._draftDate, fields };
+}
+function restoreFormDrafts(draft){
+  const skip = window._clearDraftPrefix; window._clearDraftPrefix = null;
+  for(const id of Object.keys(draft.fields)){
+    const isCal = id.startsWith('cal-meal-');
+    // The Calendario form belongs to the selected day -- don't carry a draft
+    // over to a different one.
+    if(isCal && draft.date !== state.selectedDate) continue;
+    // The time field is pre-filled with "now"; only hold on to it while a meal
+    // is actually being drafted, otherwise let it keep tracking the clock.
+    if(id==='cal-meal-time' && !draft.fields['cal-meal-name']) continue;
+    // After an add, keep only the meal-type choice (handy for logging several
+    // items of the same meal in a row).
+    if(skip && id.startsWith(skip) && id!=='cal-meal-type') continue;
+    const el = document.getElementById(id);
+    if(!el) continue;
+    if('value' in el) el.value = draft.fields[id]; else el.textContent = draft.fields[id];
+  }
+  window._draftDate = state.selectedDate;
+}
+function clearFormDraft(prefix){ window._clearDraftPrefix = prefix; }
 function render(){
   renderDemoBanner();
   const prevOuterNav = document.querySelector('nav.side');
   const prevScroll = document.querySelector('nav.side .nav-scroll');
   const navScrollLeft = prevScroll ? prevScroll.scrollLeft : 0;
   const prevTabCount = prevOuterNav ? prevOuterNav.dataset.tabCount : null;
+  const formDraft = captureFormDrafts();
   document.getElementById('app').innerHTML = renderApp();
+  restoreFormDrafts(formDraft);
   const newOuterNav = document.querySelector('nav.side');
   const newScroll = document.querySelector('nav.side .nav-scroll');
   // Only carry the scroll offset over when the tab row itself didn't just change
@@ -5192,6 +5235,7 @@ function addMeal(){
   state.day.meals.push(meal);
   if(meal.calories>0 && !findPersonalMealByName(name)) rememberNutrition(name, meal);
   window._pendingMicros = null;
+  clearFormDraft('meal-');
   saveDay(); render();
 }
 function removeMeal(id){ if(!confirm(tr('confirm_delete_generic'))) return; state.day.meals = state.day.meals.filter(m=>m.id!==id); saveDay(); render(); }
@@ -5593,6 +5637,7 @@ function addPMComponent(){
     iron: pending?.iron||0, calcium: pending?.calcium||0, potassium: pending?.potassium||0, vitaminC: pending?.vitaminC||0,
   });
   window._pmPendingMicros = null;
+  clearFormDraft('pmc-');
   render();
 }
 function removePMComponent(idx){
@@ -5986,6 +6031,7 @@ function addMealForDay(iso){
   };
   if(meal.calories>0 && !findPersonalMealByName(name)) rememberNutrition(name, meal);
   window._pendingMicros = null;
+  clearFormDraft('cal-meal-');
   mutateDay(iso, day=>day.meals.push(meal));
 }
 function removeMealForDay(iso, id){ if(!confirm(tr('confirm_delete_generic'))) return; mutateDay(iso, day=>{ day.meals = day.meals.filter(m=>m.id!==id); }); }
