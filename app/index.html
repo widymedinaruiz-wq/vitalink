@@ -98,6 +98,11 @@
   }
   *{box-sizing:border-box;}
   html,body{overflow-x:hidden;}
+  /* Tapping the water drops quickly made iOS read it as a double-tap and zoom the
+     whole app (tester report, iOS 1.25). manipulation turns off double-tap zoom
+     but keeps pinch-zoom for accessibility. Set on every element, not just html:
+     touch-action only carries down to the nearest scrolling container. */
+  *{touch-action:manipulation;}
   body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
   .display{font-family:'Space Grotesk',sans-serif;}
   ::-webkit-scrollbar{width:8px;height:8px;}
@@ -434,7 +439,7 @@ const I18N = {
     ejtipo_correr:'Correr', ejtipo_bici:'Bici', ejtipo_nadar:'Nadar', ejtipo_eliptica:'Elíptica', ejtipo_andar:'Andar',
     ejtipo_senderismo:'Senderismo', ejtipo_golf:'Golf', ejtipo_biciEstatica:'Bici estática', ejtipo_yoga:'Yoga', ejtipo_pilates:'Pilates',
     ejtipo_pesas:'Pesas', ejtipo_remo:'Remo',
-    hoy_vitality:'Vitalidad de hoy', hoy_vitality_sub:'Combina comida, agua, ejercicio, sueño, presión y medicamentos de hoy',
+    hoy_vitality:'Vitalidad de hoy', hoy_vitality_sub:'Se llena a lo largo del día con comida, agua, ejercicio y sueño (lo que falte cuenta 0), más presión y medicamentos si aplican',
     hoy_insight:'Insight de hoy', hoy_regenerar:'Regenerar', hoy_generar_insight:'Generar insight', hoy_generando_insight:'Generando…', err_insight_failed:'No se pudo generar el insight',
     hoy_de:'de', legend_comida:'Comida', legend_agua:'Agua', legend_ejercicio:'Ejercicio',
     stat_quemadas:'Quemadas', stat_ejercicio:'Ejercicio', stat_peso:'Peso', stat_presion:'Presión',
@@ -782,7 +787,7 @@ const I18N = {
     ejtipo_correr:'Running', ejtipo_bici:'Cycling', ejtipo_nadar:'Swimming', ejtipo_eliptica:'Elliptical', ejtipo_andar:'Walking',
     ejtipo_senderismo:'Hiking', ejtipo_golf:'Golf', ejtipo_biciEstatica:'Stationary Bike', ejtipo_yoga:'Yoga', ejtipo_pilates:'Pilates',
     ejtipo_pesas:'Weights', ejtipo_remo:'Rowing',
-    hoy_vitality:"Today's vitality", hoy_vitality_sub:"Combines today's food, water, exercise, sleep, blood pressure and medications",
+    hoy_vitality:"Today's vitality", hoy_vitality_sub:"Fills up through the day with food, water, exercise and sleep (anything missing counts as 0), plus blood pressure and medications if they apply",
     hoy_insight:"Today's insight", hoy_regenerar:'Regenerate', hoy_generar_insight:'Generate insight', hoy_generando_insight:'Generating…', err_insight_failed:'Could not generate the insight',
     hoy_de:'of', legend_comida:'Food', legend_agua:'Water', legend_ejercicio:'Exercise',
     stat_quemadas:'Burned', stat_ejercicio:'Exercise', stat_peso:'Weight', stat_presion:'Pressure',
@@ -2947,6 +2952,22 @@ function renderPersonalMealBuilder(){
 // phone or watch. Steps sync automatically via Health Connect/Apple Health (see
 // HC_READ_TYPES) but previously only surfaced buried in Progreso's trend charts --
 // this puts today's count front and center on the tab it's actually about.
+// Last 7 days of steps under today's count, as tall as the number: one rounded bar
+// per day, scaled to the week's best day. Today is in full colour and the past days
+// dimmed, so today's bar is what the eye lands on; a day with no sync is a faint
+// stub rather than a gap. Bars over a line: the question is "how is today going next
+// to my other days", not a trend (Progreso already has the detailed chart).
+function stepsBarsHTML(values){
+  const vals = values.filter(v=>v!=null);
+  if(vals.length<2) return '';
+  const h=36, max=Math.max(...vals)||1, last=values.length-1;
+  const bars = values.map((v,i)=>{
+    const bh = v==null ? 3 : Math.max(3, Math.round(v/max*h));
+    const style = v==null ? 'background:var(--line);' : `background:var(--chart-steps);opacity:${i===last?1:.45};`;
+    return `<div style="flex:1;height:${bh}px;border-radius:3px;${style}"></div>`;
+  }).join('');
+  return `<div style="display:flex;align-items:flex-end;gap:6px;height:${h}px;margin-top:8px;" aria-hidden="true">${bars}</div>`;
+}
 function stepsCardHTML(){
   if(!(window.Capacitor && window.Capacitor.isNativePlatform())) return '';
   const meta = getHCMeta();
@@ -2961,9 +2982,17 @@ function stepsCardHTML(){
   // Progreso's chart already reads it (rawAt(i).steps via hc.steps.value).
   const stepsRaw = getHealthConnectDay(todayISO()).steps;
   const steps = stepsRaw ? stepsRaw.value : null;
+  // Widy's idea (2026-10-14): a small bar strip of the last 7 days, as tall as the
+  // count itself, right under it -- a nudge to keep moving, not an analysis chart
+  // (Progreso already has the full one), so no axes, labels or averages.
+  const week = Array.from({length:7}).map((_,i)=>{
+    const raw = getHealthConnectDay(isoDaysAgo(6-i)).steps;
+    return raw ? raw.value : null;
+  });
   return `<div class="card">
     <div class="label">${tr('hc_scope_steps')}</div>
     <div class="display" style="font-size:28px;font-weight:700;">${steps!=null ? steps.toLocaleString(state.lang==='en'?'en-US':'es-ES') : '—'}</div>
+    ${stepsBarsHTML(week)}
   </div>`;
 }
 function renderEjercicio(){
@@ -3094,32 +3123,48 @@ function medAdherence(days){
   return Math.round((taken/(dosesPerDay*days))*100);
 }
 function clamp(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); }
-function vitalityScore(){
-  const d = state.day, g = state.goals;
+/* ================= vitality score (begin) ================= */
+// Real tester report (iOS 1.25): logging only water put the score at 100. The old
+// version averaged just the areas logged that day, so any single on-target entry
+// read as a perfect day. Now the four daily basics -- food, water, exercise and
+// sleep -- always count and an unlogged one counts as 0, so the score fills up as
+// the day is logged. Blood pressure only counts on a day it was measured, and
+// medications only when doses are scheduled (missed doses lower the score).
+// tests/vitality.test.js runs this block on its own with stand-in helpers.
+function vitalityScore(d = state.day, g = state.goals, meds = state.meds){
   const parts = [];
+  let logged = false;
 
   const calEaten = d.meals.reduce((s,m)=>s+(Number(m.calories)||0),0);
-  if(g.calorieGoal>0 && calEaten>0) parts.push(clamp(100 - Math.abs(calEaten-g.calorieGoal)/g.calorieGoal*100, 0, 100));
+  if(calEaten>0) logged = true;
+  if(g.calorieGoal>0) parts.push(calEaten>0 ? clamp(100 - Math.abs(calEaten-g.calorieGoal)/g.calorieGoal*100, 0, 100) : 0);
 
-  if(g.waterGoal>0 && d.water>0) parts.push(clamp((d.water/g.waterGoal)*100, 0, 100));
+  if(d.water>0) logged = true;
+  if(g.waterGoal>0) parts.push(clamp(((d.water||0)/g.waterGoal)*100, 0, 100));
 
   const exMin = d.exercises.reduce((s,e)=>s+(Number(e.minutes)||0),0);
-  if(g.exerciseGoal>0 && exMin>0) parts.push(clamp((exMin/g.exerciseGoal)*100, 0, 100));
+  if(exMin>0) logged = true;
+  if(g.exerciseGoal>0) parts.push(clamp((exMin/g.exerciseGoal)*100, 0, 100));
 
-  if(d.sleepHours!=null) parts.push(clamp(100 - Math.abs(d.sleepHours-8)*20, 0, 100));
+  if(d.sleepHours!=null) logged = true;
+  parts.push(d.sleepHours!=null ? clamp(100 - Math.abs(d.sleepHours-8)*20, 0, 100) : 0);
 
   const lastBP = d.bp[d.bp.length-1];
   if(lastBP){
+    logged = true;
     const bpScores = {'Normal':100,'Elevada':75,'Hipertensión etapa 1':50,'Hipertensión etapa 2':25,'Crisis hipertensiva':0};
     parts.push(bpScores[bpCategory(lastBP.systolic, lastBP.diastolic).label] ?? 50);
   }
 
-  const dosesPerDay = state.meds.reduce((s,m)=>s+m.times.length,0);
-  if(dosesPerDay>0 && d.medsTaken.length>0) parts.push(clamp((d.medsTaken.length/dosesPerDay)*100, 0, 100));
+  const dosesPerDay = meds.reduce((s,m)=>s+m.times.length,0);
+  if(d.medsTaken.length>0) logged = true;
+  if(dosesPerDay>0) parts.push(clamp((d.medsTaken.length/dosesPerDay)*100, 0, 100));
 
-  if(!parts.length) return null;
+  // Nothing logged yet today: no score at all, rather than a discouraging 0.
+  if(!logged) return null;
   return Math.round(parts.reduce((a,b)=>a+b,0)/parts.length);
 }
+/* ================= vitality score (end) ================= */
 function getWeightHistory(days){
   const isos = Array.from({length:days}).map((_,i)=>isoDaysAgo(days-1-i));
   return isos.map(iso=>({ iso, weight: dayAt(iso).weight })).filter(p=>p.weight!=null);
