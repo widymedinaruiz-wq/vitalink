@@ -343,7 +343,7 @@
     cena: [['Tortilla francesa con ensalada','Omelette with salad',340,20,10,24], ['Crema de calabaza y tostada','Pumpkin soup with toast',290,8,42,9], ['Merluza al horno con verduras','Baked hake with vegetables',380,34,18,17]],
   };
   const TIMES = { desayuno:'08:10', comida:'14:05', merienda:'17:30', cena:'21:00' };
-  const MOVES = [['andar','Andar','Walk',40,170], ['bici','Bici','Bike ride',45,320], ['yoga','Yoga','Yoga',30,95], ['pesas','Pesas','Weights',35,210], ['correr','Correr','Run',25,260]];
+  const MOVES = [['andar','Andar','Walk',40,170,3.2], ['bici','Bici','Bike ride',45,320,14.5], ['yoga','Yoga','Yoga',30,95], ['pesas','Pesas','Weights',35,210], ['correr','Correr','Run',25,260,4.6]];
   const meal = (type) => {
     const f = pick(FOODS[type]);
     return { id:id(), type, name: en ? f[1] : f[0], calories:f[2], protein:f[3], carbs:f[4], fat:f[5],
@@ -368,7 +368,9 @@
     day.water = isToday ? 1 : Math.round(between(1.25, 2.5) * 4) / 4;
     if(rnd() < 0.7 || isToday){
       const m = pick(MOVES);
-      day.exercises.push({ id:id(), name: en ? m[2] : m[1], minutes:m[3], calories:m[4], time: isToday ? '07:30' : '18:45', type:m[0] });
+      const ex = { id:id(), name: en ? m[2] : m[1], minutes:m[3], calories:m[4], time: isToday ? '07:30' : '18:45', type:m[0] };
+      if(m[5]) ex.distanceKm = m[5];
+      day.exercises.push(ex);
     }
     if(i % 2 === 0){
       day.bp.push({ id:id(), systolic: Math.round(between(109, 119)), diastolic: Math.round(between(70, 78)), pulse: Math.round(between(60, 70)), time:'07:45' });
@@ -587,7 +589,7 @@ const I18N = {
     comidas_prot:'Prot', comidas_carb:'Carb', comidas_grasa:'Grasa', comidas_fibra:'Fibra', comidas_azucar:'Azúcar', comidas_sodio:'Sodio',
     ejercicio_agregar:'Agregar ejercicio', ejercicio_actividad:'Actividad', ejercicio_min:'min',
     ejercicio_actividad_requerida:'Elige o escribe una actividad antes de agregar',
-    ejercicio_kcal_opc:'kcal quemadas (opcional)', ejercicio_empty:'Sin ejercicio registrado — agrega el primero arriba',
+    cal_km_opc:'km (opc.)', ejercicio_empty:'Sin ejercicio registrado — agrega el primero arriba',
     salud_presion:'Presión arterial', salud_sistolica:'Sistólica', salud_diastolica:'Diastólica', salud_pulso:'Pulso (bpm)',
     bp_info_titulo:'Categorías de presión arterial', bp_info_fuente:'Según la Asociación Americana del Corazón (AHA)',
     bp_info_normal:'Normal', bp_info_normal_rango:'Sistólica menor a 120 y diastólica menor a 80',
@@ -708,7 +710,7 @@ const I18N = {
     err_bodycomp_requerido:'Ingresa al menos un valor antes de agregar',
     err_med_requerido:'Ingresa un nombre y al menos un horario',
     err_bp_rango:'Los valores de presión o pulso están fuera de un rango fisiológico posible',
-    err_ejercicio_rango:'Minutos o calorías fuera de un rango posible',
+    err_ejercicio_rango:'Minutos, calorías o distancia fuera de un rango posible',
     err_peso_rango:'Ingresa un peso entre 15 y 500 kg', err_sleep_rango:'Ingresa horas de sueño entre 0 y 24',
     err_goals_rango:'Revisa que tus metas estén en un rango razonable',
     err_bodycomp_rango:'{field}: fuera de un rango posible ({min}–{max})',
@@ -935,7 +937,7 @@ const I18N = {
     comidas_prot:'Prot', comidas_carb:'Carbs', comidas_grasa:'Fat', comidas_fibra:'Fiber', comidas_azucar:'Sugar', comidas_sodio:'Sodium',
     ejercicio_agregar:'Add exercise', ejercicio_actividad:'Activity', ejercicio_min:'min',
     ejercicio_actividad_requerida:'Choose or type an activity before adding',
-    ejercicio_kcal_opc:'kcal burned (optional)', ejercicio_empty:'No exercise logged yet — add the first one above',
+    cal_km_opc:'km (opt.)', ejercicio_empty:'No exercise logged yet — add the first one above',
     salud_presion:'Blood pressure', salud_sistolica:'Systolic', salud_diastolica:'Diastolic', salud_pulso:'Pulse (bpm)',
     bp_info_titulo:'Blood pressure categories', bp_info_fuente:'Based on American Heart Association (AHA) guidelines',
     bp_info_normal:'Normal', bp_info_normal_rango:'Systolic under 120 and diastolic under 80',
@@ -1056,7 +1058,7 @@ const I18N = {
     err_bodycomp_requerido:'Enter at least one value before adding',
     err_med_requerido:'Enter a name and at least one time',
     err_bp_rango:'The pressure or pulse values are outside a physiologically possible range',
-    err_ejercicio_rango:'Minutes or calories are outside a possible range',
+    err_ejercicio_rango:'Minutes, calories or distance are outside a possible range',
     err_peso_rango:'Enter a weight between 15 and 500 kg', err_sleep_rango:'Enter sleep hours between 0 and 24',
     err_goals_rango:'Check that your goals are within a reasonable range',
     err_bodycomp_rango:'{field}: outside a possible range ({min}–{max})',
@@ -2998,6 +3000,7 @@ function stepsCardHTML(){
 function renderEjercicio(){
   const d = state.day;
   const totalMin = d.exercises.reduce((s,e)=>s+(Number(e.minutes)||0),0);
+  const totalKm = Math.round(d.exercises.reduce((s,e)=>s+(Number(e.distanceKm)||0),0)*100)/100;
   return `
   <div class="stack">
     ${stepsCardHTML()}
@@ -3014,16 +3017,19 @@ function renderEjercicio(){
         </div>
         <input id="ex-min" type="number" placeholder="${tr('ejercicio_min')}" style="flex:1;min-width:0;">
       </div>
-      <input id="ex-cal" type="number" placeholder="${tr('ejercicio_kcal_opc')}" style="width:100%;margin-bottom:8px;">
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <input id="ex-cal" type="number" placeholder="${tr('cal_kcal_opc')}" style="flex:1;min-width:0;">
+        <input id="ex-km" type="number" step="0.01" min="0" inputmode="decimal" placeholder="${tr('cal_km_opc')}" style="flex:1;min-width:0;">
+      </div>
       <button class="btn btn-primary" style="width:100%;" onclick="addExercise()">${tr('btn_agregar')}</button>
     </div>
     <div class="card">
       <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
         <div class="label">${tr('comidas_hoy')}</div>
-        <span class="display" style="color:var(--accent2);font-weight:700;font-size:13px;">${totalMin} min</span>
+        <span class="display" style="color:var(--accent2);font-weight:700;font-size:13px;">${totalMin} min${totalKm>0 ? ' · '+formatDistanceKm(totalKm, state.lang) : ''}</span>
       </div>
       ${d.exercises.length===0 ? emptyState('ejercicio', tr('ejercicio_empty')) :
-        `<div class="stack" style="gap:8px;">${d.exercises.map(e=>rowItem(e.name, `${e.time} · ${e.minutes} min`, e.calories?e.calories+' kcal':'', `removeExercise('${e.id}')`, hcExerciseBadgeHTML(e))).join('')}</div>`}
+        `<div class="stack" style="gap:8px;">${d.exercises.map(e=>rowItem(e.name, [e.time, e.minutes+' min', formatDistanceKm(e.distanceKm, state.lang)].filter(Boolean).join(' · '), e.calories?e.calories+' kcal':'', `removeExercise('${e.id}')`, hcExerciseBadgeHTML(e))).join('')}</div>`}
     </div>
   </div>`;
 }
@@ -3490,7 +3496,7 @@ function renderDayDetail(iso){
       </div>
       <div style="min-width:0;">
         <div class="label">${tr('cal_ejercicio')}</div>
-        ${d.exercises.length? `<div class="stack" style="gap:6px;margin-bottom:10px;">${d.exercises.map(e=>rowItem(e.name, e.time, e.minutes+' min', `removeExerciseForDay('${iso}','${e.id}')`, hcExerciseBadgeHTML(e))).join('')}</div>` : `<div style="color:var(--muted);font-size:12px;margin-bottom:10px;">${tr('cal_sin_registros')}</div>`}
+        ${d.exercises.length? `<div class="stack" style="gap:6px;margin-bottom:10px;">${d.exercises.map(e=>rowItem(e.name, [e.time, formatDistanceKm(e.distanceKm, state.lang)].filter(Boolean).join(' · '), e.minutes+' min', `removeExerciseForDay('${iso}','${e.id}')`, hcExerciseBadgeHTML(e))).join('')}</div>` : `<div style="color:var(--muted);font-size:12px;margin-bottom:10px;">${tr('cal_sin_registros')}</div>`}
         <div style="display:flex;gap:6px;margin-bottom:6px;">
           <div style="flex:2;min-width:0;position:relative;">
             <input id="cal-ex-name" placeholder="${tr('cal_actividad')}" style="width:100%;" autocomplete="off" oninput="onExerciseNameInputForDay()" onfocus="onExerciseNameInputForDay()" onblur="hideExerciseSuggestForDay()">
@@ -3501,6 +3507,7 @@ function renderDayDetail(iso){
         <div style="display:flex;gap:6px;margin-bottom:6px;">
           <input id="cal-ex-time" type="time" value="${nowHM()}" style="flex:1;min-width:0;">
           <input id="cal-ex-cal" type="number" placeholder="${tr('cal_kcal_opc')}" style="flex:1;min-width:0;">
+          <input id="cal-ex-km" type="number" step="0.01" min="0" inputmode="decimal" placeholder="${tr('cal_km_opc')}" style="flex:1;min-width:0;">
         </div>
         <button class="btn btn-ghost" style="width:100%;" onclick="addExerciseForDay('${iso}')">${tr('cal_agregar_ejercicio')}</button>
       </div>
@@ -4205,6 +4212,32 @@ function saveForecastConfig(){
   toast(tr('pron_datos_guardados'));
 }
 
+/* ================= exercise distance (begin) ================= */
+// Optional distance on an exercise entry (exercise.distanceKm, km, up to 2 decimals).
+// Typed by hand in Ejercicio/Calendario, or taken from the workout's total distance when
+// it's imported from Apple Health -- the plugin already returns it (totalDistance, in
+// meters). On Android that number needs the Health Connect distance permission, removed
+// in 1.25, so it stays empty there until that permission comes back.
+// tests/exercise-distance.test.js runs this block on its own.
+const EXERCISE_DISTANCE_MAX_KM = 1000;
+function distanceKmFromMeters(m){
+  const n = Number(m);
+  if(!isFinite(n) || n<=0) return null;
+  return Math.round(n/10)/100;
+}
+// Returns null for an empty field, NaN for something that can't be a distance.
+function parseDistanceKm(raw){
+  const str = String(raw==null?'':raw).trim().replace(',', '.');
+  if(str==='') return null;
+  const n = Number(str);
+  if(!isFinite(n) || n<0 || n>EXERCISE_DISTANCE_MAX_KM) return NaN;
+  return n===0 ? null : Math.round(n*100)/100;
+}
+function formatDistanceKm(km, lang){
+  if(km==null || !(km>0)) return '';
+  return km.toLocaleString(lang==='en'?'en-US':'es-ES', { maximumFractionDigits: km<10 ? 2 : 1 }) + ' km';
+}
+/* ================= exercise distance (end) ================= */
 function rowItem(left, sub, right, onDelete, badge){
   return `<div class="row-item">
     <div style="min-width:0;">
@@ -5796,8 +5829,12 @@ function addExercise(){
   if(!name){ toast(tr('ejercicio_actividad_requerida'), true); return; }
   const minutes = Number(document.getElementById('ex-min').value)||0;
   const calories = Number(document.getElementById('ex-cal').value)||0;
-  if(minutes<0 || minutes>1440 || calories<0 || calories>10000){ toast(tr('err_ejercicio_rango'), true); return; }
-  state.day.exercises.push({ id: uid(), name, minutes, calories, time: nowHM(), type: window._exerciseType || null });
+  const kmEl = document.getElementById('ex-km');
+  const distanceKm = parseDistanceKm(kmEl ? kmEl.value : '');
+  if(minutes<0 || minutes>1440 || calories<0 || calories>10000 || Number.isNaN(distanceKm)){ toast(tr('err_ejercicio_rango'), true); return; }
+  const ex = { id: uid(), name, minutes, calories, time: nowHM(), type: window._exerciseType || null };
+  if(distanceKm!=null) ex.distanceKm = distanceKm;
+  state.day.exercises.push(ex);
   rememberExercise(name, minutes, calories);
   window._exerciseType = null;
   saveDay(); render();
@@ -6180,6 +6217,9 @@ function addExerciseForDay(iso){
   if(!name) return;
   const minutes = Number(document.getElementById('cal-ex-min').value)||0;
   const calories = Number(document.getElementById('cal-ex-cal').value)||0;
+  const kmEl = document.getElementById('cal-ex-km');
+  const distanceKm = parseDistanceKm(kmEl ? kmEl.value : '');
+  if(Number.isNaN(distanceKm)){ toast(tr('err_ejercicio_rango'), true); return; }
   const ex = {
     id: uid(),
     name,
@@ -6187,6 +6227,7 @@ function addExerciseForDay(iso){
     minutes,
     calories,
   };
+  if(distanceKm!=null) ex.distanceKm = distanceKm;
   rememberExercise(name, minutes, calories);
   mutateDay(iso, day=>day.exercises.push(ex));
 }
@@ -7322,14 +7363,24 @@ if(localStorage.getItem('vl:_lastChangeAt') && !localStorage.getItem('vl:backup-
               const existingIds = new Set(day.exercises.map(e=>e.externalId));
               for(const w of dayWorkouts){
                 const externalId = w.platformId || `${w.workoutType}|${w.startDate}|${w.endDate}`;
-                if(existingIds.has(externalId) || excludedIds.has(externalId)) continue;
-                day.exercises.push({
+                const distanceKm = distanceKmFromMeters(w.totalDistance);
+                if(existingIds.has(externalId)){
+                  // Workouts imported before distance was read get it filled in on a
+                  // later sync; an entry that already has a distance is left alone.
+                  const prev = day.exercises.find(e=>e.externalId===externalId);
+                  if(prev && distanceKm!=null && prev.distanceKm==null) prev.distanceKm = distanceKm;
+                  continue;
+                }
+                if(excludedIds.has(externalId)) continue;
+                const ex = {
                   id: uid(), name: workoutTypeLabel(w.workoutType),
                   minutes: Math.round((Number(w.duration)||0)/60),
                   calories: Math.round(Number(w.totalEnergyBurned)||0),
                   time: new Date(w.startDate).toTimeString().slice(0,5),
                   type: null, source:'healthconnect', externalId, syncedAt: Date.now()
-                });
+                };
+                if(distanceKm!=null) ex.distanceKm = distanceKm;
+                day.exercises.push(ex);
                 existingIds.add(externalId);
               }
             });
