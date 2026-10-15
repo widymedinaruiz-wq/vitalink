@@ -7,7 +7,7 @@
     "doc": "docs"
   },
   "scripts": {
-    "build": "node -e \"require('fs').mkdirSync('www',{recursive:true});require('fs').copyFileSync('app/index.html','www/index.html')\"",
+    "build": "node -e \"const fs=require('fs');fs.mkdirSync('www',{recursive:true});fs.copyFileSync('app/index.html','www/index.html');fs.cpSync('app/img','www/img',{recursive:true})\"",
     "test": "node --test \"tests/*.test.js\"",
     "stamp": "node tools/stamp-assets.js"
   },

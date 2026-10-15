@@ -441,6 +441,9 @@ const I18N = {
     ejtipo_correr:'Correr', ejtipo_bici:'Bici', ejtipo_nadar:'Nadar', ejtipo_eliptica:'Elíptica', ejtipo_andar:'Andar',
     ejtipo_senderismo:'Senderismo', ejtipo_golf:'Golf', ejtipo_biciEstatica:'Bici estática', ejtipo_yoga:'Yoga', ejtipo_pilates:'Pilates',
     ejtipo_pesas:'Pesas', ejtipo_remo:'Remo',
+    hoy_empty_title:'Tu día está por empezar', hoy_empty_sub:'Anota un vaso de agua, tu desayuno o cómo dormiste, y tu vitalidad empezará a llenarse.', hoy_empty_alt:'Una mujer con una taza junto a una ventana luminosa, por la mañana.',
+    comidas_empty_title:'Tu primera comida del día', comidas_empty_sub:'Escribe arriba lo que comiste o escanea un código de barras. Cada comida cuenta.', comidas_empty_alt:'La protagonista prepara un plato sencillo y colorido en una cocina luminosa.',
+    ejercicio_empty_title:'Moverte también cuenta', ejercicio_empty_sub:'Elige una actividad arriba. Un paseo corto ya suma.', ejercicio_empty_alt:'La protagonista se ata las zapatillas con calma antes de moverse.',
     hoy_vitality:'Vitalidad de hoy', hoy_vitality_sub:'Se llena a lo largo del día con comida, agua, ejercicio y sueño (lo que falte cuenta 0), más presión y medicamentos si aplican',
     hoy_insight:'Insight de hoy', hoy_regenerar:'Regenerar', hoy_generar_insight:'Generar insight', hoy_generando_insight:'Generando…', err_insight_failed:'No se pudo generar el insight',
     hoy_de:'de', legend_comida:'Comida', legend_agua:'Agua', legend_ejercicio:'Ejercicio',
@@ -486,6 +489,7 @@ const I18N = {
     plus_renewal_ios:'La suscripción se renueva automáticamente salvo que la canceles al menos 24 horas antes de que termine el periodo. El pago se carga a tu cuenta de Apple. Gestiónala o cancélala en Ajustes → tu nombre → Suscripciones.',
     plus_renewal_android:'La suscripción se renueva automáticamente salvo que la canceles antes de que termine el periodo. Gestiónala o cancélala en las suscripciones de Google Play.',
     plus_privacy_link:'Política de privacidad',
+    welcome_ilus_alt:'Una adulta tranquila empieza la mañana en un rincón luminoso de su casa, rodeada de iconos de comida, actividad, agua, descanso y bienestar.',
     welcome_title:'¡Bienvenido a VitaLinks!',
     welcome_subtitle:'Registra tu nutrición, ejercicio, presión arterial y más — todo en un solo lugar. Pequeños momentos, grandes cambios.',
     welcome_signin_title:'Guarda tu progreso',
@@ -568,7 +572,7 @@ const I18N = {
     foto_apikey_label:'API key de Anthropic u OpenAI (necesaria para esta función mientras no tengas Plus)',
     err_foto_analizar:'Error al analizar la foto', err_foto_estimar_item:'Error al estimar',
     comidas_prot_g:'Prot(g)', comidas_carb_g:'Carb(g)', comidas_grasa_g:'Grasa(g)',
-    btn_agregar:'+ Agregar', comidas_hoy:'Hoy', comidas_empty:'Sin comidas registradas — agrega la primera arriba',
+    btn_agregar:'+ Agregar', comidas_hoy:'Hoy',
     pm_titulo:'Comida Personalizada', pm_boton_crear:'Crear comida personalizada', pm_volver:'Volver a Comidas',
     pm_guardadas:'Tus comidas personalizadas', pm_sin_guardadas:'Aún no has creado ninguna comida personalizada',
     pm_nueva:'Nueva comida personalizada', pm_editando:'Editando',
@@ -589,7 +593,7 @@ const I18N = {
     comidas_prot:'Prot', comidas_carb:'Carb', comidas_grasa:'Grasa', comidas_fibra:'Fibra', comidas_azucar:'Azúcar', comidas_sodio:'Sodio',
     ejercicio_agregar:'Agregar ejercicio', ejercicio_actividad:'Actividad', ejercicio_min:'min',
     ejercicio_actividad_requerida:'Elige o escribe una actividad antes de agregar',
-    cal_km_opc:'km (opc.)', ejercicio_empty:'Sin ejercicio registrado — agrega el primero arriba',
+    cal_km_opc:'km (opc.)', 
     salud_presion:'Presión arterial', salud_sistolica:'Sistólica', salud_diastolica:'Diastólica', salud_pulso:'Pulso (bpm)',
     bp_info_titulo:'Categorías de presión arterial', bp_info_fuente:'Según la Asociación Americana del Corazón (AHA)',
     bp_info_normal:'Normal', bp_info_normal_rango:'Sistólica menor a 120 y diastólica menor a 80',
@@ -789,6 +793,9 @@ const I18N = {
     ejtipo_correr:'Running', ejtipo_bici:'Cycling', ejtipo_nadar:'Swimming', ejtipo_eliptica:'Elliptical', ejtipo_andar:'Walking',
     ejtipo_senderismo:'Hiking', ejtipo_golf:'Golf', ejtipo_biciEstatica:'Stationary Bike', ejtipo_yoga:'Yoga', ejtipo_pilates:'Pilates',
     ejtipo_pesas:'Weights', ejtipo_remo:'Rowing',
+    hoy_empty_title:'Your day is about to begin', hoy_empty_sub:'Log a glass of water, your breakfast or how you slept, and your vitality will start to fill up.', hoy_empty_alt:'A woman holding a mug by a bright window in the morning.',
+    comidas_empty_title:'Your first meal of the day', comidas_empty_sub:'Type what you ate above or scan a barcode. Every meal counts.', comidas_empty_alt:'The protagonist prepares a simple, colorful plate in a bright kitchen.',
+    ejercicio_empty_title:'Moving counts too', ejercicio_empty_sub:'Pick an activity above. Even a short walk adds up.', ejercicio_empty_alt:'The protagonist calmly ties her sneakers before moving.',
     hoy_vitality:"Today's vitality", hoy_vitality_sub:"Fills up through the day with food, water, exercise and sleep (anything missing counts as 0), plus blood pressure and medications if they apply",
     hoy_insight:"Today's insight", hoy_regenerar:'Regenerate', hoy_generar_insight:'Generate insight', hoy_generando_insight:'Generating…', err_insight_failed:'Could not generate the insight',
     hoy_de:'of', legend_comida:'Food', legend_agua:'Water', legend_ejercicio:'Exercise',
@@ -834,6 +841,7 @@ const I18N = {
     plus_renewal_ios:'Your subscription renews automatically unless you cancel it at least 24 hours before the end of the current period. Payment is charged to your Apple account. Manage or cancel it in Settings → your name → Subscriptions.',
     plus_renewal_android:'Your subscription renews automatically unless you cancel it before the end of the current period. Manage or cancel it in your Google Play subscriptions.',
     plus_privacy_link:'Privacy Policy',
+    welcome_ilus_alt:'A calm adult begins her morning in a bright corner of her home, surrounded by icons for meals, activity, water, rest and wellbeing.',
     welcome_title:'Welcome to VitaLinks!',
     welcome_subtitle:'Track your nutrition, exercise, blood pressure, and more — all in one place. Small moments, big changes.',
     welcome_signin_title:'Save your progress',
@@ -916,7 +924,7 @@ const I18N = {
     foto_apikey_label:'Anthropic or OpenAI API key (needed for this feature until you have Plus)',
     err_foto_analizar:'Error analyzing the photo', err_foto_estimar_item:'Estimation error',
     comidas_prot_g:'Prot(g)', comidas_carb_g:'Carbs(g)', comidas_grasa_g:'Fat(g)',
-    btn_agregar:'+ Add', comidas_hoy:'Today', comidas_empty:'No meals logged yet — add the first one above',
+    btn_agregar:'+ Add', comidas_hoy:'Today',
     pm_titulo:'Personalized Meal', pm_boton_crear:'Create personalized meal', pm_volver:'Back to Meals',
     pm_guardadas:'Your personalized meals', pm_sin_guardadas:"You haven't created any personalized meals yet",
     pm_nueva:'New personalized meal', pm_editando:'Editing',
@@ -937,7 +945,7 @@ const I18N = {
     comidas_prot:'Prot', comidas_carb:'Carbs', comidas_grasa:'Fat', comidas_fibra:'Fiber', comidas_azucar:'Sugar', comidas_sodio:'Sodium',
     ejercicio_agregar:'Add exercise', ejercicio_actividad:'Activity', ejercicio_min:'min',
     ejercicio_actividad_requerida:'Choose or type an activity before adding',
-    cal_km_opc:'km (opt.)', ejercicio_empty:'No exercise logged yet — add the first one above',
+    cal_km_opc:'km (opt.)', 
     salud_presion:'Blood pressure', salud_sistolica:'Systolic', salud_diastolica:'Diastolic', salud_pulso:'Pulse (bpm)',
     bp_info_titulo:'Blood pressure categories', bp_info_fuente:'Based on American Heart Association (AHA) guidelines',
     bp_info_normal:'Normal', bp_info_normal_rango:'Systolic under 120 and diastolic under 80',
@@ -2492,6 +2500,20 @@ function renderTab(){
   }
 }
 
+// Illustrated empty states (Hoy, Comidas, Ejercicio) for a day with nothing logged yet -- the warmer,
+// illustrated look (marketing team A illustrations, 2026-10-15). The image is
+// a transparent WebP in app/img/, copied next to index.html by `npm run build`, so the
+// same relative path works on the web (/app/img/) and inside the native apps.
+function illustratedEmptyHTML(img, key){
+  return `<div style="text-align:center;padding:4px 0 6px;">
+    <img src="img/ilus-${img}.webp" alt="${esc(tr(key+'_alt'))}" width="800" height="600" loading="lazy" decoding="async" style="display:block;width:100%;max-width:360px;height:auto;margin:0 auto 12px;">
+    <div class="display" style="font-size:18px;font-weight:700;margin-bottom:6px;">${tr(key+'_title')}</div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.5;max-width:340px;margin:0 auto;">${tr(key+'_sub')}</div>
+  </div>`;
+}
+function hoyEmptyIllustrationHTML(){
+  return `<div class="card" style="padding:18px 18px 22px;">${illustratedEmptyHTML('hoy-vacio','hoy_empty')}</div>`;
+}
 function renderHoy(){
   const d = state.day, g = state.goals;
   const calEaten = d.meals.reduce((s,m)=>s+(Number(m.calories)||0),0);
@@ -2511,6 +2533,7 @@ function renderHoy(){
   const vTargetOffset = ringFree ? 100 - clamp(vScore,0,100) : vCirc*(1-clamp(vScore,0,100)/100);
   return `
   <div class="stack grid-desktop">
+    ${vScore==null ? hoyEmptyIllustrationHTML() : ''}
     ${vScore!=null ? `<div class="card" style="text-align:center;padding:22px;">
       <div class="label" style="margin-bottom:12px;">${tr('hoy_vitality')}</div>
       ${ringFree ? `
@@ -2762,7 +2785,7 @@ function renderComidas(){
         <span>${tr('comidas_azucar')} ${microSums(d.meals).sugar}g</span>
         <span>${tr('comidas_sodio')} ${microSums(d.meals).sodium}mg</span>
       </div>` : ''}
-      ${d.meals.length===0 ? emptyState('comidas', tr('comidas_empty')) :
+      ${d.meals.length===0 ? illustratedEmptyHTML('comidas-vacio','comidas_empty') :
         groups.filter(g=>g.items.length).map(g=>{
           const sub = g.items.reduce((s,m)=>s+(Number(m.calories)||0),0);
           const isTop = sub===maxSub && maxSub>0;
@@ -3028,7 +3051,7 @@ function renderEjercicio(){
         <div class="label">${tr('comidas_hoy')}</div>
         <span class="display" style="color:var(--accent2);font-weight:700;font-size:13px;">${totalMin} min${totalKm>0 ? ' · '+formatDistanceKm(totalKm, state.lang) : ''}</span>
       </div>
-      ${d.exercises.length===0 ? emptyState('ejercicio', tr('ejercicio_empty')) :
+      ${d.exercises.length===0 ? illustratedEmptyHTML('ejercicio-vacio','ejercicio_empty') :
         `<div class="stack" style="gap:8px;">${d.exercises.map(e=>rowItem(e.name, [e.time, e.minutes+' min', formatDistanceKm(e.distanceKm, state.lang)].filter(Boolean).join(' · '), e.calories?e.calories+' kcal':'', `removeExercise('${e.id}')`, hcExerciseBadgeHTML(e))).join('')}</div>`}
     </div>
   </div>`;
@@ -4669,7 +4692,10 @@ function modalHTML(){
     </div>`;
     let body;
     if(step===0){
+      // Illustrated welcome (marketing team A, 2026-10-15), same style as the empty states.
+      // Sized by screen height so the sign-in and Next buttons still fit on short phones.
       body = `
+        <img src="img/ilus-bienvenida.webp" alt="${esc(tr('welcome_ilus_alt'))}" width="720" height="900" decoding="async" style="display:block;height:min(250px,26vh);width:auto;margin:0 auto 14px;">
         <div class="display" style="font-weight:700;font-size:18px;margin-bottom:6px;">${tr('welcome_title')}</div>
         <div style="font-size:13px;color:var(--muted);margin-bottom:18px;">${tr('welcome_subtitle')}</div>
         ${!(window._syncState && window._syncState.user) ? `
