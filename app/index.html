@@ -32,13 +32,13 @@
   :root{
     --bg:#0E2723; --surface:#153934; --raised:#1B453F; --line:#2A5049;
     --accent:#F2A65A; --accent2:#90D161; --accent3:#7FC8B0;
-    --text:#EFF6F2; --muted:#8FB2A8; --danger:#E07A5F;
+    --text:#EFF6F2; --muted:#8FB2A8; --danger:#F07070;
     /* Status/severity scale (score-based: good/warn/bad) — kept deliberately
        separate from the 3 accents above, which are reserved for fixed
        categories (food/water/exercise). --danger already covers the "bad"
        tier; these two fill in "good" and "warn" so a score or vital-sign
        indicator never borrows a category color by coincidence. */
-    --status-good:#5FB878; --status-warn:#D6A23C;
+    --status-good:#5FB878; --status-warn:#E6C04A;
     /* Macro palette (protein/carbs/fat) — a separate cool triplet so it never
        collides with the food/water/exercise category colors it can sit right
        next to on Hoy (that collision — orange meaning "food" in one card and
@@ -71,29 +71,33 @@
      darkened and contrast-checked against a white ground (not copy-pasted
      from the dark set — the accent2 audit showed dark-tuned colors quietly
      fail on light). Follows the OS by default; :root[data-theme] lets the
-     in-app Settings toggle override it either direction. */
+     in-app Settings toggle override it either direction.
+     2026-10-17 (UI/UX review): warmer neutrals (cream instead of grey-green) to sit
+     with the illustrations; --on-accent darkened to 5.3:1 on the orange buttons
+     (was 4.3:1, under AA); danger moved to a true red and warn to an olive amber, so
+     neither reads as the brand orange. --muted stays >=4.5:1 on --bg and --raised. */
   @media (prefers-color-scheme: light){
     :root:not([data-theme="dark"]){
-      --bg:#F4F7F5; --surface:#FFFFFF; --raised:#EAF0EE; --line:#DCE6E2;
+      --bg:#F7F4EE; --surface:#FFFFFF; --raised:#EFEDE6; --line:#E3DED3;
       --accent:#C9731D; --accent2:#4A8421; --accent3:#358D6F;
-      --text:#132A25; --muted:#55716A; --danger:#D04825;
-      --status-good:#358D4E; --status-warn:#AD7E1F;
+      --text:#132A25; --muted:#55716A; --danger:#C2352B;
+      --status-good:#358D4E; --status-warn:#8F6A00;
       --macro-protein:#6C3DB8; --macro-carbs:#B03B8F; --macro-fat:#325AAE;
       --chart-weight:#3E6690; --chart-bp-sys:#B84763; --chart-bp-dia:#6E4C96;
       --chart-steps:#8A7422; --chart-heartrate:#A6304F; --chart-spo2:#2D7373; --chart-sleep:#4F548F;
-      --on-accent:#132A25;
+      --on-accent:#0A1512;
       --ring-track:#C4D2CC;
     }
   }
   :root[data-theme="light"]{
-    --bg:#F4F7F5; --surface:#FFFFFF; --raised:#EAF0EE; --line:#DCE6E2;
+    --bg:#F7F4EE; --surface:#FFFFFF; --raised:#EFEDE6; --line:#E3DED3;
     --accent:#C9731D; --accent2:#4A8421; --accent3:#358D6F;
-    --text:#132A25; --muted:#55716A; --danger:#D04825;
-    --status-good:#358D4E; --status-warn:#AD7E1F;
+    --text:#132A25; --muted:#55716A; --danger:#C2352B;
+    --status-good:#358D4E; --status-warn:#8F6A00;
     --macro-protein:#6C3DB8; --macro-carbs:#B03B8F; --macro-fat:#325AAE;
     --chart-weight:#3E6690; --chart-bp-sys:#B84763; --chart-bp-dia:#6E4C96;
     --chart-steps:#8A7422; --chart-heartrate:#A6304F; --chart-spo2:#2D7373; --chart-sleep:#4F548F;
-    --on-accent:#132A25;
+    --on-accent:#0A1512;
     --ring-track:#C4D2CC;
   }
   *{box-sizing:border-box;}
@@ -116,7 +120,12 @@
   input,select,textarea{font-family:inherit;background:var(--raised);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:9px 10px;font-size:16px;outline:none;}
   input:focus,select:focus,textarea:focus{border-color:var(--accent);}
   .card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;}
-  .label{font-family:'Space Grotesk',sans-serif;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+  /* Illustrations are bright morning scenes; on the dark theme they read as a lamp
+     left on. Dimmed slightly there, untouched on light (UI/UX review, 2026-10-16). */
+  .ilus{filter:brightness(.86) saturate(.9);}
+  @media (prefers-color-scheme: light){ :root:not([data-theme="dark"]) .ilus{filter:none;} }
+  :root[data-theme="light"] .ilus{filter:none;}
+  .label{font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:10px;}
   .info-btn{background:none;border:1px solid var(--line);color:var(--muted);border-radius:99px;width:24px;height:24px;min-width:24px;font-size:12px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;text-transform:none;letter-spacing:normal;}
   .info-btn:hover{border-color:var(--accent);color:var(--accent);}
   /* min-height (not a padding bump) so this only raises buttons that were
@@ -185,7 +194,7 @@
   main header h1{font-family:'Space Grotesk',sans-serif;font-size:22px;margin:0;}
   main header .sub{color:var(--muted);font-size:13px;text-transform:capitalize;}
 
-  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);width:calc(100vw - 32px);max-width:420px;margin:0;padding:12px 14px;padding-bottom:calc(12px + env(safe-area-inset-bottom));background:rgba(224,122,95,.15);border:1px solid var(--danger);border-radius:10px;color:var(--danger);font-size:13px;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,.35);}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);width:calc(100vw - 32px);max-width:420px;margin:0;padding:12px 14px;padding-bottom:calc(12px + env(safe-area-inset-bottom));background:rgba(214,64,58,.14);border:1px solid var(--danger);border-radius:10px;color:var(--danger);font-size:13px;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,.35);}
   .toast.ok{background:rgba(127,200,176,.15);border-color:var(--accent3);color:var(--accent3);}
 
   .dial-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;padding:14px 0;}
@@ -441,18 +450,18 @@ const I18N = {
     ejtipo_correr:'Correr', ejtipo_bici:'Bici', ejtipo_nadar:'Nadar', ejtipo_eliptica:'Elíptica', ejtipo_andar:'Andar',
     ejtipo_senderismo:'Senderismo', ejtipo_golf:'Golf', ejtipo_biciEstatica:'Bici estática', ejtipo_yoga:'Yoga', ejtipo_pilates:'Pilates',
     ejtipo_pesas:'Pesas', ejtipo_remo:'Remo',
-    hoy_empty_title:'Tu día está por empezar', hoy_empty_sub:'Anota un vaso de agua, tu desayuno o cómo dormiste, y tu vitalidad empezará a llenarse.',
+    hoy_empty_title:'Tu día está por empezar', hoy_empty_sub:'Anota agua, una comida o cómo dormiste y tu vitalidad empezará a llenarse.', hoy_quick_agua:'Agua', hoy_quick_comida:'Comida', hoy_quick_sueno:'Sueño',
     comidas_empty_title:'Tu primera comida del día', comidas_empty_sub:'Escribe arriba lo que comiste o escanea un código de barras. Cada comida cuenta.',
     ejercicio_empty_title:'Moverte también cuenta', ejercicio_empty_sub:'Elige una actividad arriba. Un paseo corto ya suma.',
     hoy_vitality:'Vitalidad de hoy', hoy_vitality_sub:'Se llena a lo largo del día con comida, agua, ejercicio y sueño (lo que falte cuenta 0), más presión y medicamentos si aplican',
-    hoy_insight:'Insight de hoy', hoy_regenerar:'Regenerar', hoy_generar_insight:'Generar insight', hoy_generando_insight:'Generando…', err_insight_failed:'No se pudo generar el insight',
+    hoy_insight:'Resumen de hoy', hoy_regenerar:'Regenerar', hoy_generar_insight:'Generar resumen', hoy_generando_insight:'Generando…', err_insight_failed:'No se pudo generar el resumen',
     hoy_de:'de', legend_comida:'Comida', legend_agua:'Agua', legend_ejercicio:'Ejercicio',
     stat_quemadas:'Quemadas', stat_ejercicio:'Ejercicio', stat_peso:'Peso', stat_presion:'Presión',
     macro_title:'Macronutrientes', macro_proteina:'Proteína', macro_carbohidratos:'Carbohidratos', macro_grasas:'Grasas',
     micro_title:'Micronutrientes', micro_fibra:'Fibra', micro_azucar:'Azúcar', micro_sodio:'Sodio',
     micro_hierro:'Hierro', micro_calcio:'Calcio', micro_potasio:'Potasio', micro_vitc:'Vitamina C',
     hoy_agua:'Agua (L)', hoy_peso:'Peso (kg)', hoy_sueno:'Sueño (h)', hoy_ajustar_metas:'Ajustar metas diarias',
-    hoy_agua_anadir:'Añadir', set_agua_unidad:'Tamaño de la gota (mL)', hoy_agua_gota_titulo:'Agua (gota: {ml}mL)', set_meta_agua:'Meta diaria de agua (L)',
+    hoy_agua_anadir:'Añadir', set_agua_unidad:'Tamaño de la gota (mL)', hoy_agua_gota_titulo:'Agua de hoy', hoy_agua_gota_nota:'cada gota, {unit}', set_meta_agua:'Meta diaria de agua (L)',
     aria_water_drop:'Registrar {n} L de agua', aria_eliminar:'Eliminar {name}',
     aria_eliminar_medicion:'Eliminar medición de las {time}',
     aria_mes_anterior:'Mes anterior', aria_mes_siguiente:'Mes siguiente',
@@ -474,10 +483,10 @@ const I18N = {
     plus_renews_on:'Se renueva el {date}',
     plus_manage_subscription:'Gestionar suscripción',
     plus_web_only_note:'VitaLinks Plus agrega estimación de calorías por foto y análisis más profundos — disponible por ahora solo en la app móvil.',
-    plus_upsell_note:'Estima calorías con IA sin necesidad de tu propia API key.',
+    plus_upsell_note:'Estima calorías con IA sin necesidad de tu propia clave de API.',
     plus_upgrade_button:'Mejorar a Plus',
     plus_paywall_title:'VitaLinks Plus',
-    plus_paywall_subtitle:'Estimación de calorías con IA incluida, sin necesidad de tu propia API key.',
+    plus_paywall_subtitle:'Estimación de calorías con IA incluida, sin necesidad de tu propia clave de API.',
     plus_feature_ai:'Hasta 15 estimaciones con IA al día, sin configurar nada',
     plus_feature_everything:'Todo lo que ya incluye VitaLinks gratis',
     plus_plan_yearly:'Anual', plus_plan_monthly:'Mensual',
@@ -555,7 +564,7 @@ const I18N = {
     foto_plato_bowl:'Tazón / bowl', foto_plato_mug:'Taza / mug grande', foto_plato_tupper:'Tupper / lonchera',
     foto_plato_artesanal:'Plato artesanal / único',
     foto_fork_nota:'Los platos artesanales/únicos varían mucho en tamaño. Para dar una mejor estimación, coloca un tenedor visible en la foto junto a la comida — su tamaño cambia poco entre marcas, así que sirve como referencia real de escala.',
-    foto_continuar:'Continuar', foto_cambiar_plato:'← Cambiar tipo de plato', foto_cambiar_apikey:'← Cambiar API key',
+    foto_continuar:'Continuar', foto_cambiar_plato:'← Cambiar tipo de plato', foto_cambiar_apikey:'← Cambiar clave de API',
     foto_capturar:'📷 Capturar', foto_repetir:'🔁 Repetir foto', foto_analizar:'Analizar plato', foto_analizando:'Analizando…',
     foto_nota_label:'Nota opcional (ej. "es una porción doble", "es un plato hondo pequeño")',
     foto_tilt_buscando:'Buscando sensor de inclinación…',
@@ -568,7 +577,7 @@ const I18N = {
     foto_agregar_no_detectado:'Agregar alimento no detectado', foto_agregar_placeholder:'ej. media taza de arroz',
     foto_items_vacio:'No se detectaron alimentos.', foto_total:'Total estimado del plato',
     foto_confirmar:'Agregar a mis comidas', foto_reiniciar:'🔄 Empezar de nuevo (otro plato)',
-    foto_apikey_label:'API key de Anthropic u OpenAI (necesaria para esta función mientras no tengas Plus)',
+    foto_apikey_label:'Clave de API de Anthropic u OpenAI (necesaria para esta función mientras no tengas Plus)',
     err_foto_analizar:'Error al analizar la foto', err_foto_estimar_item:'Error al estimar',
     comidas_prot_g:'Prot(g)', comidas_carb_g:'Carb(g)', comidas_grasa_g:'Grasa(g)',
     btn_agregar:'+ Agregar', comidas_hoy:'Hoy',
@@ -645,7 +654,7 @@ const I18N = {
     pattern_input_exercise:'minutos de ejercicio', pattern_input_exercisecal:'calorías quemadas',
     pattern_input_water:'agua', pattern_input_meds:'adherencia a medicamentos', pattern_input_sleep:'horas de sueño',
     nutr_ultimos_30_dias:'Últimos {n} días',
-    nutr_ma30_nota:'Línea punteada: promedio móvil de 30 días',
+    nutr_ma30_nota:'Línea punteada: promedio móvil de 30 días', nutr_micro_sin_datos_titulo:'Sin datos todavía', nutr_micro_sin_datos:'{lista}: aparecerán aquí cuando registres alimentos que incluyan esa información.',
     pron_tus_datos:'Tus datos', pron_altura:'Altura (cm)', pron_peso_meta:'Peso meta (kg)',
     pron_ej_170:'Ej. 170', pron_ej_68:'Ej. 68', pron_datos_guardados:'Datos guardados',
     pron_fecha_nacimiento:'Fecha de nacimiento', pron_genero:'Género',
@@ -672,16 +681,16 @@ const I18N = {
     pron_tiempo_estimado:'Tiempo estimado para llegar a tu meta', pron_semanas:'semanas',
     pron_fecha_estimada:'Fecha estimada:', pron_ritmo_estimado:'Ritmo estimado: {rate} kg/semana, basado en {method}.',
     pron_peso_vs_meta:'Peso vs. meta — últimos 30 días',
-    chart_no_data:'No hay suficientes datos aún',
+    chart_no_data:'No hay suficientes datos aún', chart_no_data_hint:'Registra unos días más y aquí verás tu tendencia.', chart_no_data_sync:'Aparecerá cuando tu reloj o tu app de salud sincronice unos días.',
     set_metas_diarias:'Metas diarias', set_ejercicio_min:'Ejercicio (min)',
     set_apariencia:'Apariencia', set_tema_sistema:'Sistema', set_tema_claro:'Claro', set_tema_oscuro:'Oscuro',
     set_modules_title:'Módulos visibles',
     set_modules_sub:'Oculta las pestañas que no uses. Tus datos no se borran — puedes volver a activarlas cuando quieras.',
     welcome_modules_note:'Puedes ocultar las pestañas que no uses desde Ajustes.',
-    set_apikey_label:'API key de Anthropic u OpenAI (opcional, para estimar calorías con IA)',
+    set_apikey_label:'Clave de API de Anthropic u OpenAI (opcional, para estimar calorías con IA)',
     set_apikey_note:'Se guarda solo en este dispositivo. Solo se envía al proveedor de la clave (Anthropic u OpenAI), junto con lo que pidas estimar.',
     err_storage_save:'No se pudo guardar en este dispositivo (¿modo privado / almacenamiento lleno?)',
-    err_ai_key_missing:'Agrega tu API key de Anthropic u OpenAI en Ajustes para usar esta función',
+    err_ai_key_missing:'Agrega tu clave de API de Anthropic u OpenAI en Ajustes para usar esta función',
     err_camera_unsupported:'Tu dispositivo no soporta acceso a la cámara',
     err_barcode_lib_failed:'No se pudo cargar el lector de códigos (revisa tu conexión a internet)',
     err_barcode_not_found:'Producto no encontrado en Open Food Facts (código {code}) — ingrésalo manualmente',
@@ -792,7 +801,7 @@ const I18N = {
     ejtipo_correr:'Running', ejtipo_bici:'Cycling', ejtipo_nadar:'Swimming', ejtipo_eliptica:'Elliptical', ejtipo_andar:'Walking',
     ejtipo_senderismo:'Hiking', ejtipo_golf:'Golf', ejtipo_biciEstatica:'Stationary Bike', ejtipo_yoga:'Yoga', ejtipo_pilates:'Pilates',
     ejtipo_pesas:'Weights', ejtipo_remo:'Rowing',
-    hoy_empty_title:'Your day is about to begin', hoy_empty_sub:'Log a glass of water, your breakfast or how you slept, and your vitality will start to fill up.',
+    hoy_empty_title:'Your day is about to begin', hoy_empty_sub:'Log water, a meal or how you slept and your vitality will start to fill up.', hoy_quick_agua:'Water', hoy_quick_comida:'Meal', hoy_quick_sueno:'Sleep',
     comidas_empty_title:'Your first meal of the day', comidas_empty_sub:'Type what you ate above or scan a barcode. Every meal counts.',
     ejercicio_empty_title:'Moving counts too', ejercicio_empty_sub:'Pick an activity above. Even a short walk adds up.',
     hoy_vitality:"Today's vitality", hoy_vitality_sub:"Fills up through the day with food, water, exercise and sleep (anything missing counts as 0), plus blood pressure and medications if they apply",
@@ -803,7 +812,7 @@ const I18N = {
     micro_title:'Micronutrients', micro_fibra:'Fiber', micro_azucar:'Sugar', micro_sodio:'Sodium',
     micro_hierro:'Iron', micro_calcio:'Calcium', micro_potasio:'Potassium', micro_vitc:'Vitamin C',
     hoy_agua:'Water (L)', hoy_peso:'Weight (kg)', hoy_sueno:'Sleep (h)', hoy_ajustar_metas:'Adjust daily goals',
-    hoy_agua_anadir:'Add', set_agua_unidad:'Droplet size (mL)', hoy_agua_gota_titulo:'Water (droplet: {ml}mL)', set_meta_agua:'Daily Water Goal (L)',
+    hoy_agua_anadir:'Add', set_agua_unidad:'Droplet size (mL)', hoy_agua_gota_titulo:"Today's water", hoy_agua_gota_nota:'each drop, {unit}', set_meta_agua:'Daily Water Goal (L)',
     aria_water_drop:'Log {n} L of water', aria_eliminar:'Delete {name}',
     aria_eliminar_medicion:'Delete the {time} measurement',
     aria_mes_anterior:'Previous month', aria_mes_siguiente:'Next month',
@@ -996,7 +1005,7 @@ const I18N = {
     pattern_input_exercise:'exercise minutes', pattern_input_exercisecal:'calories burned',
     pattern_input_water:'water', pattern_input_meds:'medication adherence', pattern_input_sleep:'sleep hours',
     nutr_ultimos_30_dias:'Last {n} days',
-    nutr_ma30_nota:'Dashed line: 30-day moving average',
+    nutr_ma30_nota:'Dashed line: 30-day moving average', nutr_micro_sin_datos_titulo:'No data yet', nutr_micro_sin_datos:'{lista}: these show up here once you log foods that include them.',
     pron_tus_datos:'Your info', pron_altura:'Height (cm)', pron_peso_meta:'Target weight (kg)',
     pron_ej_170:'E.g. 170', pron_ej_68:'E.g. 68', pron_datos_guardados:'Data saved',
     pron_fecha_nacimiento:'Date of birth', pron_genero:'Gender',
@@ -1023,7 +1032,7 @@ const I18N = {
     pron_tiempo_estimado:'Estimated time to reach your goal', pron_semanas:'weeks',
     pron_fecha_estimada:'Estimated date:', pron_ritmo_estimado:'Estimated rate: {rate} kg/week, based on {method}.',
     pron_peso_vs_meta:'Weight vs. goal — last 30 days',
-    chart_no_data:'Not enough data yet',
+    chart_no_data:'Not enough data yet', chart_no_data_hint:'Log a few more days and your trend will show up here.', chart_no_data_sync:'This appears once your watch or health app has synced a few days.',
     set_metas_diarias:'Daily goals', set_ejercicio_min:'Exercise (min)',
     set_apariencia:'Appearance', set_tema_sistema:'System', set_tema_claro:'Light', set_tema_oscuro:'Dark',
     set_modules_title:'Visible modules',
@@ -2183,7 +2192,7 @@ function refGridSVG(min, range, w, h, padL, pad, steps, unit){
 function lineChartSVG(points, opts){
   const w = opts.w||520, h = opts.h||150, pad=28;
   const vals = points.map(p=>p.v).filter(v=>v!=null);
-  if(vals.length < 2) return `<div style="color:var(--muted);font-size:12px;padding:20px;text-align:center;">${opts.emptyMsg||tr('chart_no_data')}</div>`;
+  if(vals.length < 2) return `<div style="color:var(--muted);font-size:12px;padding:20px;text-align:center;">${opts.emptyMsg||tr('chart_no_data_hint')}</div>`;
   let min = Math.min(...vals), max = Math.max(...vals);
   if(opts.targetValue!=null){ min = Math.min(min, opts.targetValue); max = Math.max(max, opts.targetValue); }
   if(opts.maValues){ const maVals = opts.maValues.filter(v=>v!=null); if(maVals.length){ min = Math.min(min, ...maVals); max = Math.max(max, ...maVals); } }
@@ -2217,7 +2226,7 @@ function multiLineChartSVG(points, series, opts){
   const w = opts.w||520, h = opts.h||150, pad=28;
   const allVals = points.flatMap(p=>series.map(s=>p[s.key])).filter(v=>v!=null);
   const maVals = series.flatMap(s=>s.ma||[]).filter(v=>v!=null);
-  if(allVals.length < 2) return `<div style="color:var(--muted);font-size:12px;padding:20px;text-align:center;">${opts.emptyMsg||tr('chart_no_data')}</div>`;
+  if(allVals.length < 2) return `<div style="color:var(--muted);font-size:12px;padding:20px;text-align:center;">${opts.emptyMsg||tr('chart_no_data_hint')}</div>`;
   const combined = allVals.concat(maVals);
   const min = Math.min(...combined), max = Math.max(...combined);
   const range = (max-min)||1;
@@ -2245,7 +2254,7 @@ function barChartSVG(points, opts){
   // exercise minutes that are always a real number (0 included) by construction.
   // Only bail to the text fallback when every point is truly unset, not when
   // they're all real zeros.
-  if(points.every(p=>p.v==null)) return `<div style="color:var(--muted);font-size:12px;padding:20px;text-align:center;">${opts.emptyMsg||tr('chart_no_data')}</div>`;
+  if(points.every(p=>p.v==null)) return `<div style="color:var(--muted);font-size:12px;padding:20px;text-align:center;">${opts.emptyMsg||tr('chart_no_data_hint')}</div>`;
   const vals = points.map(p=>p.v||0);
   const maVals = opts.maValues ? opts.maValues.filter(v=>v!=null) : [];
   const max = Math.max(...vals, ...maVals, opts.goal||0, 1);
@@ -2536,13 +2545,48 @@ const ILUS_SERIE = (()=>{
 // so they carry an empty alt and stay out of the screen reader.
 function illustratedEmptyHTML(img, key){
   return `<div style="text-align:center;padding:4px 0 6px;">
-    <img src="${ilusSrc(img, ILUS_SERIE)}" alt="" aria-hidden="true" width="800" height="600" loading="lazy" decoding="async" style="display:block;width:100%;max-width:360px;height:auto;margin:0 auto 12px;">
+    <img class="ilus" src="${ilusSrc(img, ILUS_SERIE)}" alt="" aria-hidden="true" width="800" height="600" loading="lazy" decoding="async" style="display:block;width:100%;max-width:360px;height:auto;margin:0 auto 12px;">
     <div class="display" style="font-size:18px;font-weight:700;margin-bottom:6px;">${tr(key+'_title')}</div>
     <div style="font-size:13px;color:var(--muted);line-height:1.5;max-width:340px;margin:0 auto;">${tr(key+'_sub')}</div>
   </div>`;
 }
+// Hoy with nothing logged: a compact strip instead of the full empty-state card (UI/UX
+// review, 2026-10-16). The big illustration pushed the first useful action about two
+// screens down, so the strip keeps the art small and puts the three quickest first
+// logs right next to it. Not lazy-loaded: it is the first thing on screen.
 function hoyEmptyIllustrationHTML(){
-  return `<div class="card" style="padding:18px 18px 22px;">${illustratedEmptyHTML('hoy-vacio','hoy_empty')}</div>`;
+  const unitLabel = waterUnitLabel(state.goals.waterUnitMl || DEFAULT_GOALS.waterUnitMl);
+  const chip = (onclick, icon, label) => `<button class="btn btn-ghost" style="flex:1;min-width:0;min-height:44px;padding:8px 6px;font-size:12px;display:inline-flex;align-items:center;justify-content:center;gap:5px;" onclick="${onclick}">${navIcon(icon,15)}<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${label}</span></button>`;
+  return `<div class="card" style="padding:14px 14px 12px;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+      <img class="ilus" src="${ilusSrc('hoy-vacio', ILUS_SERIE)}" alt="" aria-hidden="true" width="800" height="600" decoding="async" style="display:block;width:104px;height:auto;flex:none;">
+      <div style="min-width:0;">
+        <div class="display" style="font-size:16px;font-weight:700;margin-bottom:4px;">${tr('hoy_empty_title')}</div>
+        <div style="font-size:12.5px;color:var(--muted);line-height:1.45;">${tr('hoy_empty_sub')}</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;">
+      ${chip('hoyQuickWater()', 'gota', `${tr('hoy_quick_agua')} +${unitLabel}`)}
+      ${!isModuleHidden('comidas') ? chip('hoyQuickMeal()', 'comida', tr('hoy_quick_comida')) : ''}
+      ${chip('hoyQuickSleep()', 'sueno', tr('hoy_quick_sueno'))}
+    </div>
+  </div>`;
+}
+function waterUnitLabel(ml){ return ml >= 1000 ? `${Math.round(ml/100)/10} L` : `${ml} ml`; }
+function hoyQuickWater(){
+  const unitL = (state.goals.waterUnitMl || DEFAULT_GOALS.waterUnitMl) / 1000;
+  setWater(Math.round(((state.day.water||0) + unitL) * 1000) / 1000);
+}
+function hoyQuickMeal(){
+  setTab('comidas');
+  window.scrollTo(0, 0);
+  setTimeout(()=>document.getElementById('meal-name')?.focus(), 0);
+}
+function hoyQuickSleep(){
+  const el = document.getElementById('in-sleep');
+  if(!el) return;
+  el.scrollIntoView({ block:'center', behavior:'smooth' });
+  el.focus({ preventScroll:true });
 }
 function renderHoy(){
   const d = state.day, g = state.goals;
@@ -2561,6 +2605,10 @@ function renderHoy(){
   const ringFree = ringFreeUI();
   const vCirc = 2*Math.PI*52;
   const vTargetOffset = ringFree ? 100 - clamp(vScore,0,100) : vCirc*(1-clamp(vScore,0,100)/100);
+  // Nothing logged today: the calorie dial, the stat tiles and the macro/micro cards
+  // would only repeat "0" under the strip, and a big "0" read as the vitality score.
+  // Weight doesn't count toward vitality, so a weight-only day still shows the tiles.
+  const emptyDay = vScore==null && d.weight==null;
   return `
   <div class="stack grid-desktop">
     ${vScore==null ? hoyEmptyIllustrationHTML() : ''}
@@ -2602,7 +2650,7 @@ function renderHoy(){
       }
       <div id="insight-error" style="font-size:11px;color:var(--danger);margin-top:6px;"></div>
     </div>` : ''}
-    ${ringFree ? `
+    ${emptyDay ? '' : `${ringFree ? `
     <div class="card dial-wrap" style="align-items:stretch;padding:18px 20px;">
       <div style="text-align:center;">
         <div class="display" id="dial-cal-num" style="font-size:30px;font-weight:700;">${animateHoy?0:calEaten}</div>
@@ -2629,9 +2677,9 @@ function renderHoy(){
         <span><span class="dot" style="background:var(--accent2);"></span>${tr('legend_ejercicio')}</span>
       </div>
     </div>
-    `}
+    `}`}
     ${weeklyGoalsCard(animateHoy)}
-    <div class="grid4 full-span">
+    ${emptyDay ? '' : `<div class="grid4 full-span">
       ${[
         statTile(navIcon('calorias',14),tr('stat_quemadas'), exCal+' kcal'),
         statTile(navIcon('ejercicio',14),tr('stat_ejercicio'), exMin+' min'),
@@ -2640,10 +2688,10 @@ function renderHoy(){
       ].filter(Boolean).join('')}
     </div>
     ${macroCard(d.meals)}
-    ${microCard(d.meals)}
+    ${microCard(d.meals)}`}
     <div class="card full-span">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">
-        <div class="label" style="margin:0;">${trf('hoy_agua_gota_titulo',{ml:g.waterUnitMl||DEFAULT_GOALS.waterUnitMl})}</div>
+        <div class="label" style="margin:0;">${tr('hoy_agua_gota_titulo')} <span style="font-weight:400;">· ${trf('hoy_agua_gota_nota',{unit:waterUnitLabel(g.waterUnitMl||DEFAULT_GOALS.waterUnitMl)})}</span></div>
         <span class="display" style="font-size:13px;color:var(--accent3);font-weight:700;">${d.water} L</span>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
@@ -3381,7 +3429,7 @@ function renderComposicion(){
       </div>
       ${state.bodyCompFormOpen ? `
         ${groupedBodyCompFields().map((g,gi)=>`
-          <div style="font-size:11px;font-weight:700;color:var(--accent3);text-transform:uppercase;letter-spacing:.06em;margin:${gi===0?'0':'16px'} 0 8px;">${tr('comp_group_'+g.groupKey)}</div>
+          <div style="font-size:13px;font-weight:600;color:var(--accent3);margin:${gi===0?'0':'16px'} 0 8px;">${tr('comp_group_'+g.groupKey)}</div>
           <div class="grid2" style="gap:10px;margin-bottom:12px;">
             ${g.fields.map(f=>`<div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('bc_'+f.key)}${f.unit?' ('+bcUnit(f)+')':''}</div><input id="bc-${f.key}" type="number" step="0.1" style="width:100%;"></div>`).join('')}
           </div>`).join('')}
@@ -3487,7 +3535,7 @@ function renderDayDetail(iso){
   const totalCal = d.meals.reduce((s,m)=>s+(Number(m.calories)||0),0);
   const totalMin = d.exercises.reduce((s,e)=>s+(Number(e.minutes)||0),0);
   const flaggedBP = d.bp.filter(b=>bpCategory(b.systolic,b.diastolic).color==='var(--danger)');
-  const flaggedBanner = flaggedBP.length ? `<div style="background:rgba(224,122,95,.12);border:1px solid var(--danger);border-radius:10px;padding:10px 12px;margin-bottom:16px;">
+  const flaggedBanner = flaggedBP.length ? `<div style="background:rgba(214,64,58,.12);border:1px solid var(--danger);border-radius:10px;padding:10px 12px;margin-bottom:16px;">
     <div style="font-size:11px;color:var(--danger);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">${tr('cal_lectura_fuera_rango')}</div>
     <div class="stack" style="gap:6px;">${flaggedBP.map(b=>rowItemStatic(b.systolic+'/'+b.diastolic+' mmHg', b.time, b.pulse?b.pulse+' bpm':'', bpBadge(b.systolic,b.diastolic))).join('')}</div>
   </div>` : '';
@@ -3791,7 +3839,7 @@ function renderProgreso(){
         </div>
         <div class="chart-box">${lineChartSVG(weightPts,{color:'var(--chart-weight)', gridLines:true, gridSteps:isExp('weight')?5:4, unit:'kg', maValues:weightMA, h:isExp('weight')?320:150})}</div>
         ${todayHCWeight ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;" onclick="event.stopPropagation()">
-          <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">${tr('hc_bp_synced_label')}</span>
+          <span style="font-size:11px;color:var(--muted);">${tr('hc_bp_synced_label')}</span>
           <span style="display:flex;align-items:center;gap:6px;font-size:12px;">${todayHCWeight.kg} kg<span style="font-size:10px;color:var(--accent2);border:1px solid var(--accent2);border-radius:4px;padding:1px 5px;">${tr('hc_bp_synced_badge')}</span></span>
         </div>` : ''}
         ${weightPts.filter(p=>p.v!=null).length>=2 ? `<button class="btn btn-ghost" style="width:100%;margin-top:10px;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="event.stopPropagation();shareWeightProgress()">${navIcon('exportar',14)}${tr('share_boton')}</button>` : ''}
@@ -3804,7 +3852,7 @@ function renderProgreso(){
         </div>
         <div class="chart-box">${multiLineChartSVG(bpPts,[{key:'sys',color:'var(--chart-bp-sys)', ma:sysMA},{key:'dia',color:'var(--chart-bp-dia)', ma:diaMA}],{gridLines:true, gridSteps:isExp('bp')?5:4, unit:'mmHg', h:isExp('bp')?320:150})}</div>
         ${todayHCBp.length ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);" onclick="event.stopPropagation()">
-          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">${tr('hc_bp_synced_label')}</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">${tr('hc_bp_synced_label')}</div>
           ${todayHCBp.map(r=>`<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:3px 0;">
             <span style="color:var(--muted);">${esc(r.time)}</span>
             <span>${r.systolic}/${r.diastolic} mmHg</span>
@@ -3821,15 +3869,15 @@ function renderProgreso(){
       </div>`}
       <div class="card expand-card ${pexp('steps')}" onclick="toggleChartExpand('progreso','steps')">
         <div class="label">${tr('hc_steps_label')}</div>
-        <div class="chart-box">${barChartSVG(stepsPts,{color:'var(--chart-steps)', gridLines:true, gridSteps:isExp('steps')?5:4, unit:'pasos', maValues:stepsMA, h:isExp('steps')?320:150})}</div>
+        <div class="chart-box">${barChartSVG(stepsPts,{color:'var(--chart-steps)', gridLines:true, gridSteps:isExp('steps')?5:4, unit:'pasos', maValues:stepsMA, emptyMsg:tr('chart_no_data_sync'), h:isExp('steps')?320:150})}</div>
       </div>
       <div class="card expand-card ${pexp('heartrate')}" onclick="toggleChartExpand('progreso','heartrate')">
         <div class="label">${tr('hc_heartrate_label')}</div>
-        <div class="chart-box">${lineChartSVG(hrPts,{color:'var(--chart-heartrate)', gridLines:true, gridSteps:isExp('heartrate')?5:4, unit:'bpm', maValues:hrMA, h:isExp('heartrate')?320:150})}</div>
+        <div class="chart-box">${lineChartSVG(hrPts,{color:'var(--chart-heartrate)', gridLines:true, gridSteps:isExp('heartrate')?5:4, unit:'bpm', maValues:hrMA, emptyMsg:tr('chart_no_data_sync'), h:isExp('heartrate')?320:150})}</div>
       </div>
       <div class="card expand-card ${pexp('spo2')}" onclick="toggleChartExpand('progreso','spo2')">
         <div class="label">${tr('hc_spo2_label')}</div>
-        <div class="chart-box">${lineChartSVG(spo2Pts,{color:'var(--chart-spo2)', gridLines:true, gridSteps:isExp('spo2')?5:4, unit:'%', maValues:spo2MA, h:isExp('spo2')?320:150})}</div>
+        <div class="chart-box">${lineChartSVG(spo2Pts,{color:'var(--chart-spo2)', gridLines:true, gridSteps:isExp('spo2')?5:4, unit:'%', maValues:spo2MA, emptyMsg:tr('chart_no_data_sync'), h:isExp('spo2')?320:150})}</div>
       </div>
       <div class="card expand-card ${pexp('calories')}" onclick="toggleChartExpand('progreso','calories')"><div class="label">${trf('prog_calorias_meta',{goal:state.goals.calorieGoal})}</div><div class="chart-box">${barChartSVG(calPts,{color:'var(--accent)',goal:state.goals.calorieGoal, gridLines:true, gridSteps:isExp('calories')?5:4, unit:'kcal', maValues:calMA, h:isExp('calories')?320:150})}</div></div>
       <div class="card expand-card ${pexp('exercise')}" onclick="toggleChartExpand('progreso','exercise')">
@@ -3847,7 +3895,7 @@ function renderProgreso(){
         </div>
         <div class="chart-box">${barChartSVG(sleepPts,{color:'var(--chart-sleep)', gridLines:true, gridSteps:isExp('sleep')?5:4, unit:'h', maValues:sleepMA, h:isExp('sleep')?320:150})}</div>
         ${todayHCSleep ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;" onclick="event.stopPropagation()">
-          <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">${tr('hc_bp_synced_label')}</span>
+          <span style="font-size:11px;color:var(--muted);">${tr('hc_bp_synced_label')}</span>
           <span style="display:flex;align-items:center;gap:6px;font-size:12px;">${todayHCSleep.hours} h<span style="font-size:10px;color:var(--accent2);border:1px solid var(--accent2);border-radius:4px;padding:1px 5px;">${tr('hc_bp_synced_badge')}</span></span>
         </div>` : ''}
       </div>
@@ -4057,7 +4105,13 @@ function nutricionChartData(){
     // computePatternData's and Progreso's established convention for this same class
     // of sparse data (weight/BP/sleep there, macros/micros here).
     const hasMeals = d.meals.length>0;
-    return hasMeals ? { ...macroSums(d.meals), ...microSums(d.meals) } : {
+    // Same idea one level down: most foods carry no micronutrients, and meals store
+    // the unknown ones as 0 (every add path does `||0`), so a stored 0 can't tell
+    // "none" from "not known". A whole day of meals adding up to exactly 0 mg of
+    // sodium is "unknown", not a real reading -- that flat zero misread as a value
+    // in a health app (UI/UX review, 2026-10-16).
+    const knownMicro = (sums) => Object.fromEntries(Object.entries(sums).map(([k,v])=>[k, v>0 ? v : null]));
+    return hasMeals ? { ...macroSums(d.meals), ...knownMicro(microSums(d.meals)) } : {
       protein:null, carbs:null, fat:null, fiber:null, sugar:null, sodium:null,
       iron:null, calcium:null, potassium:null, vitaminC:null,
     };
@@ -4097,13 +4151,13 @@ function nutricionChartData(){
   const macroMA = { protein: ma30('protein'), carbs: ma30('carbs'), fat: ma30('fat') };
 
   const microDefs = [
-    { key:'fiber', label:tr('micro_fibra')+' (g)', color:'var(--accent3)', unit:'g' },
-    { key:'sugar', label:tr('micro_azucar')+' (g)', color:'var(--accent2)', unit:'g' },
-    { key:'sodium', label:tr('micro_sodio')+' (mg)', color:'var(--danger)', unit:'mg' },
-    { key:'iron', label:tr('micro_hierro')+' (mg)', color:'var(--accent)', unit:'mg' },
-    { key:'calcium', label:tr('micro_calcio')+' (mg)', color:'var(--accent3)', unit:'mg' },
-    { key:'potassium', label:tr('micro_potasio')+' (mg)', color:'var(--accent2)', unit:'mg' },
-    { key:'vitaminC', label:tr('micro_vitc')+' (mg)', color:'var(--accent)', unit:'mg' },
+    { key:'fiber', nameKey:'micro_fibra', label:tr('micro_fibra')+' (g)', color:'var(--accent3)', unit:'g' },
+    { key:'sugar', nameKey:'micro_azucar', label:tr('micro_azucar')+' (g)', color:'var(--accent2)', unit:'g' },
+    { key:'sodium', nameKey:'micro_sodio', label:tr('micro_sodio')+' (mg)', color:'var(--danger)', unit:'mg' },
+    { key:'iron', nameKey:'micro_hierro', label:tr('micro_hierro')+' (mg)', color:'var(--accent)', unit:'mg' },
+    { key:'calcium', nameKey:'micro_calcio', label:tr('micro_calcio')+' (mg)', color:'var(--accent3)', unit:'mg' },
+    { key:'potassium', nameKey:'micro_potasio', label:tr('micro_potasio')+' (mg)', color:'var(--accent2)', unit:'mg' },
+    { key:'vitaminC', nameKey:'micro_vitc', label:tr('micro_vitc')+' (mg)', color:'var(--accent)', unit:'mg' },
   ];
   const microData = {};
   microDefs.forEach(mk=>{
@@ -4131,7 +4185,15 @@ function renderNutricion(){
     const isExp = exp===mk.key;
     return `<div class="card expand-card ${isExp?'expanded':''}" onclick="toggleChartExpand('nutri','${mk.key}')"><div class="label">${mk.label}</div><div class="chart-box">${lineChartSVG(pts,{color:mk.color, gridLines:true, gridSteps:isExp?5:4, unit:'g', maValues:macroMA[mk.key], h:isExp?320:150})}</div></div>`;
   }).join('');
-  const microCharts = microDefs.map(mk=>{
+  // Micronutrients with no data in the visible range fold into one quiet line
+  // instead of a stack of empty charts.
+  const microWith = microDefs.filter(mk=>microData[mk.key].pts.some(p=>p.v!=null));
+  const microWithout = microDefs.filter(mk=>!microWith.includes(mk));
+  const microEmptyCard = microWithout.length ? `<div class="card" style="grid-column:1/-1;">
+    <div class="label">${tr('nutr_micro_sin_datos_titulo')}</div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.5;">${trf('nutr_micro_sin_datos', { lista: microWithout.map((mk,i)=>{ const t = tr(mk.nameKey); return i ? t.charAt(0).toLowerCase()+t.slice(1) : t; }).join(', ') })}</div>
+  </div>` : '';
+  const microCharts = microWith.map(mk=>{
     const d = microData[mk.key];
     const isExp = exp===mk.key;
     return `<div class="card expand-card ${isExp?'expanded':''}" onclick="toggleChartExpand('nutri','${mk.key}')"><div class="label">${d.label}</div><div class="chart-box">${lineChartSVG(d.pts,{color:d.color, gridLines:true, gridSteps:isExp?5:4, unit:d.unit, maValues:d.ma, h:isExp?320:150})}</div></div>`;
@@ -4146,6 +4208,7 @@ function renderNutricion(){
     <div class="grid2">
       ${macroCharts}
       ${microCharts}
+      ${microEmptyCard}
     </div>
   </div>`;
 }
@@ -4725,7 +4788,7 @@ function modalHTML(){
       // Illustrated welcome (marketing team A, 2026-10-15), same style as the empty states.
       // Sized by screen height so the sign-in and Next buttons still fit on short phones.
       body = `
-        <img src="${ilusSrc('bienvenida', ILUS_SERIE)}" alt="" aria-hidden="true" width="720" height="900" decoding="async" style="display:block;height:min(250px,26vh);width:auto;margin:0 auto 14px;">
+        <img class="ilus" src="${ilusSrc('bienvenida', ILUS_SERIE)}" alt="" aria-hidden="true" width="720" height="900" decoding="async" style="display:block;height:min(250px,26vh);width:auto;margin:0 auto 14px;">
         <div class="display" style="font-weight:700;font-size:18px;margin-bottom:6px;">${tr('welcome_title')}</div>
         <div style="font-size:13px;color:var(--muted);margin-bottom:18px;">${tr('welcome_subtitle')}</div>
         ${!(window._syncState && window._syncState.user) ? `
