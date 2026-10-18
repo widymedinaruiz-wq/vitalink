@@ -24,18 +24,22 @@
 <meta name="twitter:image" content="https://vitalinks.eu/og-image.png">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' rx='26' fill='%230E2723'/%3E%3Cdefs%3E%3Cmask id='t' maskUnits='userSpaceOnUse' x='0' y='0' width='120' height='120'%3E%3Crect width='120' height='120' fill='white'/%3E%3Ccircle cx='60' cy='80' r='34.641' fill='none' stroke='black' stroke-width='16'/%3E%3C/mask%3E%3Cmask id='o' maskUnits='userSpaceOnUse' x='0' y='0' width='120' height='120'%3E%3Crect width='120' height='120' fill='white'/%3E%3Ccircle cx='77.32' cy='50' r='34.641' fill='none' stroke='black' stroke-width='16'/%3E%3C/mask%3E%3Cmask id='y' maskUnits='userSpaceOnUse' x='0' y='0' width='120' height='120'%3E%3Crect width='120' height='120' fill='white'/%3E%3Ccircle cx='42.68' cy='50' r='34.641' fill='none' stroke='black' stroke-width='16'/%3E%3C/mask%3E%3C/defs%3E%3Ccircle cx='77.32' cy='50' r='34.641' fill='none' stroke='%237FC8B0' stroke-width='10' mask='url(%23t)'/%3E%3Ccircle cx='42.68' cy='50' r='34.641' fill='none' stroke='%23F2A65A' stroke-width='10' mask='url(%23o)'/%3E%3Ccircle cx='60' cy='80' r='34.641' fill='none' stroke='%23E8C468' stroke-width='10' mask='url(%23y)'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=Nunito:wght@700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
 <script src="https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <script src="https://unpkg.com/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 <style>
   :root{
-    --bg:#0E2723; --surface:#153934; --raised:#1B453F; --line:#2A5049;
+    /* Dark theme in warm cacao (2026-10-18, chosen by Widy over the original deep teal
+       and a dark sage): it sits with the cream/terracotta illustrations, and raises
+       contrast everywhere (text 13.9:1, muted 6.9:1, danger 5.6:1 on --surface).
+       The brand green stays in the logo, splash and share images. */
+    --bg:#1B1712; --surface:#25201A; --raised:#2F2921; --line:#41382D;
     --accent:#F2A65A; --accent2:#90D161; --accent3:#7FC8B0;
     /* The accents as text colour. Same as the accents on dark; darker on light,
        where the fill tones are only ~3.2-4:1 on the cream ground (2026-10-18). */
     --accent-ink:var(--accent); --accent2-ink:var(--accent2); --accent3-ink:var(--accent3);
-    --text:#EFF6F2; --muted:#8FB2A8; --danger:#F07070;
+    --text:#F3EDE4; --muted:#B4A897; --danger:#F07070;
     /* Status/severity scale (score-based: good/warn/bad) — kept deliberately
        separate from the 3 accents above, which are reserved for fixed
        categories (food/water/exercise). --danger already covers the "bad"
@@ -61,14 +65,16 @@
        reuse --bg for this (it's near-white, same problem accent2 had) so it
        points at --text instead. Kept as its own token so both callers update
        together instead of drifting. */
-    --on-accent:#0E2723;
+    --on-accent:#1B1712;
     /* Progress tracks (Hoy's food/water/exercise bars, the weekly-goals day bars,
        the Vitality half gauge) need a decorative stroke thick and
        visible enough to read as "the unfilled part of a ring" — --line works
        for that on dark, but light theme's --line is a near-invisible hairline
        border color (fine for 1px borders, not for a 10px ring) so it needs
        its own value there instead of reusing --line. */
-    --ring-track:#2A5049;
+    --ring-track:#41382D;
+    /* Form field borders: 3:1 against the card (WCAG 1.4.11). */
+    --field-line:#857866;
   }
   /* Light mode: same 15 category/status/macro/neutral tokens, independently
      darkened and contrast-checked against a white ground (not copy-pasted
@@ -82,7 +88,7 @@
   @media (prefers-color-scheme: light){
     :root:not([data-theme="dark"]){
       --bg:#F7F4EE; --surface:#FFFFFF; --raised:#EFEDE6; --line:#E3DED3;
-      --accent:#C9731D; --accent2:#4A8421; --accent3:#358D6F; --accent-ink:#9A520F; --accent2-ink:#3C6F19; --accent3-ink:#28705A;
+      --accent:#C9731D; --accent2:#4A8421; --accent3:#358D6F; --accent-ink:#9A520F; --accent2-ink:#3C6F19; --accent3-ink:#28705A; --field-line:#8C8576;
       --text:#132A25; --muted:#55716A; --danger:#C2352B;
       --status-good:#358D4E; --status-warn:#8F6A00;
       --macro-protein:#6C3DB8; --macro-carbs:#B03B8F; --macro-fat:#325AAE;
@@ -94,7 +100,7 @@
   }
   :root[data-theme="light"]{
     --bg:#F7F4EE; --surface:#FFFFFF; --raised:#EFEDE6; --line:#E3DED3;
-    --accent:#C9731D; --accent2:#4A8421; --accent3:#358D6F; --accent-ink:#9A520F; --accent2-ink:#3C6F19; --accent3-ink:#28705A;
+    --accent:#C9731D; --accent2:#4A8421; --accent3:#358D6F; --accent-ink:#9A520F; --accent2-ink:#3C6F19; --accent3-ink:#28705A; --field-line:#8C8576;
     --text:#132A25; --muted:#55716A; --danger:#C2352B;
     --status-good:#358D4E; --status-warn:#8F6A00;
     --macro-protein:#6C3DB8; --macro-carbs:#B03B8F; --macro-fat:#325AAE;
@@ -120,13 +126,14 @@
      effective font-size is under 16px — the page then stays zoomed in (and thus
      horizontally scrollable) after the field blurs. 16px is the documented
      threshold to suppress that, so this can't go back below it. */
-  input,select,textarea{font-family:inherit;background:var(--raised);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:9px 10px;font-size:16px;outline:none;}
+  input,select,textarea{font-family:inherit;background:var(--raised);border:1px solid var(--field-line);border-radius:10px;color:var(--text);padding:9px 10px;font-size:16px;outline:none;}
   input:focus,select:focus,textarea:focus{border-color:var(--accent);}
   .card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;}
   /* Illustrations are bright morning scenes; on the dark theme they read as a lamp
      left on. Dimmed slightly there, untouched on light (UI/UX review, 2026-10-16). */
   .ilus{filter:brightness(.86) saturate(.9);}
-  .meal-more summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);padding:6px 0;min-height:32px;list-style-position:inside;}
+  .meal-more summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--text);padding:10px 12px;min-height:44px;border:1px solid var(--line);border-radius:10px;list-style-position:inside;}
+  .meal-more[open] summary{margin-bottom:4px;}
   @media (prefers-color-scheme: light){ :root:not([data-theme="dark"]) .ilus{filter:none;} }
   :root[data-theme="light"] .ilus{filter:none;}
   .label{font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:10px;}
@@ -195,8 +202,11 @@
   nav.side .foot{margin-top:auto;display:flex;flex-direction:column;gap:6px;}
   main{flex:1;padding:28px 32px 60px;min-width:0;}
   main header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:22px;flex-wrap:wrap;gap:8px;}
-  main header h1{font-family:'Space Grotesk',sans-serif;font-size:22px;margin:0;}
-  main header .sub{color:var(--muted);font-size:13px;text-transform:capitalize;}
+  main header h1{font-family:'Nunito','Space Grotesk',sans-serif;font-weight:800;font-size:23px;margin:0;}
+  /* Rounded humanist face for screen and welcome/empty-state titles only, to sit with
+     the illustrations (UI/UX review, 2026-10-18). Numbers and data keep their faces. */
+  .title-warm{font-family:'Nunito','Space Grotesk',sans-serif;font-weight:800;}
+  main header .sub{color:var(--muted);font-size:13px;}
 
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);width:calc(100vw - 32px);max-width:420px;margin:0;padding:12px 14px;padding-bottom:calc(12px + env(safe-area-inset-bottom));background:rgba(214,64,58,.14);border:1px solid var(--danger);border-radius:10px;color:var(--danger);font-size:13px;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,.35);}
   .toast.ok{background:rgba(127,200,176,.15);border-color:var(--accent3);color:var(--accent3-ink);}
@@ -219,7 +229,9 @@
   /* Same min-height reasoning as .btn — icon+label uses (meal/exercise type)
      are already well above this from their own content; only the label-only
      uses (gender pills, measured at 34px) were actually short. */
-  .meal-type-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 4px;border-radius:12px;border:1px solid var(--line);background:var(--raised);cursor:pointer;font-size:10px;color:var(--muted);min-height:44px;}
+  .meal-type-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 4px;border-radius:12px;border:1px solid var(--line);background:var(--raised);cursor:pointer;font-size:11px;color:var(--muted);min-height:44px;}
+  .meal-type-btn .ic-svg{box-sizing:content-box;padding:6px;border-radius:50%;background:var(--surface);}
+  .meal-type-btn.active .ic-svg{background:rgba(242,166,90,.2);}
   .meal-type-btn.active{border-color:var(--accent);background:rgba(242,166,90,.12);color:var(--accent-ink);font-weight:700;}
 
   .wheel-wrap{position:relative;}
@@ -242,9 +254,12 @@
   .chart-box{width:100%;overflow-x:auto;}
   .med-row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--raised);border-radius:12px;}
   .med-due{border:1px solid var(--accent);background:rgba(242,166,90,.1);}
-  .switch{width:42px;height:24px;border-radius:99px;background:var(--line);position:relative;cursor:pointer;flex-shrink:0;}
+  /* Real <button role="switch"> (keyboard + screen reader, WCAG 4.1.2/2.1.1). Off is a
+     muted track with a light knob so it reads as a control, not a blank pill. */
+  .switch{width:42px;height:24px;border-radius:99px;background:var(--muted);position:relative;cursor:pointer;flex-shrink:0;border:0;padding:0;margin:0;}
+  .switch:focus-visible,.disclosure:focus-visible,.meal-more summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
   .switch.on{background:var(--accent);}
-  .switch .knob{width:18px;height:18px;border-radius:99px;background:var(--text);position:absolute;top:3px;left:3px;transition:left .15s;}
+  .switch .knob{width:18px;height:18px;border-radius:99px;background:var(--surface);position:absolute;top:3px;left:3px;transition:left .15s;}
   .switch.on .knob{left:21px;background:var(--on-accent);}
 
   .scanner-video-wrap{position:relative;width:100%;aspect-ratio:4/3;background:#000;border-radius:14px;overflow:hidden;}
@@ -457,7 +472,7 @@ const I18N = {
     hoy_empty_title:'Tu día está por empezar', hoy_empty_sub:'Anota agua, una comida o cómo dormiste y tu vitalidad empezará a llenarse.', hoy_quick_agua:'Agua', hoy_quick_comida:'Comida', hoy_quick_sueno:'Sueño',
     comidas_empty_title:'Tu primera comida del día', comidas_empty_sub:'Escribe arriba lo que comiste o escanea un código de barras. Cada comida cuenta.',
     ejercicio_empty_title:'Moverte también cuenta', ejercicio_empty_sub:'Elige una actividad arriba. Un paseo corto ya suma.',
-    hoy_vitality:'Vitalidad de hoy', hoy_vitality_sub:'Se llena a lo largo del día con comida, agua, ejercicio y sueño (lo que falte cuenta 0), más presión y medicamentos si aplican',
+    hoy_vitality:'Vitalidad de hoy', hoy_vitality_sub:'Sube a medida que registras comida, agua, ejercicio y sueño. Si mides la presión o tomas medicamentos, también cuentan.',
     hoy_insight:'Resumen de hoy', hoy_regenerar:'Regenerar', hoy_generar_insight:'Generar resumen', hoy_generando_insight:'Generando…', err_insight_failed:'No se pudo generar el resumen',
     hoy_de:'de', legend_comida:'Comida', legend_agua:'Agua', legend_ejercicio:'Ejercicio',
     stat_quemadas:'Quemadas', stat_ejercicio:'Ejercicio', stat_peso:'Peso', stat_presion:'Presión',
@@ -606,7 +621,7 @@ const I18N = {
     ejercicio_agregar:'Agregar ejercicio', ejercicio_actividad:'Actividad', ejercicio_min:'min',
     ejercicio_actividad_requerida:'Elige o escribe una actividad antes de agregar',
     cal_km_opc:'km (opc.)', 
-    salud_presion:'Presión arterial', salud_sistolica:'Sistólica', salud_diastolica:'Diastólica', salud_pulso:'Pulso (bpm)',
+    salud_presion:'Presión arterial', salud_guardar_lectura:'Guardar lectura', salud_sistolica:'Sistólica', salud_diastolica:'Diastólica', salud_pulso:'Pulso (bpm)',
     bp_info_titulo:'Categorías de presión arterial', bp_info_fuente:'Según la Asociación Americana del Corazón (AHA)',
     bp_info_normal:'Normal', bp_info_normal_rango:'Sistólica menor a 120 y diastólica menor a 80',
     bp_info_elevada:'Elevada', bp_info_elevada_rango:'Sistólica 120–129 y diastólica menor a 80',
@@ -629,7 +644,7 @@ const I18N = {
     comp_sin_datos_grafico:'Registra tu primera medición para empezar a ver tendencias aquí.',
     cal_calorias:'Calorías', cal_ejercicio:'Ejercicio', cal_peso:'Peso', cal_sueno:'Sueño',
     cal_editar_peso:'Editar peso (kg)', cal_editar_sueno:'Editar sueño (h)', cal_guardar:'Guardar',
-    cal_comidas:'Comidas', cal_sin_registros:'Sin registros', cal_nombre:'Nombre', cal_agregar_comida:'+ Agregar comida',
+    cal_comidas:'Comidas', cal_sin_registros:'Sin registros', cal_nombre:'Nombre', cal_agregar_comida:'+ Agregar comida', cal_editar_dia:'Editar este día', cal_terminar_edicion:'Listo',
     cal_actividad:'Actividad', cal_kcal_opc:'kcal (opc.)', cal_agregar_ejercicio:'+ Agregar ejercicio',
     cal_presion_arterial:'Presión arterial', cal_medicamentos_tomados:'Medicamentos tomados',
     cal_lectura_fuera_rango:'Lectura de presión fuera de rango este día',
@@ -658,7 +673,7 @@ const I18N = {
     pattern_input_exercise:'minutos de ejercicio', pattern_input_exercisecal:'calorías quemadas',
     pattern_input_water:'agua', pattern_input_meds:'adherencia a medicamentos', pattern_input_sleep:'horas de sueño',
     nutr_ultimos_30_dias:'Últimos {n} días',
-    nutr_ma30_nota:'Línea punteada: promedio móvil de 30 días', nutr_micro_sin_datos_titulo:'Sin datos todavía', nutr_micro_sin_datos:'{lista}: aparecerán aquí cuando registres alimentos que incluyan esa información.',
+    nutr_ma30_nota:'Línea punteada: promedio móvil de 30 días', prog_sec_cuerpo:'Cuerpo', prog_sec_habitos:'Hábitos', prog_sec_reloj:'Reloj y app de salud', prog_reloj_vacio:'Pasos, ritmo cardíaco y oxígeno aparecerán aquí cuando tu reloj o tu app de salud sincronice unos días.', nutr_micro_sin_datos_titulo:'Sin datos todavía', nutr_micro_sin_datos:'{lista}: aparecerán aquí cuando registres alimentos que incluyan esa información.',
     pron_tus_datos:'Tus datos', pron_altura:'Altura (cm)', pron_peso_meta:'Peso meta (kg)',
     pron_ej_170:'Ej. 170', pron_ej_68:'Ej. 68', pron_datos_guardados:'Datos guardados',
     pron_fecha_nacimiento:'Fecha de nacimiento', pron_genero:'Género',
@@ -808,7 +823,7 @@ const I18N = {
     hoy_empty_title:'Your day is about to begin', hoy_empty_sub:'Log water, a meal or how you slept and your vitality will start to fill up.', hoy_quick_agua:'Water', hoy_quick_comida:'Meal', hoy_quick_sueno:'Sleep',
     comidas_empty_title:'Your first meal of the day', comidas_empty_sub:'Type what you ate above or scan a barcode. Every meal counts.',
     ejercicio_empty_title:'Moving counts too', ejercicio_empty_sub:'Pick an activity above. Even a short walk adds up.',
-    hoy_vitality:"Today's vitality", hoy_vitality_sub:"Fills up through the day with food, water, exercise and sleep (anything missing counts as 0), plus blood pressure and medications if they apply",
+    hoy_vitality:"Today's vitality", hoy_vitality_sub:"Rises as you log food, water, exercise and sleep. Blood pressure and medications count too when you track them.",
     hoy_insight:"Today's insight", hoy_regenerar:'Regenerate', hoy_generar_insight:'Generate insight', hoy_generando_insight:'Generating…', err_insight_failed:'Could not generate the insight',
     hoy_de:'of', legend_comida:'Food', legend_agua:'Water', legend_ejercicio:'Exercise',
     stat_quemadas:'Burned', stat_ejercicio:'Exercise', stat_peso:'Weight', stat_presion:'Pressure',
@@ -957,7 +972,7 @@ const I18N = {
     ejercicio_agregar:'Add exercise', ejercicio_actividad:'Activity', ejercicio_min:'min',
     ejercicio_actividad_requerida:'Choose or type an activity before adding',
     cal_km_opc:'km (opt.)', 
-    salud_presion:'Blood pressure', salud_sistolica:'Systolic', salud_diastolica:'Diastolic', salud_pulso:'Pulse (bpm)',
+    salud_presion:'Blood pressure', salud_guardar_lectura:'Save reading', salud_sistolica:'Systolic', salud_diastolica:'Diastolic', salud_pulso:'Pulse (bpm)',
     bp_info_titulo:'Blood pressure categories', bp_info_fuente:'Based on American Heart Association (AHA) guidelines',
     bp_info_normal:'Normal', bp_info_normal_rango:'Systolic under 120 and diastolic under 80',
     bp_info_elevada:'Elevated', bp_info_elevada_rango:'Systolic 120–129 and diastolic under 80',
@@ -980,7 +995,7 @@ const I18N = {
     comp_sin_datos_grafico:'Log your first reading to start seeing trends here.',
     cal_calorias:'Calories', cal_ejercicio:'Exercise', cal_peso:'Weight', cal_sueno:'Sleep',
     cal_editar_peso:'Edit weight (kg)', cal_editar_sueno:'Edit sleep (h)', cal_guardar:'Save',
-    cal_comidas:'Meals', cal_sin_registros:'No entries', cal_nombre:'Name', cal_agregar_comida:'+ Add meal',
+    cal_comidas:'Meals', cal_sin_registros:'No entries', cal_nombre:'Name', cal_agregar_comida:'+ Add meal', cal_editar_dia:'Edit this day', cal_terminar_edicion:'Done',
     cal_actividad:'Activity', cal_kcal_opc:'kcal (opt.)', cal_agregar_ejercicio:'+ Add exercise',
     cal_presion_arterial:'Blood pressure', cal_medicamentos_tomados:'Medications taken',
     cal_lectura_fuera_rango:'Out-of-range blood pressure reading this day',
@@ -1009,7 +1024,7 @@ const I18N = {
     pattern_input_exercise:'exercise minutes', pattern_input_exercisecal:'calories burned',
     pattern_input_water:'water', pattern_input_meds:'medication adherence', pattern_input_sleep:'sleep hours',
     nutr_ultimos_30_dias:'Last {n} days',
-    nutr_ma30_nota:'Dashed line: 30-day moving average', nutr_micro_sin_datos_titulo:'No data yet', nutr_micro_sin_datos:'{lista}: these show up here once you log foods that include them.',
+    nutr_ma30_nota:'Dashed line: 30-day moving average', prog_sec_cuerpo:'Body', prog_sec_habitos:'Habits', prog_sec_reloj:'Watch and health app', prog_reloj_vacio:'Steps, heart rate and oxygen will show up here once your watch or health app has synced a few days.', nutr_micro_sin_datos_titulo:'No data yet', nutr_micro_sin_datos:'{lista}: these show up here once you log foods that include them.',
     pron_tus_datos:'Your info', pron_altura:'Height (cm)', pron_peso_meta:'Target weight (kg)',
     pron_ej_170:'E.g. 170', pron_ej_68:'E.g. 68', pron_datos_guardados:'Data saved',
     pron_fecha_nacimiento:'Date of birth', pron_genero:'Gender',
@@ -1234,6 +1249,12 @@ function trf(key, params){ return tr(key).replace(/\{(\w+)\}/g, (_,k)=>params[k]
 const DOW_ES = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 const DOW_EN = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 function dowLabels(){ return state.lang==='en' ? DOW_EN : DOW_ES; }
+// Short "12 oct" label for the wider chart ranges: a weekday letter every 7th point
+// read as "S S S S" with no way to tell the dates apart (UI/UX review, 2026-10-18).
+function axisDate(iso){
+  const [y,m,dd] = iso.split('-').map(Number);
+  return new Date(y,m-1,dd).toLocaleDateString(state.lang==='en' ? 'en-US' : 'es-ES', { day:'numeric', month:'short' }).replace('.', '');
+}
 function dayLetter(iso){ const [y,m,dd]=iso.split('-').map(Number); const idx=(new Date(y,m-1,dd).getDay()+6)%7; return dowLabels()[idx][0]; }
 const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MONTHS_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -1241,7 +1262,10 @@ function monthLabels(){ return state.lang==='en' ? MONTHS_EN : MONTHS_ES; }
 function formatDateEs(iso){
   const [y,m,d] = iso.split('-').map(Number);
   const dt = new Date(y, m-1, d);
-  return dt.toLocaleDateString(state.lang==='en' ? 'en-US' : 'es-ES', { weekday:'long', day:'numeric', month:'long' });
+  // Capital on the first letter only: CSS capitalize turned "domingo, 18 de octubre"
+  // into "Domingo, 18 De Octubre", which reads machine-made in Spanish.
+  const t = dt.toLocaleDateString(state.lang==='en' ? 'en-US' : 'es-ES', { weekday:'long', day:'numeric', month:'long' });
+  return t.charAt(0).toUpperCase() + t.slice(1);
 }
 function nowHM(){ const d=new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; }
 function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -2231,7 +2255,8 @@ function multiLineChartSVG(points, series, opts){
   const allVals = points.flatMap(p=>series.map(s=>p[s.key])).filter(v=>v!=null);
   const maVals = series.flatMap(s=>s.ma||[]).filter(v=>v!=null);
   if(allVals.length < 2) return `<div style="color:var(--muted);font-size:12px;padding:20px;text-align:center;">${opts.emptyMsg||tr('chart_no_data_hint')}</div>`;
-  const combined = allVals.concat(maVals);
+  const refs = opts.refLines || [];
+  const combined = allVals.concat(maVals, refs.map(r=>r.v));
   const min = Math.min(...combined), max = Math.max(...combined);
   const range = (max-min)||1;
   const padL = opts.gridLines ? Math.max(pad, estimateAxisLabelWidth(min, range, opts.gridSteps||4)+10) : pad;
@@ -2245,8 +2270,13 @@ function multiLineChartSVG(points, series, opts){
   }).join('');
   const labels = points.map((p,i)=>`<text x="${padL+i*stepX}" y="${h-6}" font-size="15" fill="var(--muted)" text-anchor="${i===0?'start':'middle'}">${p.label}</text>`).join('');
   const grid = opts.gridLines ? refGridSVG(min, range, w, h, padL, pad, opts.gridSteps||4, opts.unit) : {lines:'',labels:''};
+  // Reference values (e.g. 120/80 mmHg) as quiet solid lines behind the data, so a
+  // reading can be placed without guessing from the axis.
+  const refSVG = refs.map(r=>{ const y = h-pad-((r.v-min)/range)*(h-pad*2);
+    return `<line x1="${padL}" y1="${y}" x2="${w-pad}" y2="${y}" stroke="var(--muted)" stroke-width="1.2" opacity=".55"/>
+      <text x="${w-pad-2}" y="${y-4}" font-size="13" fill="var(--muted)" text-anchor="end">${r.label}</text>`; }).join('');
   return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:${h}px;">
-    ${grid.lines}
+    ${grid.lines}${refSVG}
     <line x1="${padL}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="var(--line)"/>
     ${paths}${grid.labels}${labels}
   </svg>`;
@@ -2549,8 +2579,8 @@ const ILUS_SERIE = (()=>{
 // so they carry an empty alt and stay out of the screen reader.
 function illustratedEmptyHTML(img, key){
   return `<div style="text-align:center;padding:4px 0 6px;">
-    <img class="ilus" src="${ilusSrc(img, ILUS_SERIE)}" alt="" aria-hidden="true" width="800" height="600" loading="lazy" decoding="async" style="display:block;width:100%;max-width:360px;height:auto;margin:0 auto 12px;">
-    <div class="display" style="font-size:18px;font-weight:700;margin-bottom:6px;">${tr(key+'_title')}</div>
+    <img class="ilus" src="${ilusSrc(img, ILUS_SERIE)}" alt="" aria-hidden="true" width="800" height="600" loading="lazy" decoding="async" style="display:block;width:100%;max-width:260px;height:auto;margin:0 auto 12px;">
+    <div class="title-warm" style="font-size:19px;margin-bottom:6px;">${tr(key+'_title')}</div>
     <div style="font-size:13px;color:var(--muted);line-height:1.5;max-width:340px;margin:0 auto;">${tr(key+'_sub')}</div>
   </div>`;
 }
@@ -2565,7 +2595,7 @@ function hoyEmptyIllustrationHTML(){
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
       <img class="ilus" src="${ilusSrc('hoy-vacio', ILUS_SERIE)}" alt="" aria-hidden="true" width="800" height="600" decoding="async" style="display:block;width:104px;height:auto;flex:none;">
       <div style="min-width:0;">
-        <div class="display" style="font-size:16px;font-weight:700;margin-bottom:4px;">${tr('hoy_empty_title')}</div>
+        <div class="title-warm" style="font-size:17px;margin-bottom:4px;">${tr('hoy_empty_title')}</div>
         <div style="font-size:12.5px;color:var(--muted);line-height:1.45;">${tr('hoy_empty_sub')}</div>
       </div>
     </div>
@@ -2613,6 +2643,8 @@ function renderHoy(){
   // would only repeat "0" under the strip, and a big "0" read as the vitality score.
   // Weight doesn't count toward vitality, so a weight-only day still shows the tiles.
   const emptyDay = vScore==null && d.weight==null;
+  // One ring per screen (UI/UX review, 2026-10-18): Vitality keeps its ring; the day's
+  // calories and food/water/exercise goals are bars on every platform, as iOS had.
   return `
   <div class="stack grid-desktop">
     ${vScore==null ? hoyEmptyIllustrationHTML() : ''}
@@ -2654,7 +2686,7 @@ function renderHoy(){
       }
       <div id="insight-error" style="font-size:11px;color:var(--danger);margin-top:6px;"></div>
     </div>` : ''}
-    ${emptyDay ? '' : `${ringFree ? `
+    ${emptyDay ? '' : `
     <div class="card dial-wrap" style="align-items:stretch;padding:18px 20px;">
       <div style="text-align:center;">
         <div class="display" id="dial-cal-num" style="font-size:30px;font-weight:700;">${animateHoy?0:calEaten}</div>
@@ -2666,22 +2698,7 @@ function renderHoy(){
         { label:tr('legend_ejercicio'), value:`${exMin} / ${g.exerciseGoal} min`, pct:exMin/g.exerciseGoal, color:'var(--accent2)' },
       ], animateHoy)}
     </div>
-    ` : `
-    <div class="card dial-wrap">
-      <div style="position:relative;width:168px;height:168px;display:flex;align-items:center;justify-content:center;">
-        ${dialSVG(calEaten/g.calorieGoal, d.water/g.waterGoal, exMin/g.exerciseGoal, undefined, undefined, animateHoy)}
-        <div style="position:absolute;text-align:center;">
-          <div class="display" id="dial-cal-num" style="font-size:30px;font-weight:700;">${animateHoy?0:calEaten}</div>
-        </div>
-      </div>
-      <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;">${tr('hoy_de')} ${g.calorieGoal} kcal</div>
-      <div class="legend">
-        <span><span class="dot" style="background:var(--accent);"></span>${tr('legend_comida')}</span>
-        <span><span class="dot" style="background:var(--accent3);"></span>${tr('legend_agua')}</span>
-        <span><span class="dot" style="background:var(--accent2);"></span>${tr('legend_ejercicio')}</span>
-      </div>
-    </div>
-    `}`}
+    `}
     ${weeklyGoalsCard(animateHoy)}
     ${emptyDay ? '' : `<div class="grid4 full-span">
       ${[
@@ -2775,19 +2792,26 @@ function microSums(meals){
     vitaminC: meals.reduce((s,m)=>s+(Number(m.vitaminC)||0),0),
   };
 }
+// Meals store an unknown micronutrient as 0 (every add path does `||0`), so a total
+// of exactly 0 means "no food said", not "0 mg". One rule everywhere -- Hoy, Comidas,
+// Calendario, Nutrición, Patrones and the PDF -- so the same day never reads as both
+// "no data" and "Sodio 0 mg" (UI/UX review, 2026-10-18).
+function microKnown(meals){
+  return Object.fromEntries(Object.entries(microSums(meals)).map(([k,v])=>[k, v>0 ? v : null]));
+}
 function microRow(label, value, unit){
   return `<div class="row-item" style="padding:8px 10px;">
     <span style="font-size:12px;color:var(--muted);">${label}</span>
-    <span class="display" style="font-size:13px;font-weight:700;">${value}${unit}</span>
+    <span class="display" style="font-size:13px;font-weight:700;">${value==null ? '<span style="color:var(--muted);font-weight:400;">—</span>' : value+unit}</span>
   </div>`;
 }
 function microCard(meals){
-  const s = microSums(meals);
+  const s = microKnown(meals);
   return `<div class="card">
-    <div class="label" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:${state.microOpen?'10px':'0'};" onclick="toggleMicroOpen()">
+    <button type="button" class="label disclosure" aria-expanded="${!!state.microOpen}" style="display:flex;align-items:center;justify-content:space-between;width:100%;min-height:44px;background:none;border:0;padding:0;cursor:pointer;text-align:left;margin-bottom:${state.microOpen?'10px':'0'};" onclick="toggleMicroOpen()">
       <span>${tr('micro_title')}</span>
-      <span style="font-size:20px;color:var(--muted);">${state.microOpen?'▾':'▸'}</span>
-    </div>
+      <span aria-hidden="true" style="font-size:20px;color:var(--muted);">${state.microOpen?'▾':'▸'}</span>
+    </button>
     ${state.microOpen ? `
     <div class="grid2" style="gap:8px;">
       ${microRow(tr('micro_fibra'), s.fiber, 'g')}
@@ -2838,7 +2862,7 @@ function renderComidas(){
       </div>
       <div style="display:flex;gap:8px;margin-bottom:6px;">
         <input id="meal-cal" type="number" placeholder="kcal" style="flex:1;min-width:0;">
-        <button class="btn btn-primary" id="est-btn" onclick="handleEstimate()">${navIcon('sparkle',14)}${tr('comidas_estimar')}</button>
+        <button class="btn btn-ghost" id="est-btn" style="border-color:var(--accent);color:var(--accent-ink);" onclick="handleEstimate()">${navIcon('sparkle',14)}${tr('comidas_estimar')}</button>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:8px;">
         <button class="btn btn-ghost" style="flex:1;min-width:0;" onclick="openScanner()">${navIcon('camara',14)}${tr('comidas_escanear_corto')}</button>
@@ -2867,18 +2891,17 @@ function renderComidas(){
         <span>${tr('comidas_carb')} ${macroSums(d.meals).carbs}g</span>
         <span>${tr('comidas_grasa')} ${macroSums(d.meals).fat}g</span>
       </div>
-      <div style="display:flex;gap:12px;margin-bottom:12px;font-size:11px;color:var(--muted);">
-        <span>${tr('comidas_fibra')} ${microSums(d.meals).fiber}g</span>
-        <span>${tr('comidas_azucar')} ${microSums(d.meals).sugar}g</span>
-        <span>${tr('comidas_sodio')} ${microSums(d.meals).sodium}mg</span>
-      </div>` : ''}
+      ${(()=>{ const mk = microKnown(d.meals);
+        const parts = [['comidas_fibra',mk.fiber,'g'],['comidas_azucar',mk.sugar,'g'],['comidas_sodio',mk.sodium,'mg']].filter(x=>x[1]!=null);
+        return parts.length ? `<div style="display:flex;gap:12px;margin-bottom:12px;font-size:11px;color:var(--muted);">${parts.map(([k,v,u])=>`<span>${tr(k)} ${v}${u}</span>`).join('')}</div>` : '<div style="margin-bottom:8px;"></div>';
+      })()}` : ''}
       ${d.meals.length===0 ? illustratedEmptyHTML('comidas-vacio','comidas_empty') :
         groups.filter(g=>g.items.length).map(g=>{
           const sub = g.items.reduce((s,m)=>s+(Number(m.calories)||0),0);
           const isTop = sub===maxSub && maxSub>0;
           return `<div style="margin-bottom:16px;">
             <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-              <span style="font-size:12px;font-weight:700;color:${isTop?'var(--accent-ink)':'var(--text)'};display:inline-flex;align-items:center;gap:5px;">${navIcon(g.ic,13)}${tr('meal_'+g.id)} ${isTop?'🔥':''}</span>
+              <span style="font-size:12px;font-weight:700;color:${isTop?'var(--accent-ink)':'var(--text)'};display:inline-flex;align-items:center;gap:5px;">${navIcon(g.ic,13)}${tr('meal_'+g.id)}</span>
               <span style="font-size:12px;color:${isTop?'var(--accent-ink)':'var(--muted)'};">${sub} kcal</span>
             </div>
             <div class="stack" style="gap:8px;">
@@ -3152,12 +3175,12 @@ function renderSalud(){
   <div class="stack">
     <div class="card">
       <div class="label">${tr('salud_presion')}</div>
-      <div style="display:flex;gap:8px;margin-bottom:8px;">
-        <input id="bp-sys" type="number" placeholder="${tr('salud_sistolica')}" style="flex:1;min-width:0;">
-        <input id="bp-dia" type="number" placeholder="${tr('salud_diastolica')}" style="flex:1;min-width:0;">
-        <input id="bp-pulse" type="number" placeholder="${tr('salud_pulso_corto')}" style="flex:1;min-width:0;">
-        <button class="btn btn-primary" onclick="addBP()" aria-label="${esc(tr('aria_agregar_presion'))}">+</button>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:8px;">
+        <div><label for="bp-sys" style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px;">${tr('salud_sistolica')} <span style="opacity:.8;">mmHg</span></label><input id="bp-sys" type="number" inputmode="numeric" placeholder="120" style="width:100%;"></div>
+        <div><label for="bp-dia" style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px;">${tr('salud_diastolica')} <span style="opacity:.8;">mmHg</span></label><input id="bp-dia" type="number" inputmode="numeric" placeholder="80" style="width:100%;"></div>
+        <div><label for="bp-pulse" style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px;">${tr('salud_pulso_corto')} <span style="opacity:.8;">bpm</span></label><input id="bp-pulse" type="number" inputmode="numeric" placeholder="70" style="width:100%;"></div>
       </div>
+      <button class="btn btn-primary" style="width:100%;margin-bottom:12px;" onclick="addBP()">${tr('salud_guardar_lectura')}</button>
       ${d.bp.length===0 ? emptyState('salud', tr('salud_sin_lecturas')) :
         `<div class="stack" style="gap:8px;">${d.bp.map(b=>rowItem(b.systolic+'/'+b.diastolic+' mmHg', b.time, b.pulse?b.pulse+' bpm':'', `removeBP('${b.id}')`, bpBadge(b.systolic,b.diastolic))).join('')}</div>`}
     </div>
@@ -3167,7 +3190,7 @@ function renderSalud(){
         <div class="label" style="margin:0;">${tr('salud_medicamentos_hoy')}</div>
         <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);">
           ${tr('salud_alertas')}
-          <div class="switch ${state.alertsOn?'on':''}" onclick="toggleAlerts()"><div class="knob"></div></div>
+          <button type="button" class="switch ${state.alertsOn?'on':''}" role="switch" aria-checked="${!!state.alertsOn}" aria-label="${esc(tr('salud_alertas'))}" onclick="toggleAlerts()"><span class="knob"></span></button>
         </div>
       </div>
       <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">${tr('salud_alertas_sub')}</div>
@@ -3476,7 +3499,7 @@ function renderComposicionCharts(){
   const isos = Array.from({length:n}).map((_,i)=>isoDaysAgo(n-1-i));
   const exp = window._expandedCompChart;
   // 30 single-letter weekday labels in a row overlap illegibly — thin to every 5th.
-  const axisLabel = (iso,idx) => idx%5===0 ? dayLetter(iso) : '';
+  const axisLabel = (iso,idx) => idx%7===0 ? axisDate(iso) : '';
   // Body comp has 14 fields but most users only ever log a handful of them —
   // showing all 14 as chart cards means scrolling past a dozen identical
   // "not enough data" placeholders to find the ones that actually have data.
@@ -3539,8 +3562,13 @@ function renderCalendario(){
     ${renderDayDetail(state.selectedDate)}
   </div>`;
 }
+// Calendario shows a day as a read-only summary; its add/edit forms appear only after
+// "Edit this day" (UI/UX review, 2026-10-18: the always-open forms made the day look
+// like a second Comidas screen). Picking another day leaves edit mode.
+function setCalEditing(iso){ window._calEditing = iso; render(); }
 function renderDayDetail(iso){
   const d = getDay(iso);
+  const editing = window._calEditing===iso;
   const totalCal = d.meals.reduce((s,m)=>s+(Number(m.calories)||0),0);
   const totalMin = d.exercises.reduce((s,e)=>s+(Number(e.minutes)||0),0);
   const flaggedBP = d.bp.filter(b=>bpCategory(b.systolic,b.diastolic).color==='var(--danger)');
@@ -3550,7 +3578,7 @@ function renderDayDetail(iso){
   </div>` : '';
   return `
   <div class="card">
-    <div class="label" style="text-transform:capitalize;">${formatDateEs(iso)}</div>
+    <div class="label">${formatDateEs(iso)}</div>
     ${flaggedBanner}
     <div class="grid4" style="margin-bottom:16px;">
       ${statTile(navIcon('calorias',14),tr('cal_calorias'), totalCal+' kcal')}
@@ -3558,7 +3586,8 @@ function renderDayDetail(iso){
       ${statTile(navIcon('peso',14),tr('cal_peso'), d.weight?d.weight+' kg':'—')}
       ${statTile(navIcon('sueno',14),tr('cal_sueno'), d.sleepHours?d.sleepHours+' h':'—')}
     </div>
-    <div class="card" style="margin-bottom:16px;">
+    <button class="btn ${editing?'btn-primary':'btn-ghost'}" style="width:100%;margin-bottom:16px;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="setCalEditing(${editing?'null':`'${iso}'`})">${editing ? tr('cal_terminar_edicion') : navIcon('editar',14)+tr('cal_editar_dia')}</button>
+    ${editing ? `<div class="card" style="margin-bottom:16px;">
       <div class="grid2">
         <div>
           <div class="label">${tr('cal_editar_peso')}</div>
@@ -3575,14 +3604,14 @@ function renderDayDetail(iso){
           </div>
         </div>
       </div>
-    </div>
+    </div>` : ''}
     ${d.meals.length ? macroCard(d.meals) : ''}
     ${d.meals.length ? microCard(d.meals) : ''}
     <div class="grid2">
       <div style="min-width:0;">
         <div class="label">${tr('cal_comidas')}</div>
         ${d.meals.length? `<div class="stack" style="gap:6px;margin-bottom:10px;">${d.meals.map(m=>rowItem(m.name, m.time, m.calories+' kcal', `removeMealForDay('${iso}','${m.id}')`, `<button onclick="editMeal('${iso}','${m.id}')" class="btn btn-ghost" style="padding:4px 8px;font-size:11px;">${tr('pm_editar')}</button>`)).join('')}</div>` : `<div style="color:var(--muted);font-size:12px;margin-bottom:10px;">${tr('cal_sin_registros')}</div>`}
-        <select id="cal-meal-type" style="width:100%;margin-bottom:6px;">
+        ${editing ? `<select id="cal-meal-type" style="width:100%;margin-bottom:6px;">
           ${MEAL_TYPES.map(mt=>`<option value="${mt.id}">${tr('meal_'+mt.id)}</option>`).join('')}
         </select>
         <div style="display:flex;gap:6px;margin-bottom:6px;">
@@ -3602,12 +3631,12 @@ function renderDayDetail(iso){
           <input id="cal-meal-c" type="number" placeholder="C(g)" style="flex:1;min-width:0;">
           <input id="cal-meal-f" type="number" placeholder="G(g)" style="flex:1;min-width:0;">
         </div>
-        <button class="btn btn-ghost" style="width:100%;" onclick="addMealForDay('${iso}')">${tr('cal_agregar_comida')}</button>
+        <button class="btn btn-ghost" style="width:100%;" onclick="addMealForDay('${iso}')">${tr('cal_agregar_comida')}</button>` : ''}
       </div>
       <div style="min-width:0;">
         <div class="label">${tr('cal_ejercicio')}</div>
         ${d.exercises.length? `<div class="stack" style="gap:6px;margin-bottom:10px;">${d.exercises.map(e=>rowItem(e.name, [e.time, formatDistanceKm(e.distanceKm, state.lang)].filter(Boolean).join(' · '), e.minutes+' min', `removeExerciseForDay('${iso}','${e.id}')`, hcExerciseBadgeHTML(e))).join('')}</div>` : `<div style="color:var(--muted);font-size:12px;margin-bottom:10px;">${tr('cal_sin_registros')}</div>`}
-        <div style="display:flex;gap:6px;margin-bottom:6px;">
+        ${editing ? `<div style="display:flex;gap:6px;margin-bottom:6px;">
           <div style="flex:2;min-width:0;position:relative;">
             <input id="cal-ex-name" placeholder="${tr('cal_actividad')}" style="width:100%;" autocomplete="off" oninput="onExerciseNameInputForDay()" onfocus="onExerciseNameInputForDay()" onblur="hideExerciseSuggestForDay()">
             <div id="cal-ex-suggest" class="suggest-list" style="display:none;"></div>
@@ -3619,7 +3648,7 @@ function renderDayDetail(iso){
           <input id="cal-ex-cal" type="number" placeholder="${tr('cal_kcal_opc')}" style="flex:1;min-width:0;">
           <input id="cal-ex-km" type="number" step="0.01" min="0" inputmode="decimal" placeholder="${tr('cal_km_opc')}" style="flex:1;min-width:0;">
         </div>
-        <button class="btn btn-ghost" style="width:100%;" onclick="addExerciseForDay('${iso}')">${tr('cal_agregar_ejercicio')}</button>
+        <button class="btn btn-ghost" style="width:100%;" onclick="addExerciseForDay('${iso}')">${tr('cal_agregar_ejercicio')}</button>` : ''}
       </div>
     </div>
     <div class="grid2" style="margin-top:16px;">
@@ -3754,6 +3783,28 @@ function applyRecommendedCalorieGoal(){
   toast(tr('pron_meta_aplicada'));
   render();
 }
+// Progreso groups its charts into Body / Habits / Watch sections that fold, so the
+// screen is no longer a wall of eleven charts (UI/UX review, 2026-10-18). Body starts
+// open; what each person opens or closes is remembered on this device only.
+const PROG_SECTIONS_DEFAULT = { cuerpo:true, habitos:false, reloj:false };
+function progSectionsOpen(){
+  try{ return { ...PROG_SECTIONS_DEFAULT, ...(JSON.parse(localStorage.getItem('vlx:prog-sections')||'{}')) }; }
+  catch(e){ return { ...PROG_SECTIONS_DEFAULT }; }
+}
+function toggleProgSection(key){
+  const open = progSectionsOpen(); open[key] = !open[key];
+  try{ localStorage.setItem('vlx:prog-sections', JSON.stringify(open)); }catch(e){}
+  render();
+}
+function progSectionHTML(key, title, inner){
+  const open = !!progSectionsOpen()[key];
+  return `<div>
+    <button type="button" class="disclosure" aria-expanded="${open}" onclick="toggleProgSection('${key}')" style="display:flex;align-items:center;justify-content:space-between;width:100%;min-height:44px;padding:4px 2px;background:none;border:0;border-bottom:1px solid var(--line);color:var(--text);font:inherit;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:${open?'12px':'0'};">
+      <span>${title}</span><span aria-hidden="true" style="font-size:18px;color:var(--muted);">${open?'▾':'▸'}</span>
+    </button>
+    ${open ? `<div class="grid2">${inner}</div>` : ''}
+  </div>`;
+}
 function renderProgreso(){
   const n = state.progressRange;
   const maWindow = 30;
@@ -3811,7 +3862,7 @@ function renderProgreso(){
   // a 7-day week was the actual bug: labels like "L S J M D V" with no
   // relation to Mon-Sun order, even though the underlying dates were correct).
   const labelStep = n<=7 ? 1 : 7;
-  const axisLabel = (iso,i) => i%labelStep===0 ? dayLetter(iso) : '';
+  const axisLabel = (iso,i) => i%labelStep===0 ? (n<=7 ? dayLetter(iso) : axisDate(iso)) : '';
   const weightPts = isos.map((iso,i)=>({ label:axisLabel(iso,i), v: rawAt(i).weight }));
   const calPts = isos.map((iso,i)=>({ label:axisLabel(iso,i), v: rawAt(i).calories }));
   const exPts = isos.map((iso,i)=>({ label:axisLabel(iso,i), v: rawAt(i).exercise }));
@@ -3840,7 +3891,7 @@ function renderProgreso(){
       <button class="btn btn-ghost" style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;font-size:12px;" onclick="generateHealthReportPDF(30)">${navIcon('exportar',12)}${tr('report_boton')}</button>
     </div>
     <div style="font-size:12px;color:var(--muted);">${tr('nutr_ma30_nota')}</div>
-    <div class="grid2">
+    ${progSectionHTML('cuerpo', tr('prog_sec_cuerpo'), `
       <div class="card expand-card ${pexp('weight')}" onclick="toggleChartExpand('progreso','weight')">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
           <div class="label" style="margin:0;">${tr('hoy_peso')}</div>
@@ -3859,7 +3910,7 @@ function renderProgreso(){
           <div class="label" style="margin:0;">${tr('salud_presion')}</div>
           ${bpSummaryHTML()}
         </div>
-        <div class="chart-box">${multiLineChartSVG(bpPts,[{key:'sys',color:'var(--chart-bp-sys)', ma:sysMA},{key:'dia',color:'var(--chart-bp-dia)', ma:diaMA}],{gridLines:true, gridSteps:isExp('bp')?5:4, unit:'mmHg', h:isExp('bp')?320:150})}</div>
+        <div class="chart-box">${multiLineChartSVG(bpPts,[{key:'sys',color:'var(--chart-bp-sys)', ma:sysMA},{key:'dia',color:'var(--chart-bp-dia)', ma:diaMA}],{gridLines:true, gridSteps:isExp('bp')?5:4, unit:'mmHg', refLines:[{v:120,label:'120'},{v:80,label:'80'}], h:isExp('bp')?320:150})}</div>
         ${todayHCBp.length ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);" onclick="event.stopPropagation()">
           <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">${tr('hc_bp_synced_label')}</div>
           ${todayHCBp.map(r=>`<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:3px 0;">
@@ -3876,18 +3927,8 @@ function renderProgreso(){
         </div>
         <div class="chart-box">${lineChartSVG(pulsePts,{color:'var(--danger)', gridLines:true, gridSteps:isExp('pulse')?5:4, unit:'bpm', maValues:pulseMA, h:isExp('pulse')?320:150})}</div>
       </div>`}
-      <div class="card expand-card ${pexp('steps')}" onclick="toggleChartExpand('progreso','steps')">
-        <div class="label">${tr('hc_steps_label')}</div>
-        <div class="chart-box">${barChartSVG(stepsPts,{color:'var(--chart-steps)', gridLines:true, gridSteps:isExp('steps')?5:4, unit:'pasos', maValues:stepsMA, emptyMsg:tr('chart_no_data_sync'), h:isExp('steps')?320:150})}</div>
-      </div>
-      <div class="card expand-card ${pexp('heartrate')}" onclick="toggleChartExpand('progreso','heartrate')">
-        <div class="label">${tr('hc_heartrate_label')}</div>
-        <div class="chart-box">${lineChartSVG(hrPts,{color:'var(--chart-heartrate)', gridLines:true, gridSteps:isExp('heartrate')?5:4, unit:'bpm', maValues:hrMA, emptyMsg:tr('chart_no_data_sync'), h:isExp('heartrate')?320:150})}</div>
-      </div>
-      <div class="card expand-card ${pexp('spo2')}" onclick="toggleChartExpand('progreso','spo2')">
-        <div class="label">${tr('hc_spo2_label')}</div>
-        <div class="chart-box">${lineChartSVG(spo2Pts,{color:'var(--chart-spo2)', gridLines:true, gridSteps:isExp('spo2')?5:4, unit:'%', maValues:spo2MA, emptyMsg:tr('chart_no_data_sync'), h:isExp('spo2')?320:150})}</div>
-      </div>
+    `)}
+    ${progSectionHTML('habitos', tr('prog_sec_habitos'), `
       <div class="card expand-card ${pexp('calories')}" onclick="toggleChartExpand('progreso','calories')"><div class="label">${trf('prog_calorias_meta',{goal:state.goals.calorieGoal})}</div><div class="chart-box">${barChartSVG(calPts,{color:'var(--accent)',goal:state.goals.calorieGoal, gridLines:true, gridSteps:isExp('calories')?5:4, unit:'kcal', maValues:calMA, h:isExp('calories')?320:150})}</div></div>
       <div class="card expand-card ${pexp('exercise')}" onclick="toggleChartExpand('progreso','exercise')">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
@@ -3908,7 +3949,21 @@ function renderProgreso(){
           <span style="display:flex;align-items:center;gap:6px;font-size:12px;">${todayHCSleep.hours} h<span style="font-size:10px;color:var(--accent2-ink);border:1px solid var(--accent2);border-radius:4px;padding:1px 5px;">${tr('hc_bp_synced_badge')}</span></span>
         </div>` : ''}
       </div>
-    </div>
+    `)}
+    ${progSectionHTML('reloj', tr('prog_sec_reloj'), [stepsPts, hrPts, spo2Pts].some(pts=>pts.some(p=>p.v!=null)) ? `
+      <div class="card expand-card ${pexp('steps')}" onclick="toggleChartExpand('progreso','steps')">
+        <div class="label">${tr('hc_steps_label')}</div>
+        <div class="chart-box">${barChartSVG(stepsPts,{color:'var(--chart-steps)', gridLines:true, gridSteps:isExp('steps')?5:4, unit:'pasos', maValues:stepsMA, emptyMsg:tr('chart_no_data_sync'), h:isExp('steps')?320:150})}</div>
+      </div>
+      <div class="card expand-card ${pexp('heartrate')}" onclick="toggleChartExpand('progreso','heartrate')">
+        <div class="label">${tr('hc_heartrate_label')}</div>
+        <div class="chart-box">${lineChartSVG(hrPts,{color:'var(--chart-heartrate)', gridLines:true, gridSteps:isExp('heartrate')?5:4, unit:'bpm', maValues:hrMA, emptyMsg:tr('chart_no_data_sync'), h:isExp('heartrate')?320:150})}</div>
+      </div>
+      <div class="card expand-card ${pexp('spo2')}" onclick="toggleChartExpand('progreso','spo2')">
+        <div class="label">${tr('hc_spo2_label')}</div>
+        <div class="chart-box">${lineChartSVG(spo2Pts,{color:'var(--chart-spo2)', gridLines:true, gridSteps:isExp('spo2')?5:4, unit:'%', maValues:spo2MA, emptyMsg:tr('chart_no_data_sync'), h:isExp('spo2')?320:150})}</div>
+      </div>
+    ` : `<div class="card full-span" style="font-size:13px;color:var(--muted);line-height:1.5;">${tr('prog_reloj_vacio')}</div>`)}
     ${renderPatternsCard()}
   </div>`;
 }
@@ -3952,7 +4007,7 @@ function computePatternData(days){
     // default (a genuine rest day, or a day with no water logged, is a real value).
     const hasMeals = d.meals.length>0;
     const macros = hasMeals ? macroSums(d.meals) : null;
-    const micros = hasMeals ? microSums(d.meals) : null;
+    const micros = hasMeals ? microKnown(d.meals) : null;
     // Health Connect weight/sleep only fill in a day the user never logged by hand —
     // a real manual entry always wins, never gets overwritten or averaged with synced
     // data. This is read-time only (unlike hc:day:*'s complete isolation elsewhere,
@@ -4119,8 +4174,7 @@ function nutricionChartData(){
     // "none" from "not known". A whole day of meals adding up to exactly 0 mg of
     // sodium is "unknown", not a real reading -- that flat zero misread as a value
     // in a health app (UI/UX review, 2026-10-16).
-    const knownMicro = (sums) => Object.fromEntries(Object.entries(sums).map(([k,v])=>[k, v>0 ? v : null]));
-    return hasMeals ? { ...macroSums(d.meals), ...knownMicro(microSums(d.meals)) } : {
+    return hasMeals ? { ...macroSums(d.meals), ...microKnown(d.meals) } : {
       protein:null, carbs:null, fat:null, fiber:null, sugar:null, sodium:null,
       iron:null, calcium:null, potassium:null, vitaminC:null,
     };
@@ -4152,7 +4206,7 @@ function nutricionChartData(){
   // a 7-day week was the actual bug: labels like "L S J M D V" with no
   // relation to Mon-Sun order, even though the underlying dates were correct).
   const labelStep = n<=7 ? 1 : 7;
-  const axisLabel = (iso,i) => i%labelStep===0 ? dayLetter(iso) : '';
+  const axisLabel = (iso,i) => i%labelStep===0 ? (n<=7 ? dayLetter(iso) : axisDate(iso)) : '';
   const macroPts = isos.map((iso,i)=>{
     const r = rawByDaysAgo[n-1-i];
     return { label:axisLabel(iso,i), protein:r.protein, carbs:r.carbs, fat:r.fat };
@@ -4607,7 +4661,7 @@ function modalHTML(){
         <div style="margin-bottom:16px;">
           ${HIDEABLE_MODULES.map(id=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;">
             <span style="font-size:13px;">${tr('nav_'+id)}</span>
-            <div class="switch ${!isModuleHidden(id)?'on':''}" onclick="toggleModuleVisibility('${id}')"><div class="knob"></div></div>
+            <button type="button" class="switch ${!isModuleHidden(id)?'on':''}" role="switch" aria-checked="${!isModuleHidden(id)}" aria-label="${esc(tr('nav_'+id))}" onclick="toggleModuleVisibility('${id}')"><span class="knob"></span></button>
           </div>`).join('')}
         </div>
         <button class="btn btn-ghost" style="width:100%;margin-bottom:8px;" onclick="replayAppTour()">${tr('set_replay_tour_button')}</button>
@@ -4625,7 +4679,7 @@ function modalHTML(){
         <div class="label">${tr('daily_reminder_title')}</div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
           <div style="font-size:11px;color:var(--muted);flex:1;padding-right:10px;">${tr('daily_reminder_sub')}</div>
-          <div class="switch ${state.dailyReminder.on?'on':''}" onclick="toggleDailyReminder()"><div class="knob"></div></div>
+          <button type="button" class="switch ${state.dailyReminder.on?'on':''}" role="switch" aria-checked="${!!state.dailyReminder.on}" aria-label="${esc(tr('daily_reminder_title'))}" onclick="toggleDailyReminder()"><span class="knob"></span></button>
         </div>
         ${state.dailyReminder.on ? `<div style="margin-top:10px;margin-bottom:16px;">
           <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('daily_reminder_time_label')}</div>
@@ -4798,7 +4852,7 @@ function modalHTML(){
       // Sized by screen height so the sign-in and Next buttons still fit on short phones.
       body = `
         <img class="ilus" src="${ilusSrc('bienvenida', ILUS_SERIE)}" alt="" aria-hidden="true" width="720" height="900" decoding="async" style="display:block;height:min(250px,26vh);width:auto;margin:0 auto 14px;">
-        <div class="display" style="font-weight:700;font-size:18px;margin-bottom:6px;">${tr('welcome_title')}</div>
+        <div class="title-warm" style="font-size:20px;margin-bottom:6px;">${tr('welcome_title')}</div>
         <div style="font-size:13px;color:var(--muted);margin-bottom:18px;">${tr('welcome_subtitle')}</div>
         ${!(window._syncState && window._syncState.user) ? `
         <div class="label">${tr('welcome_signin_title')}</div>
@@ -6185,7 +6239,7 @@ function shiftMonth(dir){
   state.calMonth = { y, m };
   render();
 }
-function selectCalDate(iso){ state.selectedDate = iso; render(); }
+function selectCalDate(iso){ state.selectedDate = iso; window._calEditing = null; render(); }
 
 function mutateDay(iso, fn){
   if(iso===todayISO()){
@@ -6713,7 +6767,10 @@ function buildReportData(days){
   const macroTotals = macroSums(allMeals);
   const microTotals = microSums(allMeals);
   const avgMacros = { protein:round1(macroTotals.protein/mealDayCount), carbs:round1(macroTotals.carbs/mealDayCount), fat:round1(macroTotals.fat/mealDayCount) };
-  const avgMicros = Object.fromEntries(Object.entries(microTotals).map(([k,v])=>[k, round1(v/mealDayCount)]));
+  const avgMicros = Object.fromEntries(Object.keys(microTotals).map(k=>{
+    const vals = rows.filter(r=>r.meals.length).map(r=>microKnown(r.meals)[k]).filter(v=>v!=null);
+    return [k, vals.length ? round1(vals.reduce((a,b)=>a+b,0)/vals.length) : null];
+  }));
 
   const totalExMin = rows.reduce((s,r)=>s+r.exMin,0);
   const totalExCal = rows.reduce((s,r)=>s+r.exCal,0);
@@ -6983,10 +7040,10 @@ function buildHealthReportDoc(days){
   ];
   doc.autoTable(Object.assign({}, tableTheme, { startY:y, head:[[tr('macro_title'), tr('report_col_valor')]], body:macroRows, tableWidth:CW*0.48 }));
   const microRows = [
-    [tr('micro_fibra'), `${data.micros.fiber} g`], [tr('micro_azucar'), `${data.micros.sugar} g`],
-    [tr('micro_sodio'), `${data.micros.sodium} mg`], [tr('micro_hierro'), `${data.micros.iron} mg`],
-    [tr('micro_calcio'), `${data.micros.calcium} mg`], [tr('micro_potasio'), `${data.micros.potassium} mg`],
-    [tr('micro_vitc'), `${data.micros.vitaminC} mg`],
+    [tr('micro_fibra'), (data.micros.fiber==null ? '—' : `${data.micros.fiber} g`)], [tr('micro_azucar'), (data.micros.sugar==null ? '—' : `${data.micros.sugar} g`)],
+    [tr('micro_sodio'), (data.micros.sodium==null ? '—' : `${data.micros.sodium} mg`)], [tr('micro_hierro'), (data.micros.iron==null ? '—' : `${data.micros.iron} mg`)],
+    [tr('micro_calcio'), (data.micros.calcium==null ? '—' : `${data.micros.calcium} mg`)], [tr('micro_potasio'), (data.micros.potassium==null ? '—' : `${data.micros.potassium} mg`)],
+    [tr('micro_vitc'), (data.micros.vitaminC==null ? '—' : `${data.micros.vitaminC} mg`)],
   ];
   doc.autoTable(Object.assign({}, tableTheme, { startY:y, head:[[tr('micro_title'), tr('report_col_valor')]], body:microRows, tableWidth:CW*0.48, margin:{left:MX+CW*0.52,right:MX} }));
   y = Math.max(doc.lastAutoTable.finalY, y) + 24;

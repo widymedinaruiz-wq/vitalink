@@ -39,12 +39,15 @@ test('the ring-free progress drawings contain no circles or arcs', () => {
 
 test('every ring in the Hoy screen sits in the non-iOS branch', () => {
   const iosBranches = [...html.matchAll(/\$\{ringFree \? `([\s\S]*?)` : `/g)].map((m) => m[1]);
-  assert.equal(iosBranches.length, 2, 'expected the vitality score and the food/water/exercise card');
+  assert.equal(iosBranches.length, 1, 'expected the vitality score');
   for (const b of iosBranches) {
     assert.doesNotMatch(b, /<circle|dialSVG\(/);
   }
   const weekly = fnSource('weeklyGoalsCard');
   assert.match(weekly, /ringFreeUI\(\) \? dayBarsHTML\([^)]*\) : dialSVG\(/);
+  // Hoy's calorie card is bars on every platform since the 2026-10-18 review (one ring
+  // per screen), so the only dial left is the weekly goals card's non-iOS branch.
+  assert.doesNotMatch(fnSource('renderHoy'), /dialSVG\(/);
   const callers = html.split('dialSVG(').length - 1;
-  assert.equal(callers, 3, 'dialSVG is defined once and called from the two non-iOS branches');
+  assert.equal(callers, 2, 'dialSVG is defined once and called from the weekly card only');
 });
