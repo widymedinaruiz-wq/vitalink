@@ -32,6 +32,9 @@
   :root{
     --bg:#0E2723; --surface:#153934; --raised:#1B453F; --line:#2A5049;
     --accent:#F2A65A; --accent2:#90D161; --accent3:#7FC8B0;
+    /* The accents as text colour. Same as the accents on dark; darker on light,
+       where the fill tones are only ~3.2-4:1 on the cream ground (2026-10-18). */
+    --accent-ink:var(--accent); --accent2-ink:var(--accent2); --accent3-ink:var(--accent3);
     --text:#EFF6F2; --muted:#8FB2A8; --danger:#F07070;
     /* Status/severity scale (score-based: good/warn/bad) — kept deliberately
        separate from the 3 accents above, which are reserved for fixed
@@ -79,7 +82,7 @@
   @media (prefers-color-scheme: light){
     :root:not([data-theme="dark"]){
       --bg:#F7F4EE; --surface:#FFFFFF; --raised:#EFEDE6; --line:#E3DED3;
-      --accent:#C9731D; --accent2:#4A8421; --accent3:#358D6F;
+      --accent:#C9731D; --accent2:#4A8421; --accent3:#358D6F; --accent-ink:#9A520F; --accent2-ink:#3C6F19; --accent3-ink:#28705A;
       --text:#132A25; --muted:#55716A; --danger:#C2352B;
       --status-good:#358D4E; --status-warn:#8F6A00;
       --macro-protein:#6C3DB8; --macro-carbs:#B03B8F; --macro-fat:#325AAE;
@@ -91,7 +94,7 @@
   }
   :root[data-theme="light"]{
     --bg:#F7F4EE; --surface:#FFFFFF; --raised:#EFEDE6; --line:#E3DED3;
-    --accent:#C9731D; --accent2:#4A8421; --accent3:#358D6F;
+    --accent:#C9731D; --accent2:#4A8421; --accent3:#358D6F; --accent-ink:#9A520F; --accent2-ink:#3C6F19; --accent3-ink:#28705A;
     --text:#132A25; --muted:#55716A; --danger:#C2352B;
     --status-good:#358D4E; --status-warn:#8F6A00;
     --macro-protein:#6C3DB8; --macro-carbs:#B03B8F; --macro-fat:#325AAE;
@@ -123,11 +126,12 @@
   /* Illustrations are bright morning scenes; on the dark theme they read as a lamp
      left on. Dimmed slightly there, untouched on light (UI/UX review, 2026-10-16). */
   .ilus{filter:brightness(.86) saturate(.9);}
+  .meal-more summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);padding:6px 0;min-height:32px;list-style-position:inside;}
   @media (prefers-color-scheme: light){ :root:not([data-theme="dark"]) .ilus{filter:none;} }
   :root[data-theme="light"] .ilus{filter:none;}
   .label{font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:10px;}
   .info-btn{background:none;border:1px solid var(--line);color:var(--muted);border-radius:99px;width:24px;height:24px;min-width:24px;font-size:12px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;text-transform:none;letter-spacing:normal;}
-  .info-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .info-btn:hover{border-color:var(--accent);color:var(--accent-ink);}
   /* min-height (not a padding bump) so this only raises buttons that were
      genuinely short (Estimar/Guardar/etc. measured at 34-38px in the audit) —
      anything already taller from its own content (icon+label buttons) is
@@ -143,7 +147,7 @@
   .suggest-item{padding:8px 10px;font-size:14px;cursor:pointer;}
   .suggest-item:hover{background:var(--surface);}
   .pill{border-radius:12px;border:1px solid var(--line);background:var(--raised);padding:9px 4px;text-align:center;cursor:pointer;font-size:11px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:4px;}
-  .pill.active{border-color:var(--accent);background:rgba(242,166,90,.12);color:var(--accent);font-weight:700;}
+  .pill.active{border-color:var(--accent);background:rgba(242,166,90,.12);color:var(--accent-ink);font-weight:700;}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
   .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
   .grid-icons{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:6px;}
@@ -183,7 +187,7 @@
   nav.side .brand .owner{font-family:'Inter',sans-serif;font-size:12px;font-weight:500;color:var(--muted);margin-top:2px;}
   nav.side .brand-logo{width:36px;height:36px;flex-shrink:0;}
   nav.side .navbtn{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:12px;color:var(--muted);cursor:pointer;font-size:14px;margin-bottom:2px;}
-  nav.side .navbtn.active{background:var(--raised);color:var(--accent);font-weight:700;}
+  nav.side .navbtn.active{background:var(--raised);color:var(--accent-ink);font-weight:700;}
   nav.side .navbtn .ic{font-size:16px;width:20px;text-align:center;}
   .ic-svg{width:19px;height:19px;flex-shrink:0;display:block;}
   .ic-svg path,.ic-svg circle,.ic-svg rect{fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;}
@@ -195,7 +199,7 @@
   main header .sub{color:var(--muted);font-size:13px;text-transform:capitalize;}
 
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);width:calc(100vw - 32px);max-width:420px;margin:0;padding:12px 14px;padding-bottom:calc(12px + env(safe-area-inset-bottom));background:rgba(214,64,58,.14);border:1px solid var(--danger);border-radius:10px;color:var(--danger);font-size:13px;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,.35);}
-  .toast.ok{background:rgba(127,200,176,.15);border-color:var(--accent3);color:var(--accent3);}
+  .toast.ok{background:rgba(127,200,176,.15);border-color:var(--accent3);color:var(--accent3-ink);}
 
   .dial-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;padding:14px 0;}
   .legend{display:flex;gap:16px;}
@@ -216,14 +220,14 @@
      are already well above this from their own content; only the label-only
      uses (gender pills, measured at 34px) were actually short. */
   .meal-type-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 4px;border-radius:12px;border:1px solid var(--line);background:var(--raised);cursor:pointer;font-size:10px;color:var(--muted);min-height:44px;}
-  .meal-type-btn.active{border-color:var(--accent);background:rgba(242,166,90,.12);color:var(--accent);font-weight:700;}
+  .meal-type-btn.active{border-color:var(--accent);background:rgba(242,166,90,.12);color:var(--accent-ink);font-weight:700;}
 
   .wheel-wrap{position:relative;}
   .wheel-row{display:flex;gap:8px;}
   .wheel-col{flex:1;min-width:0;height:220px;overflow-y:auto;scroll-snap-type:y mandatory;scrollbar-width:none;padding:88px 0;}
   .wheel-col::-webkit-scrollbar{display:none;}
   .wheel-item{height:44px;display:flex;align-items:center;justify-content:center;scroll-snap-align:center;font-size:14px;color:var(--muted);cursor:pointer;transition:color .15s,font-size .15s;}
-  .wheel-item.selected{color:var(--accent);font-weight:700;font-size:16px;}
+  .wheel-item.selected{color:var(--accent-ink);font-weight:700;font-size:16px;}
   .wheel-highlight{position:absolute;left:0;right:0;top:88px;height:44px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:color-mix(in srgb, var(--accent) 8%, transparent);pointer-events:none;border-radius:6px;}
 
   .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
@@ -232,7 +236,7 @@
   .cal-day.has-data::after{content:'';width:5px;height:5px;border-radius:99px;background:var(--accent);position:absolute;bottom:6px;}
   .cal-day.has-data.flagged::after{background:var(--danger);width:6px;height:6px;}
   .cal-day.selected{border-color:var(--accent);background:rgba(242,166,90,.15);}
-  .cal-day.today{color:var(--accent2);font-weight:700;}
+  .cal-day.today{color:var(--accent2-ink);font-weight:700;}
   .cal-dow{text-align:center;font-size:10px;color:var(--muted);}
 
   .chart-box{width:100%;overflow-x:auto;}
@@ -556,7 +560,7 @@ const I18N = {
     hoy_metas_titulo:'Tus metas diarias', hoy_ultimos_7_dias:'Últimos 7 días',
     comidas_tipo:'Tipo de comida', comidas_agregar_a:'Agregar a', comidas_placeholder:'Ej. "lata atún 6oz", "plátano mediano"',
     comidas_descripcion_requerida:'Escribe qué comiste antes de agregar',
-    comidas_estimar:'Estimar', comidas_escanear:'Escanear código de barras',
+    comidas_estimar:'Estimar', comidas_escanear:'Escanear código de barras', comidas_escanear_corto:'Escanear', comidas_mas_detalles:'Más detalles: proteína, carbohidratos y grasas',
     meal_edit_title:'Editar comida', meal_actualizado:'Comida actualizada',
     foto_boton:'Foto (beta)', foto_titulo:'Calorías por foto',
     foto_plato_pregunta:'¿Qué tipo de plato es?',
@@ -797,7 +801,7 @@ const I18N = {
     nav_composicion:'Body Comp', nav_calendario:'Calendar', nav_progreso:'Progress',
     nav_nutricion:'Nutrition', nav_pronostico:'Forecast',
     nav_ajustes:'Settings', nav_exportar:'Export', nav_importar:'Import',
-    meal_desayuno:'Breakfast', meal_merienda:'Afternoon snack', meal_almuerzo:'Mid-morning snack', meal_comida:'Lunch', meal_cena:'Dinner',
+    meal_desayuno:'Breakfast', meal_merienda:'PM snack', meal_almuerzo:'AM snack', meal_comida:'Lunch', meal_cena:'Dinner',
     ejtipo_correr:'Running', ejtipo_bici:'Cycling', ejtipo_nadar:'Swimming', ejtipo_eliptica:'Elliptical', ejtipo_andar:'Walking',
     ejtipo_senderismo:'Hiking', ejtipo_golf:'Golf', ejtipo_biciEstatica:'Stationary Bike', ejtipo_yoga:'Yoga', ejtipo_pilates:'Pilates',
     ejtipo_pesas:'Weights', ejtipo_remo:'Rowing',
@@ -907,7 +911,7 @@ const I18N = {
     hoy_metas_titulo:'Your daily goals', hoy_ultimos_7_dias:'Last 7 days',
     comidas_tipo:'Meal type', comidas_agregar_a:'Add to', comidas_placeholder:'E.g. "6oz tuna can", "medium banana"',
     comidas_descripcion_requerida:'Write down what you ate before adding',
-    comidas_estimar:'Estimate', comidas_escanear:'Scan barcode',
+    comidas_estimar:'Estimate', comidas_escanear:'Scan barcode', comidas_escanear_corto:'Scan', comidas_mas_detalles:'More details: protein, carbs and fat',
     meal_edit_title:'Edit meal', meal_actualizado:'Meal updated',
     foto_boton:'Photo (beta)', foto_titulo:'Calories from photo',
     foto_plato_pregunta:'What type of plate is this?',
@@ -1549,7 +1553,7 @@ function birthWheelHTML(){
         ${wheelColHTML('year', years, w.yearIdx)}
       </div>
     </div>
-    <div id="birth-age-display" style="font-size:11px;color:var(--accent3);margin-top:8px;text-align:center;min-height:14px;">${birthAgeDisplayHTML()}</div>`;
+    <div id="birth-age-display" style="font-size:11px;color:var(--accent3-ink);margin-top:8px;text-align:center;min-height:14px;">${birthAgeDisplayHTML()}</div>`;
 }
 function restoreWheelScroll(){
   const w = window._birthDateWheel;
@@ -1620,7 +1624,7 @@ function savedProfileSummaryHTML(){
     bits.push(`${d} ${monthLabels()[m-1].slice(0,3)} ${y} — ${trf('pron_edad',{n:ageFromBirthDate(cfg.birthDate)})}`);
   }
   if(cfg.gender) bits.push(tr(cfg.gender==='m'?'pron_hombre':cfg.gender==='f'?'pron_mujer':'pron_otro'));
-  return `<div style="font-size:11px;color:var(--accent3);margin:-6px 0 14px;display:flex;align-items:center;gap:6px;">${navIcon('logrado',13)}<span>${tr('pron_guardado')}: ${bits.join(' · ')}</span></div>`;
+  return `<div style="font-size:11px;color:var(--accent3-ink);margin:-6px 0 14px;display:flex;align-items:center;gap:6px;">${navIcon('logrado',13)}<span>${tr('pron_guardado')}: ${bits.join(' · ')}</span></div>`;
 }
 function normalizeFoodKey(s){ return String(s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' '); }
 function rekeyByLabel(raw, getLabel){
@@ -2116,7 +2120,7 @@ function fillMealFromBarcode(product){
   if(!nameEl) return;
   nameEl.value = product.label;
   document.getElementById('meal-cal').value = product.calories;
-  document.getElementById('meal-p').value = product.protein;
+  document.getElementById('meal-p').value = product.protein; revealMealMacros();
   document.getElementById('meal-c').value = product.carbs;
   document.getElementById('meal-f').value = product.fat;
   window._pendingMicros = { key: normalizeFoodKey(product.label), data: product };
@@ -2338,7 +2342,7 @@ function weeklyGoalsCard(animate){
     const isToday = d.iso===todayISO();
     return `<div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1 1 auto;max-width:56px;min-width:0;">
       ${ringFreeUI() ? dayBarsHTML(calPct, waterPct, exPct, animate) : dialSVG(calPct, waterPct, exPct, 44, true, animate)}
-      <span style="font-size:11px;color:${isToday?'var(--accent)':'var(--muted)'};font-weight:${isToday?'700':'400'};">${dayLetter(d.iso)}</span>
+      <span style="font-size:11px;color:${isToday?'var(--accent-ink)':'var(--muted)'};font-weight:${isToday?'700':'400'};">${dayLetter(d.iso)}</span>
     </div>`;
   }).join('');
   const avgStat = (color,label,pct)=>`<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;">
@@ -2350,9 +2354,9 @@ function weeklyGoalsCard(animate){
     <div style="font-size:11px;color:var(--muted);margin-bottom:18px;">${tr('hoy_ultimos_7_dias')}</div>
     <div style="display:flex;justify-content:space-between;align-items:flex-start;">${dials}</div>
     <div style="display:flex;justify-content:space-between;gap:6px;margin-top:18px;padding-top:14px;border-top:1px solid var(--line);">
-      ${avgStat('var(--accent3)', tr('legend_agua'), waterSum)}
-      ${avgStat('var(--accent2)', tr('legend_ejercicio'), exSum)}
-      ${avgStat('var(--accent)', tr('legend_comida'), calSum)}
+      ${avgStat('var(--accent3-ink)', tr('legend_agua'), waterSum)}
+      ${avgStat('var(--accent2-ink)', tr('legend_ejercicio'), exSum)}
+      ${avgStat('var(--accent-ink)', tr('legend_comida'), calSum)}
     </div>
   </div>`;
 }
@@ -2692,7 +2696,7 @@ function renderHoy(){
     <div class="card full-span">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">
         <div class="label" style="margin:0;">${tr('hoy_agua_gota_titulo')} <span style="font-weight:400;">· ${trf('hoy_agua_gota_nota',{unit:waterUnitLabel(g.waterUnitMl||DEFAULT_GOALS.waterUnitMl)})}</span></div>
-        <span class="display" style="font-size:13px;color:var(--accent3);font-weight:700;">${d.water} L</span>
+        <span class="display" style="font-size:13px;color:var(--accent3-ink);font-weight:700;">${d.water} L</span>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
         ${(()=>{
@@ -2823,8 +2827,8 @@ function renderComidas(){
   <div class="stack">
     <div class="card">
       <div class="label">${tr('comidas_tipo')}</div>
-      <div class="grid4" style="margin-bottom:14px;">
-        ${MEAL_TYPES.map(mt=>`<div class="meal-type-btn ${activeType===mt.id?'active':''}" onclick="setMealType('${mt.id}')">
+      <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-bottom:14px;">
+        ${MEAL_TYPES.map(mt=>`<div class="meal-type-btn ${activeType===mt.id?'active':''}" style="padding:8px 2px;" onclick="setMealType('${mt.id}')">
           ${navIcon(mt.ic, 20)}<span>${tr('meal_'+mt.id)}</span></div>`).join('')}
       </div>
       <div class="label">${tr('comidas_agregar_a')} ${tr('meal_'+activeType).toLowerCase()}</div>
@@ -2836,22 +2840,27 @@ function renderComidas(){
         <input id="meal-cal" type="number" placeholder="kcal" style="flex:1;min-width:0;">
         <button class="btn btn-primary" id="est-btn" onclick="handleEstimate()">${navIcon('sparkle',14)}${tr('comidas_estimar')}</button>
       </div>
-      <button class="btn btn-ghost" style="width:100%;margin-bottom:8px;" onclick="openScanner()">${navIcon('camara',14)}${tr('comidas_escanear')}</button>
-      <button class="btn btn-ghost" style="width:100%;margin-bottom:8px;" onclick="openMealPhotoFlow()">${navIcon('camara',14)}${tr('foto_boton')}</button>
-      <div id="meal-note" style="font-size:11px;color:var(--accent3);margin-bottom:8px;"></div>
-      <div class="grid4" style="margin-bottom:10px;">
-        <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('comidas_prot_g')}</div><input id="meal-p" type="number" placeholder="0" style="width:100%;"></div>
-        <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('comidas_carb_g')}</div><input id="meal-c" type="number" placeholder="0" style="width:100%;"></div>
-        <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('comidas_grasa_g')}</div><input id="meal-f" type="number" placeholder="0" style="width:100%;"></div>
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <button class="btn btn-ghost" style="flex:1;min-width:0;" onclick="openScanner()">${navIcon('camara',14)}${tr('comidas_escanear_corto')}</button>
+        <button class="btn btn-ghost" style="flex:1;min-width:0;" onclick="openMealPhotoFlow()">${navIcon('camara',14)}${tr('foto_boton')}</button>
       </div>
-      <button class="btn btn-primary" style="width:100%;" onclick="addMeal()">${tr('btn_agregar')}</button>
+      <div id="meal-note" style="font-size:11px;color:var(--accent3-ink);margin-bottom:8px;"></div>
+      <details id="meal-more" class="meal-more" ${window._mealMoreOpen?'open':''} ontoggle="window._mealMoreOpen=this.open">
+        <summary>${tr('comidas_mas_detalles')}</summary>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0 4px;">
+          <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px;">${tr('comidas_prot_g')}</div><input id="meal-p" type="number" placeholder="0" style="width:100%;"></div>
+          <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px;">${tr('comidas_carb_g')}</div><input id="meal-c" type="number" placeholder="0" style="width:100%;"></div>
+          <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px;">${tr('comidas_grasa_g')}</div><input id="meal-f" type="number" placeholder="0" style="width:100%;"></div>
+        </div>
+      </details>
+      <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="addMeal()">${tr('btn_agregar')}</button>
     </div>
     <button class="btn btn-ghost" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="openPersonalMealBuilder()">${navIcon('sparkle',14)}${tr('pm_boton_crear')}</button>
     <button class="btn btn-ghost" style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="openFoodsManager()">${navIcon('editar',14)}${tr('foods_boton_abrir')}</button>
     <div class="card">
       <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
         <div class="label">${tr('comidas_hoy')}</div>
-        <span class="display" style="color:var(--accent);font-weight:700;font-size:13px;">${total} kcal</span>
+        <span class="display" style="color:var(--accent-ink);font-weight:700;font-size:13px;">${total} kcal</span>
       </div>
       ${d.meals.length ? `<div style="display:flex;gap:12px;margin-bottom:4px;font-size:11px;color:var(--muted);">
         <span>${tr('comidas_prot')} ${macroSums(d.meals).protein}g</span>
@@ -2869,8 +2878,8 @@ function renderComidas(){
           const isTop = sub===maxSub && maxSub>0;
           return `<div style="margin-bottom:16px;">
             <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-              <span style="font-size:12px;font-weight:700;color:${isTop?'var(--accent)':'var(--text)'};display:inline-flex;align-items:center;gap:5px;">${navIcon(g.ic,13)}${tr('meal_'+g.id)} ${isTop?'🔥':''}</span>
-              <span style="font-size:12px;color:${isTop?'var(--accent)':'var(--muted)'};">${sub} kcal</span>
+              <span style="font-size:12px;font-weight:700;color:${isTop?'var(--accent-ink)':'var(--text)'};display:inline-flex;align-items:center;gap:5px;">${navIcon(g.ic,13)}${tr('meal_'+g.id)} ${isTop?'🔥':''}</span>
+              <span style="font-size:12px;color:${isTop?'var(--accent-ink)':'var(--muted)'};">${sub} kcal</span>
             </div>
             <div class="stack" style="gap:8px;">
               ${g.items.map(m=>rowItem(m.name, (m.protein||m.carbs||m.fat)?`${m.time} · P${m.protein}g C${m.carbs}g G${m.fat}g`:m.time, m.calories+' kcal', `removeMeal('${m.id}')`, `<button onclick="editMeal('${todayISO()}','${m.id}')" class="btn btn-ghost" style="padding:4px 8px;font-size:11px;">${tr('pm_editar')}</button>`)).join('')}
@@ -3030,7 +3039,7 @@ function renderPersonalMealBuilder(){
         <button class="btn btn-primary" id="pmc-est-btn" onclick="handlePMEstimate()">${navIcon('sparkle',14)}${tr('comidas_estimar')}</button>
       </div>
       <button class="btn btn-ghost" style="width:100%;margin-bottom:8px;" onclick="openScanner('pm')">${navIcon('camara',14)}${tr('comidas_escanear')}</button>
-      <div id="pmc-note" style="font-size:11px;color:var(--accent3);margin-bottom:8px;"></div>
+      <div id="pmc-note" style="font-size:11px;color:var(--accent3-ink);margin-bottom:8px;"></div>
       <div class="grid4" style="margin-bottom:10px;">
         <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('comidas_prot_g')}</div><input id="pmc-p" type="number" placeholder="0" style="width:100%;"></div>
         <div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('comidas_carb_g')}</div><input id="pmc-c" type="number" placeholder="0" style="width:100%;"></div>
@@ -3127,7 +3136,7 @@ function renderEjercicio(){
     <div class="card">
       <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
         <div class="label">${tr('comidas_hoy')}</div>
-        <span class="display" style="color:var(--accent2);font-weight:700;font-size:13px;">${totalMin} min${totalKm>0 ? ' · '+formatDistanceKm(totalKm, state.lang) : ''}</span>
+        <span class="display" style="color:var(--accent2-ink);font-weight:700;font-size:13px;">${totalMin} min${totalKm>0 ? ' · '+formatDistanceKm(totalKm, state.lang) : ''}</span>
       </div>
       ${d.exercises.length===0 ? illustratedEmptyHTML('ejercicio-vacio','ejercicio_empty') :
         `<div class="stack" style="gap:8px;">${d.exercises.map(e=>rowItem(e.name, [e.time, e.minutes+' min', formatDistanceKm(e.distanceKm, state.lang)].filter(Boolean).join(' · '), e.calories?e.calories+' kcal':'', `removeExercise('${e.id}')`, hcExerciseBadgeHTML(e))).join('')}</div>`}
@@ -3429,7 +3438,7 @@ function renderComposicion(){
       </div>
       ${state.bodyCompFormOpen ? `
         ${groupedBodyCompFields().map((g,gi)=>`
-          <div style="font-size:13px;font-weight:600;color:var(--accent3);margin:${gi===0?'0':'16px'} 0 8px;">${tr('comp_group_'+g.groupKey)}</div>
+          <div style="font-size:13px;font-weight:600;color:var(--accent3-ink);margin:${gi===0?'0':'16px'} 0 8px;">${tr('comp_group_'+g.groupKey)}</div>
           <div class="grid2" style="gap:10px;margin-bottom:12px;">
             ${g.fields.map(f=>`<div><div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${tr('bc_'+f.key)}${f.unit?' ('+bcUnit(f)+')':''}</div><input id="bc-${f.key}" type="number" step="0.1" style="width:100%;"></div>`).join('')}
           </div>`).join('')}
@@ -3587,7 +3596,7 @@ function renderDayDetail(iso){
           <input id="cal-meal-cal" type="number" placeholder="kcal" style="flex:1;min-width:0;">
           <button class="btn btn-primary" id="cal-est-btn" onclick="handleEstimateForDay()">${navIcon('sparkle',14)}${tr('comidas_estimar')}</button>
         </div>
-        <div id="cal-meal-note" style="font-size:11px;color:var(--accent3);margin-bottom:6px;"></div>
+        <div id="cal-meal-note" style="font-size:11px;color:var(--accent3-ink);margin-bottom:6px;"></div>
         <div style="display:flex;gap:6px;margin-bottom:6px;">
           <input id="cal-meal-p" type="number" placeholder="P(g)" style="flex:1;min-width:0;">
           <input id="cal-meal-c" type="number" placeholder="C(g)" style="flex:1;min-width:0;">
@@ -3649,7 +3658,7 @@ function weightSummaryHTML(pts){
     const offTrack = (needLoss && movingGain) || (needGain && movingLoss);
     color = onTrack ? 'var(--status-good)' : offTrack ? 'var(--danger)' : 'var(--text)';
     goalLine = Math.abs(dist)<0.05
-      ? `<div style="font-size:10px;color:var(--accent3);display:flex;align-items:center;gap:4px;">${navIcon('logrado',12)}${tr('cal_en_meta')}</div>`
+      ? `<div style="font-size:10px;color:var(--accent3-ink);display:flex;align-items:center;gap:4px;">${navIcon('logrado',12)}${tr('cal_en_meta')}</div>`
       : `<div style="font-size:10px;color:var(--muted);">${dist>0?tr('cal_faltan'):tr('cal_sobran')} ${Math.abs(dist).toFixed(1)} ${tr('cal_para_meta')}</div>`;
   }
   return `<div style="text-align:right;">
@@ -3840,7 +3849,7 @@ function renderProgreso(){
         <div class="chart-box">${lineChartSVG(weightPts,{color:'var(--chart-weight)', gridLines:true, gridSteps:isExp('weight')?5:4, unit:'kg', maValues:weightMA, h:isExp('weight')?320:150})}</div>
         ${todayHCWeight ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;" onclick="event.stopPropagation()">
           <span style="font-size:11px;color:var(--muted);">${tr('hc_bp_synced_label')}</span>
-          <span style="display:flex;align-items:center;gap:6px;font-size:12px;">${todayHCWeight.kg} kg<span style="font-size:10px;color:var(--accent2);border:1px solid var(--accent2);border-radius:4px;padding:1px 5px;">${tr('hc_bp_synced_badge')}</span></span>
+          <span style="display:flex;align-items:center;gap:6px;font-size:12px;">${todayHCWeight.kg} kg<span style="font-size:10px;color:var(--accent2-ink);border:1px solid var(--accent2);border-radius:4px;padding:1px 5px;">${tr('hc_bp_synced_badge')}</span></span>
         </div>` : ''}
         ${weightPts.filter(p=>p.v!=null).length>=2 ? `<button class="btn btn-ghost" style="width:100%;margin-top:10px;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="event.stopPropagation();shareWeightProgress()">${navIcon('exportar',14)}${tr('share_boton')}</button>` : ''}
       </div>
@@ -3856,7 +3865,7 @@ function renderProgreso(){
           ${todayHCBp.map(r=>`<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:3px 0;">
             <span style="color:var(--muted);">${esc(r.time)}</span>
             <span>${r.systolic}/${r.diastolic} mmHg</span>
-            <span style="font-size:10px;color:var(--accent2);border:1px solid var(--accent2);border-radius:4px;padding:1px 5px;">${tr('hc_bp_synced_badge')}</span>
+            <span style="font-size:10px;color:var(--accent2-ink);border:1px solid var(--accent2);border-radius:4px;padding:1px 5px;">${tr('hc_bp_synced_badge')}</span>
           </div>`).join('')}
         </div>` : ''}
       </div>
@@ -3896,7 +3905,7 @@ function renderProgreso(){
         <div class="chart-box">${barChartSVG(sleepPts,{color:'var(--chart-sleep)', gridLines:true, gridSteps:isExp('sleep')?5:4, unit:'h', maValues:sleepMA, h:isExp('sleep')?320:150})}</div>
         ${todayHCSleep ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;" onclick="event.stopPropagation()">
           <span style="font-size:11px;color:var(--muted);">${tr('hc_bp_synced_label')}</span>
-          <span style="display:flex;align-items:center;gap:6px;font-size:12px;">${todayHCSleep.hours} h<span style="font-size:10px;color:var(--accent2);border:1px solid var(--accent2);border-radius:4px;padding:1px 5px;">${tr('hc_bp_synced_badge')}</span></span>
+          <span style="display:flex;align-items:center;gap:6px;font-size:12px;">${todayHCSleep.hours} h<span style="font-size:10px;color:var(--accent2-ink);border:1px solid var(--accent2);border-radius:4px;padding:1px 5px;">${tr('hc_bp_synced_badge')}</span></span>
         </div>` : ''}
       </div>
     </div>
@@ -4244,9 +4253,9 @@ function renderPronostico(){
   const calorieRecCard = recCalories ? `
   <div class="card">
     <div class="label">${tr('pron_meta_calorica_rec')}</div>
-    <div style="font-size:12px;color:var(--accent2);font-weight:700;margin-bottom:10px;">${tr('pron_direccion_'+recCalories.direction)}</div>
+    <div style="font-size:12px;color:var(--accent2-ink);font-weight:700;margin-bottom:10px;">${tr('pron_direccion_'+recCalories.direction)}</div>
     <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px;">
-      <span class="display" style="font-size:28px;font-weight:700;color:var(--accent);">${recCalories.goal}</span>
+      <span class="display" style="font-size:28px;font-weight:700;color:var(--accent-ink);">${recCalories.goal}</span>
       <span style="font-size:12px;color:var(--muted);">${tr('pron_kcal_dia')}</span>
     </div>
     ${recCalories.direction!=='maintain' ? `<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">${tr('pron_mantenimiento')}: ${recCalories.tdee} ${tr('pron_kcal_dia')}</div>` : ''}
@@ -4299,7 +4308,7 @@ function renderPronostico(){
         </div>
         <div style="text-align:center;padding:14px 0;">
           <div class="display" style="font-size:15px;color:var(--muted);margin-bottom:4px;">${tr('pron_tiempo_estimado')}</div>
-          <div class="display" style="font-size:32px;font-weight:700;color:var(--accent);">${weeks<1?Math.round(forecast.daysNeeded)+' '+tr('prog_dias'):weeks.toFixed(1)+' '+tr('pron_semanas')}</div>
+          <div class="display" style="font-size:32px;font-weight:700;color:var(--accent-ink);">${weeks<1?Math.round(forecast.daysNeeded)+' '+tr('prog_dias'):weeks.toFixed(1)+' '+tr('pron_semanas')}</div>
           <div style="font-size:12px;color:var(--muted);margin-top:6px;">${tr('pron_fecha_estimada')} ${forecast.etaDate.toLocaleDateString(state.lang==='en'?'en-US':'es-ES',{day:'numeric',month:'long',year:'numeric'})}</div>
         </div>
         <div style="font-size:11px;color:var(--muted);text-align:center;">${trf('pron_ritmo_estimado',{rate:(weeklyRate>0?'+':'')+weeklyRate.toFixed(2), method:methodLabel})}</div>
@@ -4369,7 +4378,7 @@ function rowItem(left, sub, right, onDelete, badge){
 }
 function hcExerciseBadgeHTML(e){
   if(e.source!=='healthconnect') return '';
-  return `<span style="font-size:10px;color:var(--accent2);border:1px solid var(--accent2);border-radius:4px;padding:1px 5px;">${tr('hc_ex_synced_badge')}</span>`;
+  return `<span style="font-size:10px;color:var(--accent2-ink);border:1px solid var(--accent2);border-radius:4px;padding:1px 5px;">${tr('hc_ex_synced_badge')}</span>`;
 }
 // Curated labels for the handful of most common Health Connect workout types (so the
 // common case reads naturally translated); the other ~90 WorkoutType values fall back
@@ -4411,7 +4420,7 @@ function plusSectionHTML(){
   if(p.plan === 'plus'){
     const until = p.planExpiresAt ? new Date(p.planExpiresAt).toLocaleDateString(state.lang==='en'?'en-US':'es-ES') : '';
     return `<div>
-      <div style="font-size:12px;color:var(--accent3);font-weight:700;margin-bottom:4px;">✨ ${tr('plus_active_label')}</div>
+      <div style="font-size:12px;color:var(--accent3-ink);font-weight:700;margin-bottom:4px;">✨ ${tr('plus_active_label')}</div>
       ${until?`<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">${trf('plus_renews_on',{date:until})}</div>`:''}
       <a href="${manageUrl}" target="_blank" class="btn btn-ghost" style="width:100%;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;">${tr('plus_manage_subscription')}</a>
     </div>`;
@@ -4451,7 +4460,7 @@ function healthConnectSectionHTML(){
     </div>`;
   };
   return `<div>
-    <div style="font-size:12px;color:var(--accent3);font-weight:700;margin-bottom:4px;">✅ ${tr('hc_connected_label')}</div>
+    <div style="font-size:12px;color:var(--accent3-ink);font-weight:700;margin-bottom:4px;">✅ ${tr('hc_connected_label')}</div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">${meta.lastSyncAt?trf('hc_last_sync',{time:lastSync}):tr('hc_last_sync_never')}</div>
     <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:${state.hcScopesOpen?'6px':'10px'};" onclick="toggleHcScopesOpen()">
       <span style="font-size:11px;color:var(--muted);">${tr('hc_scopes_toggle')}</span>
@@ -4664,7 +4673,7 @@ function modalHTML(){
               <span style="font-size:22px;">${p.icon}</span><span>${esc(tr(p.labelKey))}</span><span style="opacity:.7;">${p.meta}</span>
             </div>`).join('')}
           </div>
-          <div id="foto-fork-nota" style="display:none;font-size:12px;color:var(--accent3);background:rgba(242,166,90,.1);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:12px;">${esc(tr('foto_fork_nota'))}</div>
+          <div id="foto-fork-nota" style="display:none;font-size:12px;color:var(--accent3-ink);background:rgba(242,166,90,.1);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:12px;">${esc(tr('foto_fork_nota'))}</div>
           <button class="btn btn-primary" id="foto-plate-continue" disabled style="width:100%;margin-top:14px;" onclick="fotoGoToCapture()">${tr('foto_continuar')}</button>
           <button class="btn btn-ghost" style="width:100%;margin-top:8px;" onclick="closeMealPhotoModal()">${tr('set_cancelar')}</button>
         </div>
@@ -4700,7 +4709,7 @@ function modalHTML(){
           </div>
           <div id="foto-manual-err" style="color:var(--danger);font-size:12px;margin-top:6px;min-height:1em;"></div>
           <div class="card" style="background:var(--raised);text-align:center;margin:14px 0;padding:14px;">
-            <div style="font-size:24px;font-weight:800;color:var(--accent);" id="foto-total">0 kcal</div>
+            <div style="font-size:24px;font-weight:800;color:var(--accent-ink);" id="foto-total">0 kcal</div>
             <div style="font-size:11px;color:var(--muted);">${tr('foto_total')}</div>
           </div>
           <button class="btn btn-primary" style="width:100%;" onclick="confirmarFotoItems()">${tr('foto_confirmar')}</button>
@@ -4796,7 +4805,7 @@ function modalHTML(){
         <button class="btn btn-primary" style="width:100%;margin-bottom:6px;" onclick="firebaseSignIn()">${navIcon('login',14)}${tr('welcome_signin_button')}</button>
         ${appleSignInButtonHTML()}
         <div style="font-size:11px;color:var(--muted);margin-bottom:16px;">${tr('welcome_signin_note')}</div>` : `
-        <div style="font-size:12px;color:var(--accent2);margin-bottom:16px;">✅ ${esc(window._syncState.user.email)}</div>`}
+        <div style="font-size:12px;color:var(--accent2-ink);margin-bottom:16px;">✅ ${esc(window._syncState.user.email)}</div>`}
       `;
     } else if(step===1){
       body = `
@@ -4875,7 +4884,7 @@ function modalHTML(){
           <input type="checkbox" onchange="document.getElementById('export-pass-1').type=this.checked?'text':'password';document.getElementById('export-pass-2').type=this.checked?'text':'password';">
           ${tr('export_passphrase_show')}
         </label>
-        <div style="font-size:11px;color:var(--accent);line-height:1.5;margin-bottom:12px;">${tr('export_passphrase_warning')}</div>
+        <div style="font-size:11px;color:var(--accent-ink);line-height:1.5;margin-bottom:12px;">${tr('export_passphrase_warning')}</div>
         <div id="export-pass-error" style="font-size:11px;color:var(--danger);margin-bottom:8px;"></div>
         <div style="display:flex;gap:8px;">
           <button class="btn btn-ghost" style="flex:1;" onclick="closeExportPassphraseModal()">${tr('set_cancelar')}</button>
@@ -5257,6 +5266,14 @@ function runHoyEntranceAnimation(){
   }
 }
 function setMealType(t){ window._mealType=t; render(); }
+// Comidas' add form keeps protein/carbs/fat folded under "More details" (UI/UX
+// review, 2026-10-16: the full form pushed everything else down). Anything that
+// fills those fields opens the section, so a filled value is never hidden.
+function revealMealMacros(){
+  window._mealMoreOpen = true;
+  const el = document.getElementById('meal-more');
+  if(el) el.open = true;
+}
 function setRange(r){ state.progressRange=r; LS.set('vl:progressRange', r); render(); }
 function setNutritionRange(r){ state.nutritionRange=r; render(); }
 
@@ -5290,7 +5307,7 @@ function checkCacheHint(){
   const pm = findPersonalMealByName(name);
   if(pm){
     document.getElementById('meal-cal').value = pm.totals.calories;
-    document.getElementById('meal-p').value = pm.totals.protein;
+    document.getElementById('meal-p').value = pm.totals.protein; revealMealMacros();
     document.getElementById('meal-c').value = pm.totals.carbs;
     document.getElementById('meal-f').value = pm.totals.fat;
     window._pendingMicros = { key: normalizeFoodKey(name), data: pm.totals };
@@ -5301,7 +5318,7 @@ function checkCacheHint(){
   const hit = cache[normalizeFoodKey(name)];
   if(hit){
     document.getElementById('meal-cal').value = hit.calories;
-    document.getElementById('meal-p').value = hit.protein;
+    document.getElementById('meal-p').value = hit.protein; revealMealMacros();
     document.getElementById('meal-c').value = hit.carbs;
     document.getElementById('meal-f').value = hit.fat;
     window._pendingMicros = { key: normalizeFoodKey(name), data: hit };
@@ -5334,7 +5351,7 @@ function onMealNameInput(){
   if(!box || !nameEl) return;
   const items = mealOrPersonalSuggestions(nameEl.value);
   if(!items.length){ box.style.display='none'; box.innerHTML=''; return; }
-  box.innerHTML = items.map(e=>`<div class="suggest-item" data-label="${esc(e.label)}" onmousedown="pickMealSuggest(this)">${esc(e.label)}${e.isPersonal?` <span style="color:var(--accent2);">★</span>`:''}</div>`).join('');
+  box.innerHTML = items.map(e=>`<div class="suggest-item" data-label="${esc(e.label)}" onmousedown="pickMealSuggest(this)">${esc(e.label)}${e.isPersonal?` <span style="color:var(--accent2-ink);">★</span>`:''}</div>`).join('');
   box.style.display = 'block';
 }
 function pickMealSuggest(el){
@@ -5382,7 +5399,7 @@ function onMealNameInputForDay(){
   if(!box || !nameEl) return;
   const items = mealOrPersonalSuggestions(nameEl.value);
   if(!items.length){ box.style.display='none'; box.innerHTML=''; return; }
-  box.innerHTML = items.map(e=>`<div class="suggest-item" data-label="${esc(e.label)}" onmousedown="pickMealSuggestForDay(this)">${esc(e.label)}${e.isPersonal?` <span style="color:var(--accent2);">★</span>`:''}</div>`).join('');
+  box.innerHTML = items.map(e=>`<div class="suggest-item" data-label="${esc(e.label)}" onmousedown="pickMealSuggestForDay(this)">${esc(e.label)}${e.isPersonal?` <span style="color:var(--accent2-ink);">★</span>`:''}</div>`).join('');
   box.style.display = 'block';
 }
 function pickMealSuggestForDay(el){
@@ -5401,7 +5418,7 @@ async function handleEstimate(){
   const pm = findPersonalMealByName(name);
   if(pm){
     document.getElementById('meal-cal').value = pm.totals.calories;
-    document.getElementById('meal-p').value = pm.totals.protein;
+    document.getElementById('meal-p').value = pm.totals.protein; revealMealMacros();
     document.getElementById('meal-c').value = pm.totals.carbs;
     document.getElementById('meal-f').value = pm.totals.fat;
     window._pendingMicros = { key: normalizeFoodKey(name), data: pm.totals };
@@ -5412,7 +5429,7 @@ async function handleEstimate(){
   const hit = cache[normalizeFoodKey(name)];
   if(hit){
     document.getElementById('meal-cal').value = hit.calories;
-    document.getElementById('meal-p').value = hit.protein;
+    document.getElementById('meal-p').value = hit.protein; revealMealMacros();
     document.getElementById('meal-c').value = hit.carbs;
     document.getElementById('meal-f').value = hit.fat;
     window._pendingMicros = { key: normalizeFoodKey(name), data: hit };
@@ -5426,7 +5443,7 @@ async function handleEstimate(){
     const shared = await lookupSharedFoodSafe(normalizeFoodKey(name));
     if(shared){
       document.getElementById('meal-cal').value = shared.calories;
-      document.getElementById('meal-p').value = shared.protein ?? 0;
+      document.getElementById('meal-p').value = shared.protein ?? 0; revealMealMacros();
       document.getElementById('meal-c').value = shared.carbs ?? 0;
       document.getElementById('meal-f').value = shared.fat ?? 0;
       window._pendingMicros = { key: normalizeFoodKey(name), data: shared };
@@ -5436,7 +5453,7 @@ async function handleEstimate(){
     }
     const r = await estimateNutrition(name);
     document.getElementById('meal-cal').value = r.calories;
-    document.getElementById('meal-p').value = r.protein ?? 0;
+    document.getElementById('meal-p').value = r.protein ?? 0; revealMealMacros();
     document.getElementById('meal-c').value = r.carbs ?? 0;
     document.getElementById('meal-f').value = r.fat ?? 0;
     window._pendingMicros = { key: normalizeFoodKey(name), data: r };
@@ -5473,6 +5490,7 @@ function addMeal(){
   state.day.meals.push(meal);
   if(meal.calories>0 && !findPersonalMealByName(name)) rememberNutrition(name, meal);
   window._pendingMicros = null;
+  window._mealMoreOpen = false;
   clearFormDraft('meal-');
   saveDay(); render();
 }
