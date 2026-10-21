@@ -8,9 +8,9 @@
 <link rel="stylesheet" href="/assets/fonts.css">
 <style>
   :root{
-    --bg:#0E2723; --surface:#153934; --raised:#1B453F; --line:#2A5049;
-    --accent:#F2A65A; --accent2:#E8C468; --accent3:#7FC8B0;
-    --text:#EFF6F2; --muted:#8FB2A8; --danger:#E07A5F;
+    --bg:#F7F4EE; --surface:#FFFFFF; --raised:#EFEDE6; --line:#E3DED3;
+    --accent:#C9731D; --accent2:#8F6A00; --accent3:#28705A;
+    --text:#132A25; --muted:#55716A; --danger:#C2352B;
   }
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;line-height:1.65;}
@@ -24,7 +24,7 @@
   .brand span{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;}
   .lang-toggle{display:flex;gap:6px;}
   .lang-toggle button{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px;border:1px solid var(--line);background:var(--raised);color:var(--muted);padding:7px 14px;border-radius:8px;cursor:pointer;}
-  .lang-toggle button.active{background:var(--accent);color:#12241f;border-color:var(--accent);}
+  .lang-toggle button.active{background:var(--accent);color:#0A1512;border-color:var(--accent);}
   h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(26px,4.5vw,34px);font-weight:700;margin:0 0 10px;}
   .meta{font-size:13px;color:var(--muted);}
   h2{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;margin:40px 0 12px;color:var(--accent3);}
@@ -37,7 +37,7 @@
   .steps{list-style:none;margin:0 0 12px;padding:0;counter-reset:step;}
   .steps li{counter-increment:step;position:relative;padding:0 0 12px 34px;font-size:14.5px;}
   .steps li::before{content:counter(step);position:absolute;left:0;top:-1px;width:22px;height:22px;border-radius:50%;background:var(--raised);border:1px solid var(--line);color:var(--accent3);font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;}
-  .btn{display:inline-block;background:var(--accent);color:#12241f;font-weight:700;text-decoration:none;padding:11px 20px;border-radius:10px;font-family:'Space Grotesk',sans-serif;}
+  .btn{display:inline-block;background:var(--accent);color:#0A1512;font-weight:700;text-decoration:none;padding:11px 20px;border-radius:10px;font-family:'Space Grotesk',sans-serif;}
   code{font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:.9em;background:var(--raised);padding:1px 6px;border-radius:5px;color:var(--accent3);}
   footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);}
   footer a{color:var(--accent3);}
@@ -56,9 +56,10 @@
             <mask id="bo" maskUnits="userSpaceOnUse" x="0" y="0" width="120" height="120"><rect width="120" height="120" fill="white"/><circle cx="77.32" cy="50" r="34.641" fill="none" stroke="black" stroke-width="16"/></mask>
             <mask id="by" maskUnits="userSpaceOnUse" x="0" y="0" width="120" height="120"><rect width="120" height="120" fill="white"/><circle cx="42.68" cy="50" r="34.641" fill="none" stroke="black" stroke-width="16"/></mask>
           </defs>
-          <circle cx="77.32" cy="50" r="34.641" fill="none" stroke="var(--accent3)" stroke-width="10" mask="url(#bt)"/>
-          <circle cx="42.68" cy="50" r="34.641" fill="none" stroke="var(--accent)" stroke-width="10" mask="url(#bo)"/>
-          <circle cx="60" cy="80" r="34.641" fill="none" stroke="var(--accent2)" stroke-width="10" mask="url(#by)"/>
+          <rect width="120" height="120" rx="26" fill="#0E2723"/>
+          <circle cx="77.32" cy="50" r="34.641" fill="none" stroke="#7FC8B0" stroke-width="10" mask="url(#bt)"/>
+          <circle cx="42.68" cy="50" r="34.641" fill="none" stroke="#F2A65A" stroke-width="10" mask="url(#bo)"/>
+          <circle cx="60" cy="80" r="34.641" fill="none" stroke="#E8C468" stroke-width="10" mask="url(#by)"/>
         </svg>
         <span>VitaLinks</span>
       </div>

@@ -1,19 +1,12 @@
-/* Landing page for vitalinks.eu. Palette and type follow the brand guide: dark is the
-   default, light is the alternate; the three accents keep their category meaning
-   (food / exercise / water). */
+/* Landing page for vitalinks.eu. Always light (Widy, 2026-10-21): the same warm cream
+   neutrals as the app's light theme, so the page reads like the app it shows instead of
+   the old dark green. The three accents keep their category meaning (food / exercise /
+   water) and are the contrast-checked light inks: 4.6:1 or better on --bg. */
 :root{
-  --bg:#0E2723; --surface:#153934; --raised:#1B453F; --line:#2A5049;
-  --food:#F2A65A; --exercise:#90D161; --water:#7FC8B0;
-  --text:#EFF6F2; --muted:#8FB2A8; --on-accent:#2B1A05;
-  color-scheme:dark;
-}
-@media (prefers-color-scheme: light){
-  :root{
-    --bg:#F4F7F5; --surface:#FFFFFF; --raised:#EAF0EE; --line:#D5DFDB;
-    --food:#A85A0C; --exercise:#3F7519; --water:#2A7A5E;
-    --text:#132A25; --muted:#55716A; --on-accent:#FFFFFF;
-    color-scheme:light;
-  }
+  --bg:#F7F4EE; --surface:#FFFFFF; --raised:#EFEDE6; --line:#E3DED3;
+  --food:#A85A0C; --exercise:#3F7519; --water:#2A7A5E;
+  --text:#132A25; --muted:#55716A; --on-accent:#FFFFFF;
+  color-scheme:light;
 }
 *{box-sizing:border-box}
 /* The hero glow reaches past the column; this keeps it from making the page scroll sideways. */
